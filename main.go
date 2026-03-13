@@ -48,7 +48,7 @@ func run() (err error) {
 		return
 	}
 
-	registerAuthRoutes(t, auth)
+	registerAuthRoutes(t, auth, pool)
 
 	err = t.Run()
 
