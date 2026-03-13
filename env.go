@@ -11,13 +11,15 @@ func wrapEnv(k string) func() (string, error) {
 		if ok {
 			return v, nil
 		}
-		return "", fmt.Errorf("Required environment variable %q not defined", k)
+		return "", fmt.Errorf(
+			"Required environment variable %q not defined", k)
 	}
 }
 
 var (
 	// Auth
-	JwtSecretKey = wrapEnv("PV_API_SECRET")
+	JwtSecretKey  = wrapEnv("PV_API_SECRET")
+	SecureCookies = wrapEnv("PV_API_SECURE_COOKIE")
 
 	// Database
 	DBHost = wrapEnv("PV_API_DB_HOST")

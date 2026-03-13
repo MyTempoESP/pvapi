@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -22,6 +23,11 @@ type login struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type register struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 type AuthUser struct {
 	UserID int
 }
@@ -33,6 +39,17 @@ var (
 func generateJwtInitParams(
 	pool *pgxpool.Pool,
 ) (*jwtg.GinJWTMiddleware, error) {
+	// whether or not to enable secure cookies
+	secureCookie := false
+	secureCookieSetting, err := SecureCookies()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if secureCookieSetting == "yes" {
+		secureCookie = true
+	}
 
 	secret, err := JwtSecretKey()
 
@@ -47,6 +64,11 @@ func generateJwtInitParams(
 		MaxRefresh:  time.Hour * 24 * 7,
 		IdentityKey: identityKey,
 		PayloadFunc: withUser,
+
+		SendCookie:     true,
+		SecureCookie:   secureCookie,
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteStrictMode,
 
 		IdentityHandler: retrieveUser,
 		Authenticator:   authenticator(pool),
@@ -143,7 +165,63 @@ func retrieveUser(c *gin.Context) any {
 	}
 }
 
-func registerAuthRoutes(t *gin.Engine, handle *jwtg.GinJWTMiddleware) {
+func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var r register
+
+		err := c.ShouldBind(&r)
+
+		if err != nil {
+			c.AbortWithStatusJSON(
+				http.StatusBadRequest,
+				gin.H{
+					"status":  false,
+					"message": err.Error(), //FIXME:debug (error leak)
+				})
+			return
+		}
+
+		userEmail := r.Email
+		userPassword := r.Password
+
+		passwordHash, err := bcrypt.GenerateFromPassword(
+			[]byte(userPassword), 12,
+		)
+
+		// TODO: Check error type, password too long etc.
+		if err != nil {
+			abortWithInternalError(c, err)
+			return
+		}
+
+		err = pgx.BeginFunc(
+			context.Background(),
+			pool,
+			func(tx pgx.Tx) error {
+				_, err := tx.Exec(
+					context.Background(),
+					userRegisterQuery,
+					userEmail, passwordHash,
+				)
+				return err
+			},
+		)
+
+		if err != nil {
+			abortWithInternalError(c, err)
+			return
+		}
+
+		c.JSON(200, gin.H{"message": "Successfully registered"})
+	}
+}
+
+func registerAuthRoutes(
+	t *gin.Engine,
+	handle *jwtg.GinJWTMiddleware,
+	pool *pgxpool.Pool,
+) {
 	t.POST("/login", handle.LoginHandler)
 	t.POST("/refresh", handle.RefreshHandler)
+	t.POST("/register", authRegistrator(pool))
 }
