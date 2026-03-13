@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	jwtg "github.com/appleboy/gin-jwt/v3"
@@ -29,7 +30,7 @@ type register struct {
 }
 
 type AuthUser struct {
-	UserID int
+	UserID string
 }
 
 var (
@@ -137,8 +138,10 @@ func authenticator(pool *pgxpool.Pool) AuthFn {
 			return nil, jwtg.ErrFailedAuthentication
 		}
 
+		stringUserID := strconv.Itoa(userID)
+
 		return &AuthUser{
-			UserID: userID,
+			UserID: stringUserID,
 		}, nil
 	}
 }
@@ -161,7 +164,7 @@ func retrieveUser(c *gin.Context) any {
 
 	return &AuthUser{
 		// fetch username from identity key
-		UserID: claims[identityKey].(int),
+		UserID: claims[identityKey].(string),
 	}
 }
 

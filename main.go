@@ -12,8 +12,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	if err := run(); err != nil {
-		logger.Error(
-			"The API encountered a fatal error", slog.String("error", err.Error()))
+		logger.Error("The API encountered a fatal error", "error", err)
 		os.Exit(1)
 	}
 }
@@ -49,6 +48,11 @@ func run() (err error) {
 	}
 
 	registerAuthRoutes(t, auth, pool)
+
+	logout := t.Group("/logout", auth.MiddlewareFunc())
+	{
+		logout.GET("", auth.LogoutHandler)
+	}
 
 	err = t.Run()
 
