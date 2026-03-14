@@ -1,32 +1,33 @@
-package main
+package db
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/env"
 )
 
 func buildDBUrl() (url string, err error) {
 	var host, port, user, pass, base string
 
-	if host, err = DBHost(); err != nil {
+	if host, err = env.DBHost(); err != nil {
 		return
 	}
 
-	if port, err = DBPort(); err != nil {
+	if port, err = env.DBPort(); err != nil {
 		return
 	}
 
-	if user, err = DBUser(); err != nil {
+	if user, err = env.DBUser(); err != nil {
 		return
 	}
 
-	if pass, err = DBPass(); err != nil {
+	if pass, err = env.DBPass(); err != nil {
 		return
 	}
 
-	if base, err = DBBase(); err != nil {
+	if base, err = env.DBBase(); err != nil {
 		return
 	}
 
@@ -38,7 +39,7 @@ func buildDBUrl() (url string, err error) {
 	return
 }
 
-func dbNewPool() (pool *pgxpool.Pool, err error) {
+func NewPool() (pool *pgxpool.Pool, err error) {
 	var url string
 
 	url, err = buildDBUrl()

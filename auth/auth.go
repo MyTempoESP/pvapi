@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"context"
@@ -10,6 +10,9 @@ import (
 	jwtg "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"linhazero.com/pvapi/env"
+	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/util"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,7 +20,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthFn func(c *gin.Context) (any, error)
+type authFn func(c *gin.Context) (any, error)
 
 type login struct {
 	Email    string `json:"email" binding:"required"`
@@ -25,6 +28,7 @@ type login struct {
 }
 
 type register struct {
+	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
@@ -37,12 +41,28 @@ var (
 	identityKey = "id"
 )
 
-func generateJwtInitParams(
+func RegisterAuthRoutes(
+	t *gin.Engine,
+	handle *jwtg.GinJWTMiddleware,
+	pool *pgxpool.Pool,
+) {
+	t.POST("/login", handle.LoginHandler)
+	t.POST("/refresh", handle.RefreshHandler)
+	t.POST("/register", authRegistrator(pool))
+}
+
+func GetUserFromClaims(c jwt.MapClaims) *AuthUser {
+	return &AuthUser{
+		UserID: c[identityKey].(string),
+	}
+}
+
+func GenerateJwtInitParams(
 	pool *pgxpool.Pool,
 ) (*jwtg.GinJWTMiddleware, error) {
 	// whether or not to enable secure cookies
 	secureCookie := false
-	secureCookieSetting, err := SecureCookies()
+	secureCookieSetting, err := env.SecureCookies()
 
 	if err != nil {
 		return nil, err
@@ -52,7 +72,7 @@ func generateJwtInitParams(
 		secureCookie = true
 	}
 
-	secret, err := JwtSecretKey()
+	secret, err := env.JwtSecretKey()
 
 	if err != nil {
 		return nil, err
@@ -102,7 +122,7 @@ func authorize(c *gin.Context, data any) bool {
 	return ok
 }
 
-func authenticator(pool *pgxpool.Pool) AuthFn {
+func authenticator(pool *pgxpool.Pool) authFn {
 	return func(c *gin.Context) (any, error) {
 		var l login
 
@@ -119,7 +139,8 @@ func authenticator(pool *pgxpool.Pool) AuthFn {
 		var userID int
 
 		err = pool.QueryRow(
-			c.Request.Context(), userPasswordQuery, userMail,
+			c.Request.Context(),
+			query.UserPasswordQuery, userMail,
 		).Scan(&userID, &hashed)
 
 		if err != nil {
@@ -161,11 +182,7 @@ func withUser(data any) jwt.MapClaims {
 
 func retrieveUser(c *gin.Context) any {
 	claims := jwtg.ExtractClaims(c)
-
-	return &AuthUser{
-		// fetch username from identity key
-		UserID: claims[identityKey].(string),
-	}
+	return GetUserFromClaims(claims)
 }
 
 func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
@@ -173,6 +190,8 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 		var r register
 
 		err := c.ShouldBind(&r)
+
+		// FIXME/TODO: check pre-existing user
 
 		if err != nil {
 			c.AbortWithStatusJSON(
@@ -184,8 +203,11 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		userEmail := r.Email
-		userPassword := r.Password
+		var (
+			userName     = r.Name
+			userEmail    = r.Email
+			userPassword = r.Password
+		)
 
 		passwordHash, err := bcrypt.GenerateFromPassword(
 			[]byte(userPassword), 12,
@@ -193,38 +215,29 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 
 		// TODO: Check error type, password too long etc.
 		if err != nil {
-			abortWithInternalError(c, err)
+			util.AbortWithInternalError(c, err)
 			return
 		}
 
+		// rollback!
 		err = pgx.BeginFunc(
 			context.Background(),
 			pool,
 			func(tx pgx.Tx) error {
 				_, err := tx.Exec(
 					context.Background(),
-					userRegisterQuery,
-					userEmail, passwordHash,
+					query.UserRegisterQuery,
+					userName, userEmail, passwordHash,
 				)
 				return err
 			},
 		)
 
 		if err != nil {
-			abortWithInternalError(c, err)
+			util.AbortWithInternalError(c, err)
 			return
 		}
 
 		c.JSON(200, gin.H{"message": "Successfully registered"})
 	}
-}
-
-func registerAuthRoutes(
-	t *gin.Engine,
-	handle *jwtg.GinJWTMiddleware,
-	pool *pgxpool.Pool,
-) {
-	t.POST("/login", handle.LoginHandler)
-	t.POST("/refresh", handle.RefreshHandler)
-	t.POST("/register", authRegistrator(pool))
 }
