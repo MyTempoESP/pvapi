@@ -1,10 +1,10 @@
-package main
+package util
 
 import (
 	"github.com/gin-gonic/gin"
 )
 
-func abortWithInternalError(c *gin.Context, err error) {
+func AbortWithInternalError(c *gin.Context, err error) {
 	c.AbortWithStatusJSON(
 		500,
 		gin.H{

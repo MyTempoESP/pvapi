@@ -6,6 +6,8 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
+	"linhazero.com/pvapi/auth"
+	"linhazero.com/pvapi/db"
 )
 
 func main() {
@@ -22,37 +24,32 @@ func run() (err error) {
 
 	// TODO: Check environment variables are properly set
 
-	pool, err := dbNewPool()
+	pool, err := db.NewPool()
 
 	if err != nil {
 		return
 	}
 	defer pool.Close()
 
-	params, err := generateJwtInitParams(pool)
+	params, err := auth.GenerateJwtInitParams(pool)
 
 	if err != nil {
 		return
 	}
 
-	auth, err := jwt.New(params)
+	authMiddleware, err := jwt.New(params)
 
 	if err != nil {
 		return
 	}
 
-	err = auth.MiddlewareInit()
+	err = authMiddleware.MiddlewareInit()
 
 	if err != nil {
 		return
 	}
 
-	registerAuthRoutes(t, auth, pool)
-
-	logout := t.Group("/logout", auth.MiddlewareFunc())
-	{
-		logout.GET("", auth.LogoutHandler)
-	}
+	setupRoutes(t, authMiddleware, pool)
 
 	err = t.Run()
 
