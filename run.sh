@@ -18,7 +18,7 @@ podman run \
     -e POSTGRES_PASSWORD=1234 \
     -e POSTGRES_DB=pvapi \
     -v "$temp:/var/lib/postgresql:Z" \
-    -p 5433:5432 postgres
+    -p 5433:5432 docker.io/library/postgres
 trap cleanup EXIT
 
 sleep 5
