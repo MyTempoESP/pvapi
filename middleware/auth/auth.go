@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	jwtg "github.com/appleboy/gin-jwt/v3"
@@ -11,7 +12,7 @@ import (
 	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/usermodel"
-	"linhazero.com/pvapi/shop"
+	"linhazero.com/pvapi/policies/shoppolicy"
 	"linhazero.com/pvapi/util"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -95,7 +96,7 @@ func unauthorized(c *gin.Context, code int, message string) {
 }
 
 func authorizationHandler(
-	pool *pgxpool.Pool,
+	_ *pgxpool.Pool, // TODO
 ) func(c *gin.Context, data any) bool {
 	return func(c *gin.Context, data any) bool {
 		authUser, ok := data.(*authmodel.AuthUser)
@@ -108,6 +109,10 @@ func authorizationHandler(
 		method := c.Request.Method
 
 		resource := method + path
+
+		if strings.HasPrefix(path, "/estabelecimentos") {
+			return shoppolicy.Gate(authUser, resource, c.Params)
+		}
 
 		switch path {
 		case "/logout":
@@ -123,19 +128,6 @@ func authorizationHandler(
 			return authUser.Role == "consignee"
 		case "/perms/shop":
 			return authUser.Role == "shop"
-
-		case "/estabelecimentos":
-			return shop.Policy(
-				authUser,
-				resource,
-				c.Params,
-			)
-		case "/estabelecimentos/:shop":
-			return shop.Policy(
-				authUser,
-				resource,
-				c.Params,
-			)
 		}
 
 		return false

@@ -62,10 +62,10 @@ func Update(
 		}
 	}
 
-	update.Set.Add("name", "name", shop.Name)
-	update.Set.Add("telephone", "telephone", shop.Telephone)
+	update.Set.Add("name", shop.Name)
+	update.Set.Add("telephone", shop.Telephone)
 
-	update.Where.Add("shop.id", "shop_id", shopID)
+	update.Where.AddMap("shop.id", "shop_id", shopID)
 
 	query, params := update.Build()
 

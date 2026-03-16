@@ -7,9 +7,9 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
-	"linhazero.com/pvapi/auth"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/env"
+	"linhazero.com/pvapi/middleware/auth"
 	"linhazero.com/pvapi/seed"
 )
 

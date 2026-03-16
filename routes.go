@@ -4,9 +4,9 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"linhazero.com/pvapi/auth"
-	"linhazero.com/pvapi/shop"
-	"linhazero.com/pvapi/user"
+	"linhazero.com/pvapi/controllers/shop"
+	"linhazero.com/pvapi/controllers/user"
+	"linhazero.com/pvapi/middleware/auth"
 )
 
 func setupRoutes(

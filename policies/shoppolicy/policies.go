@@ -1,4 +1,4 @@
-package shop
+package shoppolicy
 
 import (
 	"github.com/gin-gonic/gin"
@@ -7,8 +7,8 @@ import (
 
 // this package should include some db shit
 
-// Policy dispatches the method/path to the correct policy handler
-func Policy(
+// Gate dispatches the method/path to the correct policy handler
+func Gate(
 	user *authmodel.AuthUser,
 	resource string,
 	params gin.Params,
