@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
@@ -8,18 +9,26 @@ import (
 	"github.com/gin-gonic/gin"
 	"linhazero.com/pvapi/auth"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/env"
+	"linhazero.com/pvapi/seed"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	handlerOptions := &slog.HandlerOptions{
+		Level: &env.LogLevel,
+	}
 
-	if err := run(); err != nil {
+	logger := slog.New(
+		slog.NewJSONHandler(os.Stdout, handlerOptions),
+	)
+
+	if err := run(logger); err != nil {
 		logger.Error("The API encountered a fatal error", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run() (err error) {
+func run(logger *slog.Logger) (err error) {
 	t := gin.Default()
 
 	// TODO: Check environment variables are properly set
@@ -30,6 +39,16 @@ func run() (err error) {
 		return
 	}
 	defer pool.Close()
+
+	err = seed.Plant(
+		logger,
+		context.Background(),
+		pool,
+	)
+
+	if err != nil {
+		return
+	}
 
 	params, err := auth.GenerateJwtInitParams(pool)
 

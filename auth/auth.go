@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"context"
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,14 +8,13 @@ import (
 	jwtg "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"linhazero.com/pvapi/authmodel"
 	"linhazero.com/pvapi/env"
-	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/models/usermodel"
+	"linhazero.com/pvapi/shop"
 	"linhazero.com/pvapi/util"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type authFn func(c *gin.Context) (any, error)
@@ -33,14 +30,6 @@ type register struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type AuthUser struct {
-	UserID string
-}
-
-var (
-	identityKey = "id"
-)
-
 func RegisterAuthRoutes(
 	t *gin.Engine,
 	handle *jwtg.GinJWTMiddleware,
@@ -49,12 +38,6 @@ func RegisterAuthRoutes(
 	t.POST("/login", handle.LoginHandler)
 	t.POST("/refresh", handle.RefreshHandler)
 	t.POST("/register", authRegistrator(pool))
-}
-
-func GetUserFromClaims(c jwt.MapClaims) *AuthUser {
-	return &AuthUser{
-		UserID: c[identityKey].(string),
-	}
 }
 
 func GenerateJwtInitParams(
@@ -83,7 +66,7 @@ func GenerateJwtInitParams(
 		Key:         []byte(secret),
 		Timeout:     time.Minute * 15,
 		MaxRefresh:  time.Hour * 24 * 7,
-		IdentityKey: identityKey,
+		IdentityKey: authmodel.IdentityKey,
 		PayloadFunc: withUser,
 
 		SendCookie:     true,
@@ -93,7 +76,7 @@ func GenerateJwtInitParams(
 
 		IdentityHandler: retrieveUser,
 		Authenticator:   authenticator(pool),
-		Authorizer:      authorize,
+		Authorizer:      authorizationHandler(pool),
 
 		Unauthorized:   unauthorized,
 		LogoutResponse: logoutResponse,
@@ -117,9 +100,48 @@ func unauthorized(c *gin.Context, code int, message string) {
 	})
 }
 
-func authorize(c *gin.Context, data any) bool {
-	_, ok := data.(*AuthUser)
-	return ok
+func authorizationHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context, data any) bool {
+	return func(c *gin.Context, data any) bool {
+		authUser, ok := data.(*authmodel.AuthUser)
+
+		if !ok {
+			return false
+		}
+
+		path := c.FullPath()
+		method := c.Request.Method
+
+		switch path {
+		case "/logout":
+			fallthrough
+		case "/level":
+			fallthrough
+		case "/user":
+			return true
+
+		case "/perms/admin":
+			return authUser.Role == "admin"
+		case "/perms/monitor":
+			return authUser.Role == "consignee"
+		case "/perms/shop":
+			return authUser.Role == "shop"
+
+		case "/estabelecimentos":
+			if method == "POST" {
+				return true // authenticated user
+			}
+			return authUser.Role == "admin"
+		case "/estabelecimentos/:shop":
+			if authUser.Role == "admin" {
+				return true
+			}
+			return shop.ViewPolicy(authUser, c.Param("shop"))
+		}
+
+		return false
+	}
 }
 
 func authenticator(pool *pgxpool.Pool) authFn {
@@ -132,27 +154,26 @@ func authenticator(pool *pgxpool.Pool) authFn {
 			return nil, jwtg.ErrMissingLoginValues
 		}
 
-		userMail := l.Email
-		password := l.Password
+		var (
+			userMail = l.Email
+			password = l.Password
 
-		var hashed string
-		var userID int
+			userID   int
+			userRole string
+		)
 
-		err = pool.QueryRow(
-			c.Request.Context(),
-			query.UserPasswordQuery, userMail,
-		).Scan(&userID, &hashed)
+		userID, err = usermodel.Login(
+			c.Request.Context(), pool,
+			userMail, password,
+		)
 
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, jwtg.ErrFailedAuthentication
-			}
-
-			return nil, err
+			return nil, jwtg.ErrFailedAuthentication
 		}
 
-		err = bcrypt.CompareHashAndPassword(
-			[]byte(hashed), []byte(password),
+		userRole, err = usermodel.GetUserPermissionLevel(
+			c.Request.Context(),
+			pool, userID,
 		)
 
 		if err != nil {
@@ -161,19 +182,20 @@ func authenticator(pool *pgxpool.Pool) authFn {
 
 		stringUserID := strconv.Itoa(userID)
 
-		return &AuthUser{
+		return &authmodel.AuthUser{
 			UserID: stringUserID,
+			Role:   userRole,
 		}, nil
 	}
 }
 
 func withUser(data any) jwt.MapClaims {
-	v, ok := data.(*AuthUser)
+	v, ok := data.(*authmodel.AuthUser)
 
 	if ok {
-		// map identity key to username
 		return jwt.MapClaims{
-			identityKey: v.UserID,
+			authmodel.IdentityKey: v.UserID,
+			authmodel.RoleKey:     v.Role,
 		}
 	}
 
@@ -182,7 +204,7 @@ func withUser(data any) jwt.MapClaims {
 
 func retrieveUser(c *gin.Context) any {
 	claims := jwtg.ExtractClaims(c)
-	return GetUserFromClaims(claims)
+	return authmodel.GetUserFromClaims(claims)
 }
 
 func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
@@ -194,12 +216,7 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 		// FIXME/TODO: check pre-existing user
 
 		if err != nil {
-			c.AbortWithStatusJSON(
-				http.StatusBadRequest,
-				gin.H{
-					"status":  false,
-					"message": err.Error(), //FIXME:debug (error leak)
-				})
+			util.HandleBadRequest(c, err)
 			return
 		}
 
@@ -209,32 +226,16 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 			userPassword = r.Password
 		)
 
-		passwordHash, err := bcrypt.GenerateFromPassword(
-			[]byte(userPassword), 12,
-		)
-
-		// TODO: Check error type, password too long etc.
-		if err != nil {
-			util.AbortWithInternalError(c, err)
-			return
-		}
-
-		// rollback!
-		err = pgx.BeginFunc(
-			context.Background(),
+		_, err = usermodel.Create(
+			c.Request.Context(),
 			pool,
-			func(tx pgx.Tx) error {
-				_, err := tx.Exec(
-					context.Background(),
-					query.UserRegisterQuery,
-					userName, userEmail, passwordHash,
-				)
-				return err
-			},
+			userName,
+			userEmail,
+			userPassword,
 		)
 
 		if err != nil {
-			util.AbortWithInternalError(c, err)
+			util.Handle500(c, err)
 			return
 		}
 

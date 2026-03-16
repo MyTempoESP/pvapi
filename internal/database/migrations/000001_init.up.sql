@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.shops
     address_id integer,
     telephone character varying(30) NOT NULL,
     slug text NOT NULL,
+    name character varying(50) NOT NULL,
     PRIMARY KEY (id)
 );
 

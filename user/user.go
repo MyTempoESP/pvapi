@@ -2,35 +2,60 @@ package user
 
 import (
 	"errors"
-	"fmt"
-	"strconv"
 
-	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"linhazero.com/pvapi/auth"
+	"linhazero.com/pvapi/authmodel"
+	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
 
+func PermsAdmin(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "Permitido"})
+}
+func PermsShop(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "Permitido"})
+}
+func PermsConsignee(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "Permitido"})
+}
+
+func UserPermissionLevelHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		user, err := authmodel.GetUserFromContext(c)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		level, err := usermodel.GetUserPermissionLevel(
+			c.Request.Context(),
+			pool, user,
+		)
+
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				util.Handle404(c)
+				return
+			}
+
+			util.Handle500(c, err)
+			return
+		}
+
+		c.JSON(200, gin.H{"level": level})
+	}
+}
+
 func UserDataHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var err error
+		user, err := authmodel.GetUserFromContext(c)
 
-		claims := jwt.ExtractClaims(c)
-		authUser := auth.GetUserFromClaims(claims)
-
-		userIDString := authUser.UserID
-
-		user, err := strconv.Atoi(userIDString)
-
-		// wrapper for custom error instead of postgres screaming
 		if err != nil {
-			util.AbortWithInternalError(
-				c,
-				fmt.Errorf("failed to convert user id %q", userIDString),
-			)
+			util.Handle500(c, err)
 			return
 		}
 
@@ -43,14 +68,11 @@ func UserDataHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				util.AbortWithInternalError(
-					c,
-					fmt.Errorf("user %q not found", userIDString),
-				)
+				util.Handle404(c)
 				return
 			}
 
-			util.AbortWithInternalError(c, err)
+			util.Handle500(c, err)
 			return
 		}
 

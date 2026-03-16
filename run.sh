@@ -36,5 +36,11 @@ export PV_API_DB_PASS=1234
 export PV_API_DB_BASE=pvapi
 export PV_API_DB_PORT=5433
 
+export PV_API_ADMIN_USER=admin
+export PV_API_ADMIN_MAIL=admin@management.com
+export PV_API_ADMIN_PASS=boss
+
+export PV_API_LOG_LEVEL=debug
+
 go run .
 
