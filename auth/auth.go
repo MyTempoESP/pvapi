@@ -8,8 +8,8 @@ import (
 	jwtg "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"linhazero.com/pvapi/authmodel"
 	"linhazero.com/pvapi/env"
+	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/shop"
 	"linhazero.com/pvapi/util"
@@ -105,7 +105,9 @@ func authorizationHandler(
 		}
 
 		path := c.FullPath()
-		//method := c.Request.Method
+		method := c.Request.Method
+
+		resource := method + path
 
 		switch path {
 		case "/logout":
@@ -123,12 +125,17 @@ func authorizationHandler(
 			return authUser.Role == "shop"
 
 		case "/estabelecimentos":
-			return authUser.Role == "admin"
+			return shop.Policy(
+				authUser,
+				resource,
+				c.Params,
+			)
 		case "/estabelecimentos/:shop":
-			if authUser.Role == "admin" {
-				return true
-			}
-			return shop.ViewPolicy(authUser, c.Param("shop"))
+			return shop.Policy(
+				authUser,
+				resource,
+				c.Params,
+			)
 		}
 
 		return false

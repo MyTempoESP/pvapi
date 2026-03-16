@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"linhazero.com/pvapi/authmodel"
+	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
