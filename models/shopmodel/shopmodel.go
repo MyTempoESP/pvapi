@@ -23,6 +23,19 @@ type Shop struct {
 	usermodel.User
 }
 
+type DetailedShop struct {
+	ID        int    `json:"id" db:"shop_id"`
+	Name      string `json:"name" db:"name"`
+	Slug      string `json:"slug" db:"slug"`
+	Telephone string `json:"phone" db:"telephone"`
+	Status    string `json:"status" db:"status"`
+	Products  int    `json:"products_count" db:"products_count"`
+	Pickups   int    `json:"pickup_locations_count" db:"pickups"`
+
+	address.Address
+	usermodel.User
+}
+
 func Create(
 	ctx context.Context,
 	pool *pgxpool.Pool,
@@ -115,15 +128,32 @@ func Find(
 	return
 }
 
-func (shop Shop) ToResource() ShopResource {
-	return ShopResource{
-		ID:        shop.ID,
-		Name:      shop.Name,
-		Slug:      shop.Slug,
-		Telephone: shop.Telephone,
-		Status:    shop.Status,
+// FindDetailed looks for the products count and
+// pickup locations count as extra fields
+func FindDetailed(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	id string,
+) (shop DetailedShop, err error) {
+	row, err := pool.Query(
+		ctx, query.ShopFindDetailedQuery,
+		id,
+	)
 
-		Address: shop.Address,
-		User:    shop.User,
+	if err != nil {
+		return
 	}
+	defer row.Close()
+
+	shop, err = pgx.CollectExactlyOneRow(
+		row, pgx.RowToStructByName[DetailedShop],
+	)
+
+	if err != nil {
+		return
+	}
+
+	err = row.Err()
+
+	return
 }

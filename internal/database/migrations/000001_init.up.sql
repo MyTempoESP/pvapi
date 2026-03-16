@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS public.pickup_locations
 (
     id serial NOT NULL,
     address_id integer,
+    shop_id integer NOT NULL,
     name character varying(30) NOT NULL,
     pickup_at date NOT NULL,
     PRIMARY KEY (id),
@@ -84,6 +85,7 @@ CREATE TABLE IF NOT EXISTS public.products
     discount numeric(2) NOT NULL,
     stock integer NOT NULL,
     featured boolean NOT NULL,
+    shop_id integer NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -187,6 +189,14 @@ ALTER TABLE IF EXISTS public.pickup_locations
     NOT VALID;
 
 
+ALTER TABLE IF EXISTS public.pickup_locations
+    ADD CONSTRAINT shop_pickup_location_relation FOREIGN KEY (shop_id)
+    REFERENCES public.shops (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE CASCADE
+    NOT VALID;
+
+
 ALTER TABLE IF EXISTS public.consignments
     ADD CONSTRAINT consignment_shop_relationship FOREIGN KEY (shop_id)
     REFERENCES public.shops (id) MATCH SIMPLE
@@ -214,6 +224,14 @@ ALTER TABLE IF EXISTS public.consignments
 ALTER TABLE IF EXISTS public.reports
     ADD CONSTRAINT report_consignment_relation FOREIGN KEY (consignment_id)
     REFERENCES public.consignments (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE CASCADE
+    NOT VALID;
+
+
+ALTER TABLE IF EXISTS public.products
+    ADD CONSTRAINT shop_product_relation FOREIGN KEY (shop_id)
+    REFERENCES public.shops (id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;

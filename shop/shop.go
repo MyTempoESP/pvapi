@@ -16,7 +16,7 @@ func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		shopID := c.Param("shop")
 
-		shop, err := shopmodel.Find(
+		shop, err := shopmodel.FindDetailed(
 			c.Request.Context(),
 			pool, shopID,
 		)
