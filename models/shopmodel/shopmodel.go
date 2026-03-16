@@ -36,6 +36,34 @@ type DetailedShop struct {
 	usermodel.User
 }
 
+func FindByUser(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	userID int,
+) (shop Shop, err error) {
+
+	row, err := pool.Query(
+		ctx, query.ShopFindByUserQuery, userID,
+	)
+
+	if err != nil {
+		return
+	}
+	defer row.Close()
+
+	shop, err = pgx.CollectExactlyOneRow(
+		row, pgx.RowToStructByName[Shop],
+	)
+
+	if err != nil {
+		return
+	}
+
+	err = row.Err()
+
+	return
+}
+
 func Update(
 	ctx context.Context,
 	pool *pgxpool.Pool,

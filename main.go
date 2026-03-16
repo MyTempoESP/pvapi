@@ -10,6 +10,7 @@ import (
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/middleware/auth"
+	"linhazero.com/pvapi/middleware/logmw"
 	"linhazero.com/pvapi/seed"
 )
 
@@ -18,9 +19,20 @@ func main() {
 		Level: &env.LogLevel,
 	}
 
-	logger := slog.New(
-		slog.NewJSONHandler(os.Stdout, handlerOptions),
-	)
+	var logger *slog.Logger
+
+	// XXX
+	_, exists := os.LookupEnv("PV_API_PRODUCTION")
+
+	if exists {
+		logger = slog.New(
+			slog.NewJSONHandler(os.Stdout, handlerOptions),
+		)
+	} else {
+		logger = slog.New(
+			slog.NewTextHandler(os.Stdout, handlerOptions),
+		)
+	}
 
 	if err := run(logger); err != nil {
 		logger.Error("The API encountered a fatal error", "error", err)
@@ -29,7 +41,9 @@ func main() {
 }
 
 func run(logger *slog.Logger) (err error) {
-	t := gin.Default()
+	t := gin.New()
+	t.Use(logmw.LogMiddleware(logger))
+	t.Use(gin.Recovery())
 
 	// TODO: Check environment variables are properly set
 

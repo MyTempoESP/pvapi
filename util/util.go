@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"linhazero.com/pvapi/middleware/logmw"
 )
 
 // aliasing for centralization
@@ -19,6 +20,9 @@ func ComparePasswordWithHash(pass string, hashed []byte) error {
 }
 
 func HandleBadRequest(c *gin.Context, err error) {
+	logger := logmw.GetLogger(c)
+	logger.Warn("Bad request", "error", err)
+
 	c.AbortWithStatusJSON(
 		http.StatusBadRequest,
 		gin.H{
@@ -29,6 +33,9 @@ func HandleBadRequest(c *gin.Context, err error) {
 }
 
 func Handle404(c *gin.Context) {
+	logger := logmw.GetLogger(c)
+	logger.Warn("Resource not found")
+
 	c.AbortWithStatusJSON(
 		404,
 		gin.H{
@@ -38,6 +45,9 @@ func Handle404(c *gin.Context) {
 }
 
 func Handle500(c *gin.Context, err error) {
+	logger := logmw.GetLogger(c)
+	logger.Error("Internal server error", "error", err)
+
 	c.AbortWithStatusJSON(
 		500,
 		gin.H{

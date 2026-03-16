@@ -117,3 +117,61 @@ func (template Template) ToResource() TemplateResource {
 	}
 }
 ```
+
+## Policy template
+
+```go
+package templatepolicy // TODO: db
+
+import (
+	"github.com/gin-gonic/gin"
+	"linhazero.com/pvapi/models/authmodel"
+)
+
+// Gate dispatches the method/path to the correct policy handler
+func Gate(
+	user *authmodel.AuthUser,
+	resource string,
+	params gin.Params,
+) bool {
+	if user.Role == "admin" {
+		return true
+	}
+
+	switch resource {
+	case "GET/templates":
+		return ListPolicy(user)
+	case "POST/templates":
+		return CreatePolicy(user)
+	case "GET/templates/:id":
+		return ViewPolicy(user, params.ByName("id"))
+	case "PUT/templates/:id":
+		return AlterPolicy(user, params.ByName("id"))
+	}
+
+	return false
+}
+
+func CreatePolicy(user *authmodel.AuthUser) bool {
+	return false
+}
+
+func ListPolicy(user *authmodel.AuthUser) bool {
+	return false
+}
+
+func AlterPolicy(
+	user *authmodel.AuthUser,
+	shop string,
+) bool {
+    return false
+}
+
+func ViewPolicy(
+	user *authmodel.AuthUser,
+	shop string,
+) bool {
+	return false
+}
+
+```

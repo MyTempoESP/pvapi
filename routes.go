@@ -4,6 +4,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/controllers/product"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
 	"linhazero.com/pvapi/middleware/auth"
@@ -17,6 +18,10 @@ func setupRoutes(
 	auth.RegisterAuthRoutes(t, authMiddleware, pool)
 
 	withAuth := authMiddleware.MiddlewareFunc()
+
+	// no auth
+	t.GET("/estabelecimentos/:shop/produtos", product.ListByParamHandler(pool))
+	t.GET("/produtos/:id", product.ViewHandler(pool))
 
 	loggedIn := t.Group("", withAuth)
 	{
@@ -39,5 +44,13 @@ func setupRoutes(
 
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
+
+	}
+
+	products := t.Group("/produtos", withAuth)
+	{
+		products.GET("/estabelecimento", product.ListByShopHandler(pool))
+		products.POST("", product.CreateHandler(pool))
+		products.PUT(":id", product.UpdateHandler(pool))
 	}
 }

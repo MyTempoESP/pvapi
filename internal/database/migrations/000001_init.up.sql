@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS public.users
     email text NOT NULL,
     password_hash text NOT NULL,
     PRIMARY KEY (id),
-    CONSTRAINT unique_user_constraint UNIQUE (email, name)
+    CONSTRAINT unique_user_constraint UNIQUE (email),
+    CONSTRAINT unique_user_name_constraint UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS public.shops
@@ -21,7 +22,8 @@ CREATE TABLE IF NOT EXISTS public.shops
     telephone character varying(30) NOT NULL,
     slug text NOT NULL,
     name character varying(50) NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    CONSTRAINT unique_shop_user_relation UNIQUE (user_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.addresses

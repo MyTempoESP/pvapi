@@ -18,6 +18,7 @@ func Gate(
 	}
 
 	switch resource {
+	// Rota publica
 	case "GET/estabelecimentos":
 		return ListPolicy(user)
 	case "POST/estabelecimentos":

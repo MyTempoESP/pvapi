@@ -126,6 +126,11 @@ SELECT
 WHERE shop.id = $1
 `, SelectAllShopsQuery)
 
+	ShopFindByUserQuery = fmt.Sprintf(`
+%s
+WHERE shop.user_id = $1
+`, SelectAllShopsQuery)
+
 	ShopFindDetailedQuery = fmt.Sprintf(`
 WITH product_count AS (
 	SELECT shop_id, COUNT(id) AS count

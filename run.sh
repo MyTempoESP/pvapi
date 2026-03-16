@@ -41,6 +41,7 @@ export PV_API_ADMIN_MAIL=admin@management.com
 export PV_API_ADMIN_PASS=boss
 
 export PV_API_LOG_LEVEL=debug
+#export PV_API_PRODUCTION=yes
 
 go run .
 
