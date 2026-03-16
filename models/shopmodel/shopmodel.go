@@ -36,12 +36,61 @@ type DetailedShop struct {
 	usermodel.User
 }
 
+func Update(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	shopID int,
+	shop UpdateShopRequest,
+) (err error) {
+	update := query.Update("shops AS shop")
+
+	if shop.Email != nil {
+		err = pgx.BeginFunc(
+			ctx, pool, func(tx pgx.Tx) error {
+				_, err := tx.Exec(
+					ctx,
+					query.ShopUserUpdateEmail,
+					shopID,
+					shop.Email,
+				)
+				return err
+			},
+		)
+
+		if err != nil {
+			return
+		}
+	}
+
+	update.Set.Add("name", "name", shop.Name)
+	update.Set.Add("telephone", "telephone", shop.Telephone)
+
+	update.Where.Add("shop.id", "shop_id", shopID)
+
+	query, params := update.Build()
+
+	err = pgx.BeginFunc(
+		ctx, pool,
+		func(tx pgx.Tx) error {
+			_, err := tx.Exec(ctx, query, params)
+			return err
+		},
+	)
+
+	return
+}
+
 func Create(
 	ctx context.Context,
 	pool *pgxpool.Pool,
-	user int,
 	shop CreateShopRequest,
 ) (shopID int, err error) {
+	user, err := usermodel.FindOrCreate(
+		ctx, pool,
+		shop.Name,
+		shop.Email,
+		shop.Telephone, // telephone as password if does not exist
+	)
 
 	params := pgx.NamedArgs{
 		"user":      user,

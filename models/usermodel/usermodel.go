@@ -15,6 +15,54 @@ type User struct {
 	Email string `json:"email" db:"user_email"`
 }
 
+func FindOrCreate(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	name string,
+	email string,
+	password string,
+) (userID int, err error) {
+
+	userID, err = FindByEmail(
+		ctx, pool,
+		email,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// if user does not exist create a new one
+			// with telephone as password
+			userID, err = Create(
+				ctx, pool,
+				name,
+				email,
+				password,
+			)
+
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
+	}
+
+	return
+}
+
+func FindByEmail(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	email string,
+) (userID int, err error) {
+
+	err = pool.QueryRow(
+		ctx, query.UserFindByEmailQuery, email,
+	).Scan(&userID)
+
+	return
+}
+
 func Create(
 	ctx context.Context,
 	pool *pgxpool.Pool,

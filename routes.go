@@ -38,5 +38,6 @@ func setupRoutes(
 		shops.POST("", shop.CreateHandler(pool))
 
 		shops.GET(":shop", shop.ViewHandler(pool))
+		shops.PUT(":shop", shop.UpdateHandler(pool))
 	}
 }

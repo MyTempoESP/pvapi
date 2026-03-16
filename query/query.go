@@ -1,6 +1,8 @@
 package query
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Building blocks
 const (
@@ -41,9 +43,22 @@ INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)
 RETURNING id
 `
 
+	ShopUserUpdateEmail = `
+WITH shop_users AS (
+	SELECT id, user_id FROM shops WHERE id = $1
+)
+UPDATE users
+SET email = $2
+FROM shop_users
+WHERE users.id = shop_users.user_id
+`
+
 	// general
 	UserDataQuery = `
 SELECT name, email FROM users WHERE id = $1
+`
+	UserFindByEmailQuery = `
+SELECT id, email FROM users WHERE email = $1
 `
 
 	// level

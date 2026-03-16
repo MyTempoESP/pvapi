@@ -2,12 +2,12 @@ package shop
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"linhazero.com/pvapi/authmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
@@ -67,7 +67,6 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var (
 			shop shopmodel.CreateShopRequest
-			user int
 		)
 
 		err := c.ShouldBindJSON(&shop)
@@ -77,17 +76,8 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		user, err = authmodel.GetUserFromContext(c)
-
-		if err != nil {
-			util.Handle500(c, err)
-			return
-		}
-
 		shopID, err := shopmodel.Create(
-			c.Request.Context(), pool,
-			user,
-			shop,
+			c.Request.Context(), pool, shop,
 		)
 
 		if err != nil {
@@ -103,6 +93,44 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 				Slug:      slug.Make(shop.Name),
 				Telephone: shop.Telephone,
 			},
+		})
+	}
+}
+
+func UpdateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var (
+			shop shopmodel.UpdateShopRequest
+		)
+
+		err := c.ShouldBindJSON(&shop)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		shopIDString := c.Param("shop")
+		shopID, err := strconv.Atoi(shopIDString)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		err = shopmodel.Update(
+			c.Request.Context(), pool,
+			shopID,
+			shop,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": "estabelecimento editado com sucesso",
 		})
 	}
 }

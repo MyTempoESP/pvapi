@@ -24,12 +24,6 @@ type login struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type register struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
 func RegisterAuthRoutes(
 	t *gin.Engine,
 	handle *jwtg.GinJWTMiddleware,
@@ -111,7 +105,7 @@ func authorizationHandler(
 		}
 
 		path := c.FullPath()
-		method := c.Request.Method
+		//method := c.Request.Method
 
 		switch path {
 		case "/logout":
@@ -129,9 +123,6 @@ func authorizationHandler(
 			return authUser.Role == "shop"
 
 		case "/estabelecimentos":
-			if method == "POST" {
-				return true // authenticated user
-			}
 			return authUser.Role == "admin"
 		case "/estabelecimentos/:shop":
 			if authUser.Role == "admin" {
@@ -209,7 +200,7 @@ func retrieveUser(c *gin.Context) any {
 
 func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var r register
+		var r usermodel.UserRegisterRequest
 
 		err := c.ShouldBind(&r)
 
