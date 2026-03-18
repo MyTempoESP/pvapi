@@ -50,7 +50,7 @@ func setupRoutes(
 	products := t.Group("/produtos", withAuth)
 	{
 		products.GET("/estabelecimento", product.ListByShopHandler(pool))
-		products.POST("", product.CreateHandler(pool))
 		products.PUT(":id", product.UpdateHandler(pool))
+		products.POST("", product.CreateHandler(pool))
 	}
 }

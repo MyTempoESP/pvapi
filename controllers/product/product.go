@@ -66,18 +66,48 @@ func CreateHandler(
 	return func(c *gin.Context) {
 		var (
 			product productmodel.CreateProductRequest
+			userID  int
+			err     error
 		)
 
-		err := c.ShouldBindJSON(&product)
+		userID, err = authmodel.GetUserFromContext(c)
+
+		if err != nil {
+			return
+		}
+
+		err = c.ShouldBind(&product)
 
 		if err != nil {
 			util.HandleBadRequest(c, err)
 			return
 		}
 
-		productID, err := productmodel.Create(
+		blueprint, err := product.Prepare(c)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		shop, err := shopmodel.FindByUser(
+			c.Request.Context(),
+			pool, userID,
+		)
+
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				util.Handle404(c)
+				return
+			}
+
+			util.Handle500(c, err)
+			return
+		}
+
+		_, err = productmodel.Create(
 			c.Request.Context(), pool,
-			product,
+			blueprint, shop.ID,
 		)
 
 		if err != nil {
@@ -85,7 +115,10 @@ func CreateHandler(
 			return
 		}
 
-		c.JSON(200, gin.H{})
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Produto(s) criado(s) com sucesso!",
+		})
 	}
 }
 

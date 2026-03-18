@@ -3,6 +3,17 @@ package query
 const (
 	// creating
 	ProductCreate = `
+INSERT INTO products
+	(
+		name, price, stock,
+		discount, featured, shop_id
+	)
+VALUES
+	(
+		@name, @price, @stock,
+		@discount, @featured, @shop_id
+	)
+RETURNING id
 `
 
 	// listing

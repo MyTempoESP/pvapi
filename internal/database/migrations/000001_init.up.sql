@@ -100,12 +100,13 @@ CREATE TABLE IF NOT EXISTS public.packages
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.specification_images
+CREATE TABLE IF NOT EXISTS public.product_images
 (
     id serial NOT NULL,
-    specification_id integer NOT NULL,
+    product_id integer NOT NULL,
     filename text NOT NULL,
-    alt character varying(100) NOT NULL,
+    alt character varying(100) DEFAULT 'img data',
+    tag character varying(100) NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -124,7 +125,7 @@ CREATE TABLE IF NOT EXISTS public.product_policies
     id serial NOT NULL,
     product_id integer NOT NULL,
     name character varying(100) NOT NULL,
-    value character varying(100) NOT NULL,
+    value json NOT NULL,
     enabled boolean NOT NULL,
     PRIMARY KEY (id)
 );
@@ -241,6 +242,8 @@ ALTER TABLE IF EXISTS public.products
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_shop_product_relation
+    ON public.products(shop_id);
 
 
 ALTER TABLE IF EXISTS public.packages
@@ -259,12 +262,14 @@ ALTER TABLE IF EXISTS public.packages
     NOT VALID;
 
 
-ALTER TABLE IF EXISTS public.specification_images
-    ADD CONSTRAINT specification_image_relation FOREIGN KEY (specification_id)
-    REFERENCES public.specifications (id) MATCH SIMPLE
+ALTER TABLE IF EXISTS public.product_images
+    ADD CONSTRAINT product_images_relation FOREIGN KEY (product_id)
+    REFERENCES public.products (id) MATCH SIMPLE
     ON UPDATE NO ACTION
-    ON DELETE CASCADE
+    ON DELETE NO ACTION
     NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_product_images_relation
+    ON public.product_images(product_id);
 
 
 ALTER TABLE IF EXISTS public.specifications
@@ -273,6 +278,8 @@ ALTER TABLE IF EXISTS public.specifications
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_specification_product_id
+    ON public.specifications(product_id);
 
 
 ALTER TABLE IF EXISTS public.product_policies
@@ -281,6 +288,8 @@ ALTER TABLE IF EXISTS public.product_policies
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_product_policy_relation
+    ON public.product_policies(product_id);
 
 
 ALTER TABLE IF EXISTS public.admins
@@ -297,5 +306,7 @@ ALTER TABLE IF EXISTS public.earnings_modifiers
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_product_earnings_modifier_relation
+    ON public.earnings_modifiers(product_id);
 
 END;
