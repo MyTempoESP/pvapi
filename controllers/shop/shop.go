@@ -51,11 +51,7 @@ func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		resources := make([]shopmodel.ShopResource, 0, len(shops))
-
-		for _, shop := range shops {
-			resources = append(resources, shop.ToResource())
-		}
+		resources := util.ResourceCollection(shops)
 
 		c.JSON(200, gin.H{
 			"shops": resources,

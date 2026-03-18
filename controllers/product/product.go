@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
@@ -36,15 +37,17 @@ func ListByShopHandler(
 			return
 		}
 
-		products, err := productmodel.GetByShop(ctx, pool, shop)
+		products, err := productmodel.GetByShop(ctx, pool, shop.ID)
 
 		if err != nil {
 			util.Handle500(c, err)
 			return
 		}
 
+		resources := util.ResourceCollection(products)
+
 		c.JSON(200, gin.H{
-			"products": products,
+			"products": resources,
 		})
 	}
 }
@@ -61,7 +64,28 @@ func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		var (
+			product productmodel.CreateProductRequest
+		)
 
+		err := c.ShouldBindJSON(&product)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		productID, err := productmodel.Create(
+			c.Request.Context(), pool,
+			product,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		c.JSON(200, gin.H{})
 	}
 }
 

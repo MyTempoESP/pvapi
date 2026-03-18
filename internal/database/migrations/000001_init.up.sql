@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS public.consignments
     consignee_id integer,
     pickup_location_id integer,
     comission_type character varying(10) NOT NULL,
-    comission_value numeric(2) NOT NULL,
+    comission_value numeric(12, 2) NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS public.products
 (
     id serial NOT NULL,
     name character varying(30) NOT NULL,
-    price numeric(2) NOT NULL,
-    discount numeric(2) NOT NULL,
+    price numeric(12, 2) NOT NULL,
+    discount numeric(5, 2) NOT NULL,
     stock integer NOT NULL,
     featured boolean NOT NULL,
     shop_id integer NOT NULL,
@@ -112,11 +112,11 @@ CREATE TABLE IF NOT EXISTS public.specification_images
 CREATE TABLE IF NOT EXISTS public.specifications
 (
     id serial NOT NULL,
-    image_id integer NOT NULL,
     product_id integer NOT NULL,
     name character varying(127) NOT NULL,
-    value character varying(127) NOT NULL,
-    PRIMARY KEY (id)
+    value character varying(300) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT unique_name_per_product UNIQUE (product_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS public.product_policies
@@ -125,8 +125,12 @@ CREATE TABLE IF NOT EXISTS public.product_policies
     product_id integer NOT NULL,
     name character varying(100) NOT NULL,
     value character varying(100) NOT NULL,
+    enabled boolean NOT NULL,
     PRIMARY KEY (id)
 );
+
+COMMENT ON TABLE public.product_policies
+    IS 'Permission handles for product selectable specifications';
 
 CREATE TABLE IF NOT EXISTS public.admins
 (
@@ -141,7 +145,7 @@ CREATE TABLE IF NOT EXISTS public.earnings_modifiers
     product_id integer NOT NULL,
     name character varying(30) NOT NULL,
     type character varying(10) NOT NULL,
-    value numeric(2) NOT NULL,
+    value numeric(12, 2) NOT NULL,
     PRIMARY KEY (id)
 );
 

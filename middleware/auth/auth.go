@@ -3,16 +3,15 @@ package auth
 import (
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	jwtg "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"linhazero.com/pvapi/controllers/policy"
 	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/usermodel"
-	"linhazero.com/pvapi/policies/shoppolicy"
 	"linhazero.com/pvapi/util"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -105,32 +104,7 @@ func authorizationHandler(
 			return false
 		}
 
-		path := c.FullPath()
-		method := c.Request.Method
-
-		resource := method + path
-
-		if strings.HasPrefix(path, "/estabelecimentos") {
-			return shoppolicy.Gate(authUser, resource, c.Params)
-		}
-
-		switch path {
-		case "/logout":
-			fallthrough
-		case "/level":
-			fallthrough
-		case "/user":
-			return true
-
-		case "/perms/admin":
-			return authUser.Role == "admin"
-		case "/perms/monitor":
-			return authUser.Role == "consignee"
-		case "/perms/shop":
-			return authUser.Role == "shop"
-		}
-
-		return false
+		return policy.Gate(c, authUser)
 	}
 }
 

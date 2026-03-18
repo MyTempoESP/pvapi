@@ -23,5 +23,10 @@ trap cleanup EXIT
 
 sleep 5
 
+migrate -path internal/database/migrations \
+    -database \
+        "postgresql://pvauto:1234@localhost:5433/pvapi?sslmode=disable" \
+    -verbose up
+
 read
 

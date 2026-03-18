@@ -56,3 +56,17 @@ func Handle500(c *gin.Context, err error) {
 		},
 	)
 }
+
+type Show[R any] interface {
+	ToResource() R
+}
+
+func ResourceCollection[R any, M Show[R]](collection []M) []R {
+	resources := make([]R, 0, len(collection))
+
+	for _, item := range collection {
+		resources = append(resources, item.ToResource())
+	}
+
+	return resources
+}

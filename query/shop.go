@@ -1,10 +1,7 @@
 package query
 
-import (
-	"fmt"
-)
+import "fmt"
 
-// Building blocks
 const (
 	// Shop fields
 	shopSelectBaseFields = `
@@ -30,18 +27,6 @@ FROM shops AS shop
 LEFT JOIN addresses AS address ON shop.address_id = address.id
 LEFT JOIN users AS u ON shop.user_id = u.id
 `
-)
-
-const (
-
-	// Auth
-	UserPasswordQuery = `
-SELECT id, password_hash FROM users WHERE email = $1
-`
-	UserRegisterQuery = `
-INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)
-RETURNING id
-`
 
 	ShopUserUpdateEmail = `
 WITH shop_users AS (
@@ -51,33 +36,6 @@ UPDATE users
 SET email = $2
 FROM shop_users
 WHERE users.id = shop_users.user_id
-`
-
-	// general
-	UserDataQuery = `
-SELECT name, email FROM users WHERE id = $1
-`
-	UserFindByEmailQuery = `
-SELECT id, email FROM users WHERE email = $1
-`
-
-	// level
-	UserMaxLevelQuery = `
-SELECT
-	(admins.id IS NOT NULL) AS admin,
-	(shops.id IS NOT NULL) AS shop,
-	(consignees.id IS NOT NULL) AS consignee,
-	users.id
-FROM users
-LEFT JOIN admins ON users.id = admins.user_id
-LEFT JOIN shops ON users.id = shops.user_id
-LEFT JOIN consignees ON users.id = consignees.user_id
-WHERE users.id = $1
-`
-
-	// seeding
-	AdminCreateQuery = `
-INSERT INTO admins (user_id) VALUES ($1)
 `
 
 	ShopCreateQuery = `
@@ -113,7 +71,6 @@ RETURNING id
 `
 )
 
-// Expansion queries
 var (
 	SelectAllShopsQuery = fmt.Sprintf(`
 SELECT
