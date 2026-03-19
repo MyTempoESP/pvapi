@@ -28,10 +28,10 @@ type ProductBlueprint struct {
 	Category string
 	Featured bool
 
-	ImageURL   URL
-	DescImages []URL
-	SpecImages []URL
-	PackImages []URL
+	ImageURL   string
+	DescImages []string
+	SpecImages []string
+	PackImages []string
 
 	Specifications []SpecificationBlueprint
 

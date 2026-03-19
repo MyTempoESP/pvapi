@@ -3,10 +3,10 @@ package productmodel
 import (
 	"context"
 
-	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/models/imagemodel"
 	"linhazero.com/pvapi/query"
 )
 
@@ -37,23 +37,6 @@ type Product struct {
 	Featured bool            `db:"product_featured"`
 
 	Specifications []Specification `db:"product_specifications"`
-}
-
-func createImages(
-	tag string,
-	images []URL,
-	batch *pgx.Batch,
-	product int,
-) {
-	for _, url := range images {
-		batch.Queue(
-			query.CreateImageQuery,
-			url,
-			slug.Make(string(url)),
-			tag,
-			product,
-		)
-	}
 }
 
 func productTransaction(
@@ -89,6 +72,15 @@ func productTransaction(
 		return
 	}
 
+	err = imagemodel.NewImage(
+		imagemodel.URL(product.ImageURL),
+		defaultImageTag, productID,
+	).Create(ctx, tx)
+
+	if err != nil {
+		return
+	}
+
 	batch := &pgx.Batch{}
 
 	// specifications
@@ -111,17 +103,23 @@ func productTransaction(
 		)
 	}
 
-	batch.Queue(
-		query.CreateImageQuery,
-		product.ImageURL,
-		slug.Make(string(product.ImageURL)),
-		defaultImageTag,
+	imagemodel.NewTaggedImageCollection(
+		product.DescImages,
+		descriptionImageTag,
 		productID,
-	)
+	).Queue(batch)
 
-	createImages(deliveryImageTag, product.PackImages, batch, productID)
-	createImages(specificationImageTag, product.SpecImages, batch, productID)
-	createImages(descriptionImageTag, product.DescImages, batch, productID)
+	imagemodel.NewTaggedImageCollection(
+		product.SpecImages,
+		specificationImageTag,
+		productID,
+	).Queue(batch)
+
+	imagemodel.NewTaggedImageCollection(
+		product.PackImages,
+		deliveryImageTag,
+		productID,
+	).Queue(batch)
 
 	b := tx.SendBatch(ctx, batch)
 	defer b.Close()
