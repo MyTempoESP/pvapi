@@ -59,6 +59,10 @@ func PrepareSpecifications(
 	// Generate the default specifications AFTER user-definitions
 	specifications = append(specifications,
 		SpecificationBlueprint{
+			Name:  "colors",
+			Value: p.ColorListJSON,
+		},
+		SpecificationBlueprint{
 			Name:  "category",
 			Value: categorySlug,
 		},
@@ -92,23 +96,15 @@ func PreparePolicies(
 ) (policies []PolicyBlueprint) {
 	policies = append(policies,
 		PolicyBlueprint{
-			Name:    "colors",
-			Value:   p.ColorListJSON,
-			Enabled: true,
-		},
-		PolicyBlueprint{
 			Name:    "customName",
-			Value:   "{}",
 			Enabled: p.CustomName,
 		},
 		PolicyBlueprint{
 			Name:    "customModality",
-			Value:   "{}",
 			Enabled: p.customModality,
 		},
 		PolicyBlueprint{
-			Name:    "customColorSelection",
-			Value:   p.ColorListJSON,
+			Name:    "customColor",
 			Enabled: p.CustomColorSelection,
 		},
 	)

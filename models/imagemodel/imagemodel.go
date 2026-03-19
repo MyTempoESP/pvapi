@@ -10,10 +10,10 @@ import (
 )
 
 type Image struct {
-	Filename URL
-	Alt      string
-	Tag      string
-	Product  int
+	Filename URL    `json:"filename"`
+	Alt      string `json:"alt"`
+	Tag      string `json:"tag"`
+	Product  int    `json:"product_id"`
 }
 
 type URL string

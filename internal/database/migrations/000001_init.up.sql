@@ -6,7 +6,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS public.users
 (
     id serial NOT NULL,
-    name character varying(25) NOT NULL,
+    name text NOT NULL,
     email text NOT NULL,
     password_hash text NOT NULL,
     PRIMARY KEY (id),
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS public.shops
     id serial NOT NULL,
     user_id integer NOT NULL,
     address_id integer,
-    telephone character varying(30) NOT NULL,
+    telephone text NOT NULL,
     slug text NOT NULL,
-    name character varying(50) NOT NULL,
+    name text NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT unique_shop_user_relation UNIQUE (user_id)
 );
@@ -29,13 +29,13 @@ CREATE TABLE IF NOT EXISTS public.shops
 CREATE TABLE IF NOT EXISTS public.addresses
 (
     id serial NOT NULL,
-    street character varying(30) NOT NULL,
-    city character varying(30) NOT NULL,
-    neighborhood character varying(30) NOT NULL,
-    state character varying(2) NOT NULL,
-    cep character varying(8) NOT NULL,
+    street text NOT NULL,
+    city text NOT NULL,
+    neighborhood text NOT NULL,
+    state text NOT NULL,
+    cep text NOT NULL,
     "number" integer NOT NULL,
-    complement character varying(50) DEFAULT 'nenhum',
+    complement text DEFAULT 'nenhum',
     PRIMARY KEY (id)
 );
 
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.pickup_locations
     id serial NOT NULL,
     address_id integer,
     shop_id integer NOT NULL,
-    name character varying(30) NOT NULL,
+    name text NOT NULL,
     pickup_at date NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT pickup_location_unique_name UNIQUE (name)
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS public.consignments
     shop_id integer NOT NULL,
     consignee_id integer,
     pickup_location_id integer,
-    comission_type character varying(10) NOT NULL,
+    comission_type text NOT NULL,
     comission_value numeric(12, 2) NOT NULL,
     PRIMARY KEY (id)
 );
@@ -73,21 +73,25 @@ CREATE TABLE IF NOT EXISTS public.reports
 (
     id serial NOT NULL,
     consignment_id integer NOT NULL,
-    title character varying(128) NOT NULL,
-    type character varying(30) NOT NULL,
+    title text NOT NULL,
+    type text NOT NULL,
     priority integer NOT NULL,
+    content text NOT NULL,
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS public.products
 (
     id serial NOT NULL,
-    name character varying(30) NOT NULL,
+    name text NOT NULL,
     price numeric(12, 2) NOT NULL,
     discount numeric(5, 2) NOT NULL,
     stock integer NOT NULL,
     featured boolean NOT NULL,
     shop_id integer NOT NULL,
+    moderation_status text DEFAULT 'pending',
+    category_id integer NOT NULL,
+    description text NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -100,13 +104,13 @@ CREATE TABLE IF NOT EXISTS public.packages
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.product_images
+CREATE TABLE IF NOT EXISTS public.images
 (
     id serial NOT NULL,
     product_id integer NOT NULL,
     filename text NOT NULL,
-    alt character varying(100) DEFAULT 'img data',
-    tag character varying(100) NOT NULL,
+    alt text DEFAULT 'img data',
+    tag text NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -114,23 +118,22 @@ CREATE TABLE IF NOT EXISTS public.specifications
 (
     id serial NOT NULL,
     product_id integer NOT NULL,
-    name character varying(127) NOT NULL,
-    value character varying(300) NOT NULL,
+    name text NOT NULL,
+    value text NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT unique_name_per_product UNIQUE (product_id, name)
 );
 
-CREATE TABLE IF NOT EXISTS public.product_policies
+CREATE TABLE IF NOT EXISTS public.policies
 (
     id serial NOT NULL,
     product_id integer NOT NULL,
-    name character varying(100) NOT NULL,
-    value json NOT NULL,
+    name text NOT NULL,
     enabled boolean NOT NULL,
     PRIMARY KEY (id)
 );
 
-COMMENT ON TABLE public.product_policies
+COMMENT ON TABLE public.policies
     IS 'Permission handles for product selectable specifications';
 
 CREATE TABLE IF NOT EXISTS public.admins
@@ -144,8 +147,8 @@ CREATE TABLE IF NOT EXISTS public.earnings_modifiers
 (
     id serial NOT NULL,
     product_id integer NOT NULL,
-    name character varying(30) NOT NULL,
-    type character varying(10) NOT NULL,
+    name text NOT NULL,
+    type text NOT NULL,
     value numeric(12, 2) NOT NULL,
     PRIMARY KEY (id)
 );
@@ -153,6 +156,15 @@ CREATE TABLE IF NOT EXISTS public.earnings_modifiers
 COMMENT ON TABLE public.earnings_modifiers
     IS 'The modifiers to be applied on product price before earnings calculations for the shop owner.
 Ex: platform_cut/consignee commissions';
+
+CREATE TABLE IF NOT EXISTS public.categories
+(
+    id serial NOT NULL,
+    name text NOT NULL,
+    description text NOT NULL,
+    shop_id integer NOT NULL,
+    PRIMARY KEY (id)
+);
 
 ALTER TABLE IF EXISTS public.shops
     ADD CONSTRAINT shop_user_relation FOREIGN KEY (user_id)
@@ -246,6 +258,14 @@ CREATE INDEX IF NOT EXISTS fki_shop_product_relation
     ON public.products(shop_id);
 
 
+ALTER TABLE IF EXISTS public.products
+    ADD CONSTRAINT product_category_relation FOREIGN KEY (category_id)
+    REFERENCES public.categories (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
+
+
 ALTER TABLE IF EXISTS public.packages
     ADD CONSTRAINT package_product_relation FOREIGN KEY (product_id)
     REFERENCES public.products (id) MATCH SIMPLE
@@ -262,14 +282,14 @@ ALTER TABLE IF EXISTS public.packages
     NOT VALID;
 
 
-ALTER TABLE IF EXISTS public.product_images
+ALTER TABLE IF EXISTS public.images
     ADD CONSTRAINT product_images_relation FOREIGN KEY (product_id)
     REFERENCES public.products (id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;
 CREATE INDEX IF NOT EXISTS fki_product_images_relation
-    ON public.product_images(product_id);
+    ON public.images(product_id);
 
 
 ALTER TABLE IF EXISTS public.specifications
@@ -282,14 +302,14 @@ CREATE INDEX IF NOT EXISTS fki_specification_product_id
     ON public.specifications(product_id);
 
 
-ALTER TABLE IF EXISTS public.product_policies
+ALTER TABLE IF EXISTS public.policies
     ADD CONSTRAINT product_policy_relation FOREIGN KEY (product_id)
     REFERENCES public.products (id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
 CREATE INDEX IF NOT EXISTS fki_product_policy_relation
-    ON public.product_policies(product_id);
+    ON public.policies(product_id);
 
 
 ALTER TABLE IF EXISTS public.admins
@@ -308,5 +328,13 @@ ALTER TABLE IF EXISTS public.earnings_modifiers
     NOT VALID;
 CREATE INDEX IF NOT EXISTS fki_product_earnings_modifier_relation
     ON public.earnings_modifiers(product_id);
+
+
+ALTER TABLE IF EXISTS public.categories
+    ADD CONSTRAINT category_shop_relation FOREIGN KEY (shop_id)
+    REFERENCES public.shops (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
 
 END;

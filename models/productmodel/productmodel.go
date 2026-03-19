@@ -17,26 +17,46 @@ const (
 	deliveryImageTag      = "delivery"
 )
 
-type Image struct {
-	Filename string `json:"image_name"`
-	Alt      string `json:"image_desc"`
+type Specification struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
-type Specification struct {
-	Name   string  `json:"spec_name"`
-	Value  string  `json:"spec_value"`
-	Images []Image `json:"spec_images"`
+type Policy struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+type EarningsModifier struct {
+	Type  string          `json:"type"`
+	Value decimal.Decimal `json:"value"`
 }
 
 type Product struct {
-	ID       int             `db:"product_id"`
-	Name     string          `db:"product_name"`
-	Price    decimal.Decimal `db:"product_Price"`
-	Stock    int             `db:"product_stock"`
-	Discount decimal.Decimal `db:"product_discount"`
-	Featured bool            `db:"product_featured"`
+	ID               int             `db:"product_id"`
+	Name             string          `db:"product_name"`
+	Price            decimal.Decimal `db:"product_price"`
+	Stock            int             `db:"product_stock"`
+	Discount         decimal.Decimal `db:"product_discount"`
+	Featured         bool            `db:"product_featured"`
+	ModerationStatus string          `db:"product_moderation_status"`
+	Description      string          `db:"product_description"`
+	Colors           []string        `db:"product_colors"`
+	Category         string          `db:"product_category"`
 
 	Specifications []Specification `db:"product_specifications"`
+
+	AllowCustomName           bool `db:"product_p_cname"`
+	AllowCustomModality       bool `db:"product_p_cmod"`
+	AllowCustomColorSelection bool `db:"product_p_ccolor"`
+
+	// nullable
+	PlatformCut *EarningsModifier `db:"product_platform_cut"`
+
+	Image      string   `db:"product_main_image"`
+	SpecImages []string `db:"product_spec_images"`
+	DescImages []string `db:"product_desc_images"`
+	PackImages []string `db:"product_pack_images"`
 }
 
 func productTransaction(
@@ -97,7 +117,6 @@ func productTransaction(
 		batch.Queue(
 			query.CreatePolicyQuery,
 			pol.Name,
-			pol.Value,
 			pol.Enabled,
 			productID,
 		)
@@ -167,7 +186,12 @@ func GetByShop(
 	rows, err := pool.Query(
 		ctx,
 		query.ProductGetByShop,
-		shopID,
+		pgx.NamedArgs{
+			"shop_id":  shopID,
+			"desc_tag": descriptionImageTag,
+			"spec_tag": specificationImageTag,
+			"pack_tag": deliveryImageTag,
+		},
 	)
 
 	if err != nil {
