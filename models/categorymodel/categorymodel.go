@@ -1,0 +1,27 @@
+package categorymodel
+
+import (
+	"context"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/query"
+)
+
+func Create(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	name, desc string,
+	shop int,
+) (err error) {
+
+	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		_, err := tx.Exec(
+			ctx, query.CreateCategoryQuery,
+			name, desc, shop,
+		)
+		return err
+	})
+
+	return
+}
