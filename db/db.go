@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -17,7 +18,7 @@ type Queryable interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
-func buildDBUrl() (url string, err error) {
+func buildDBUrl() (url_ string, err error) {
 	var host, port, user, pass, base string
 
 	if host, err = env.DBHost(); err != nil {
@@ -40,9 +41,12 @@ func buildDBUrl() (url string, err error) {
 		return
 	}
 
-	url = fmt.Sprintf(
+	userSafe := url.PathEscape(user)
+	passSafe := url.PathEscape(pass)
+
+	url_ = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		user, pass, host, port, base,
+		userSafe, passSafe, host, port, base,
 	)
 
 	return
