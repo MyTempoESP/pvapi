@@ -35,7 +35,7 @@ func Plant(
 	logger.Debug("Creating admin user",
 		"user", adminUser, "pass", adminPass)
 
-	adminmodel.Create(
+	err = adminmodel.Create(
 		ctx, pool,
 		adminUser,
 		adminMail,
