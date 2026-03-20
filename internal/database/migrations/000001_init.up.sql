@@ -92,6 +92,9 @@ CREATE TABLE IF NOT EXISTS public.products
     moderation_status text DEFAULT 'pending',
     category_id integer NOT NULL,
     description text NOT NULL,
+    attr jsonb NOT NULL DEFAULT '{}'::jsonb,
+    code text NOT NULL,
+    uniqueid uuid NOT NULL,
     PRIMARY KEY (id)
 );
 

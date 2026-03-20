@@ -13,18 +13,21 @@ type SpecificationResource struct {
 type ProductResource struct {
 	ID       int             `json:"id"`
 	Name     string          `json:"name"`
-	Stock    int             `json:"code"`
+	Stock    int             `json:"stock"`
 	Price    decimal.Decimal `json:"price"`
 	Discount decimal.Decimal `json:"discount"`
 	Featured bool            `json:"featured"`
+	Code     string          `json:"code"`
+	UUID     string          `json:"uuid"`
 
 	// Earnings modifiers
 	PlatformCut     decimal.Decimal `json:"platform_cut"`
 	PlatformCutType string          `json:"platform_cut_type"`
 
-	// Product policies
-	Colors           []string `json:"colors"`
-	ModerationStatus string   `json:"moderation_status"`
+	Colors []string `json:"colors,omitempty"`
+	Sizes  []string `json:"sizes,omitempty"`
+
+	ModerationStatus string `json:"moderation_status"`
 
 	// Specifications
 	Category            string                  `json:"category"`
@@ -51,7 +54,8 @@ func (p Product) ToResource() ProductResource {
 		Featured:            p.Featured,
 		Description:         p.Description,
 		ModerationStatus:    p.ModerationStatus,
-		Colors:              p.Colors,
+		Colors:              p.Attributes.Colors,
+		Sizes:               p.Attributes.Sizes,
 		PlatformCut:         p.PlatformCut.Value,
 		PlatformCutType:     p.PlatformCut.Type,
 		Category:            p.Category,
@@ -60,6 +64,8 @@ func (p Product) ToResource() ProductResource {
 		DescriptionImages:   p.DescImages,
 		DeliveryImages:      p.PackImages,
 		Specifications:      util.ResourceCollection(p.Specifications),
+		Code:                p.Code,
+		UUID:                p.UUID,
 	}
 }
 

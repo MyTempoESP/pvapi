@@ -32,6 +32,11 @@ type EarningsModifier struct {
 	Value decimal.Decimal `json:"value"`
 }
 
+type ProductAttr struct {
+	Colors []string `json:"colors"`
+	Sizes  []string `json:"sizes"`
+}
+
 type Product struct {
 	ID               int             `db:"product_id"`
 	Name             string          `db:"product_name"`
@@ -41,8 +46,11 @@ type Product struct {
 	Featured         bool            `db:"product_featured"`
 	ModerationStatus string          `db:"product_moderation_status"`
 	Description      string          `db:"product_description"`
-	Colors           []string        `db:"product_colors"`
 	Category         string          `db:"product_category"`
+	UUID             string          `db:"product_uuid"`
+	Code             string          `db:"product_code"`
+
+	Attributes ProductAttr `db:"product_attr"`
 
 	Specifications []Specification `db:"product_specifications"`
 
@@ -74,12 +82,16 @@ func productTransaction(
 	defer tx.Rollback(ctx)
 
 	params := pgx.NamedArgs{
-		"name":     product.Name,
-		"price":    product.Price,
-		"stock":    product.Stock,
-		"discount": product.Discount,
-		"featured": product.Featured,
-		"shop_id":  shop,
+		"name":        product.Name,
+		"price":       product.Price,
+		"stock":       product.Stock,
+		"discount":    product.Discount,
+		"featured":    product.Featured,
+		"description": product.Description,
+		"code":        product.Code,
+		"category":    product.Category,
+		"shop_id":     shop,
+		"attr":        product.Attributes,
 	}
 
 	err = tx.QueryRow(

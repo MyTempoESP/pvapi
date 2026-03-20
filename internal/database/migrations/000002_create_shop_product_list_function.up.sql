@@ -26,21 +26,24 @@ CREATE FUNCTION get_shop_products(
     product_featured          BOOLEAN,
     product_moderation_status TEXT,
     product_description       TEXT,
-    product_colors            JSON,
+    product_attr              JSONB,
     product_category          TEXT,
 
     product_specifications JSON,
 
-	product_p_ccolor BOOLEAN,
 	product_p_cmod   BOOLEAN,
 	product_p_cname  BOOLEAN,
+	product_p_ccolor BOOLEAN,
 
     product_platform_cut JSON, -- platform_cut object (value,type)
 
     product_main_image  TEXT,
     product_spec_images JSON,
     product_desc_images JSON,
-    product_pack_images JSON
+    product_pack_images JSON,
+
+    product_code TEXT,
+    product_uuid UUID
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -53,28 +56,10 @@ BEGIN
         p.featured          AS product_featured,
         p.moderation_status AS product_moderation_status,
         p.description       AS product_description,
+        p.attr              AS product_attr,
+        c.name              AS product_category,
 
         -- =================SPECIFICATIONS=================
-
-        -- A funny idea is to make many
-        -- different 'color' specifications and
-        -- aggregate them here to make it more relational
-        -- instead of passing raw JSON around.
-        (
-            SELECT s.value::json
-            FROM specifications s
-            WHERE s.product_id = p.id AND s.name = 'colors'
-            LIMIT 1
-        ) AS product_colors,
-
-        -- TODO: create a 'category' table for this exact purpose
-        -- the 'specification' generalization is a logic flaw
-        (
-            SELECT s.value
-            FROM specifications s
-            WHERE s.product_id = p.id AND s.name = 'category'
-            LIMIT 1
-        ) AS product_category,
 
         -- Specifications Subquery
         COALESCE((
@@ -123,10 +108,18 @@ BEGIN
 
         get_product_images(p.id, stag) AS product_spec_images,
         get_product_images(p.id, dtag) AS product_desc_images,
-        get_product_images(p.id, ptag) AS product_pack_images
+        get_product_images(p.id, ptag) AS product_pack_images,
+
+        -- ================================================
+
+        -- =====================ID=========================
+
+        p.code     AS product_code,
+        p.uniqueid AS product_uuid
 
         -- ================================================
     FROM products p
+    LEFT JOIN categories c ON c.id = p.category_id
     WHERE p.shop_id = p_shop_id;
 END;
 $$ LANGUAGE plpgsql;

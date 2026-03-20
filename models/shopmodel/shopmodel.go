@@ -2,10 +2,12 @@ package shopmodel
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/address"
+	"linhazero.com/pvapi/models/categorymodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 
@@ -147,6 +149,24 @@ func Create(
 			return err
 		},
 	)
+
+	if err != nil {
+		return
+	}
+
+	err = categorymodel.Create(
+		ctx, pool,
+		"n/a",
+		"Sem categoria",
+		shopID,
+	)
+
+	if err != nil {
+		err = fmt.Errorf(
+			"couldn't create default category: %w",
+			err,
+		)
+	}
 
 	return
 }

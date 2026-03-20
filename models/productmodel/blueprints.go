@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gofrs/uuid/v5"
 	"github.com/gosimple/slug"
 	"github.com/shopspring/decimal"
 )
@@ -20,13 +19,21 @@ type PolicyBlueprint struct {
 	Enabled bool
 }
 
+type AttributesBlueprint struct {
+	Colors []string `json:"colors,omitempty"`
+	Sizes  []string `json:"sizes,omitempty"`
+}
+
 type ProductBlueprint struct {
-	Name     string
-	Price    string
-	Stock    int
-	Discount decimal.Decimal
-	Category string
-	Featured bool
+	Name        string
+	Price       string
+	Stock       int
+	Discount    decimal.Decimal
+	Category    string
+	Featured    bool
+	Code        string
+	Description string
+	Attributes  []byte
 
 	ImageURL   string
 	DescImages []string
@@ -47,46 +54,6 @@ func PrepareSpecifications(
 	if err != nil {
 		return nil, err
 	}
-
-	uniqueid, err := uuid.NewV4()
-
-	if err != nil {
-		return
-	}
-
-	categorySlug := slug.Make(p.Category)
-
-	// Generate the default specifications AFTER user-definitions
-	specifications = append(specifications,
-		SpecificationBlueprint{
-			Name:  "colors",
-			Value: p.ColorListJSON,
-		},
-		SpecificationBlueprint{
-			Name:  "category",
-			Value: categorySlug,
-		},
-		SpecificationBlueprint{
-			Name:  "description",
-			Value: p.Description,
-		},
-		SpecificationBlueprint{
-			Name:  "uuid",
-			Value: uniqueid.String(),
-		},
-	)
-
-	code := slug.Make(p.Name) + categorySlug
-
-	// at least of the form: X, description, category
-	if len(specifications) > 2 {
-		code += specifications[0].Value
-	}
-
-	specifications = append(specifications, SpecificationBlueprint{
-		Name:  "code",
-		Value: code,
-	})
 
 	return
 }
@@ -123,6 +90,9 @@ func (p *CreateProductRequest) Prepare(
 		return
 	}
 
+	var colors []string
+	json.Unmarshal([]byte(p.ColorListJSON), &colors)
+
 	image, err := handleImage(c, p.Image)
 
 	if err != nil {
@@ -147,12 +117,31 @@ func (p *CreateProductRequest) Prepare(
 		return
 	}
 
+	code := slug.Make(p.Name) + slug.Make(p.Category)
+
+	// at least of the form: X, description, category
+	if len(specifications) > 2 {
+		code += specifications[0].Value
+	}
+
+	attributes, err := json.Marshal(AttributesBlueprint{
+		Colors: colors,
+		Sizes:  []string{},
+	})
+
+	if err != nil {
+		return
+	}
+
 	pb = &ProductBlueprint{
-		Name:     p.Name,
-		Price:    p.Price,
-		Stock:    p.Stock,
-		Discount: p.Discount,
-		Featured: p.Featured,
+		Name:        p.Name,
+		Price:       p.Price,
+		Stock:       p.Stock,
+		Discount:    p.Discount,
+		Featured:    p.Featured,
+		Code:        code,
+		Description: p.Description,
+		Attributes:  attributes,
 
 		Specifications: specifications,
 		Policies:       policies,
