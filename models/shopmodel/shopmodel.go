@@ -122,40 +122,54 @@ func Create(
 		shop.Telephone, // telephone as password if does not exist
 	)
 
-	params := pgx.NamedArgs{
-		"user":      user,
-		"name":      shop.Name,
-		"slug":      slug.Make(shop.Name),
-		"telephone": shop.Telephone,
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return
+	}
+	defer tx.Rollback(ctx)
 
-		"addrstreet":     shop.Address.Street,
-		"addrnumber":     shop.Address.Number,
-		"addrneigh":      shop.Address.Neighborhood,
-		"addrcity":       shop.Address.City,
-		"addrstate":      shop.Address.State,
-		"addrcep":        shop.Address.CEP,
-		"addrcomplement": shop.Address.Complement,
+	var addrID int
+
+	addrParams := pgx.NamedArgs{
+		"street":     shop.Address.Street,
+		"number":     shop.Address.Number,
+		"neigh":      shop.Address.Neighborhood,
+		"city":       shop.Address.City,
+		"state":      shop.Address.State,
+		"cep":        shop.Address.CEP,
+		"complement": shop.Address.Complement,
 	}
 
-	err = pgx.BeginFunc(
-		ctx, pool,
-		func(tx pgx.Tx) error {
-			err := tx.QueryRow(
-				ctx,
-				query.ShopCreateQuery,
-				params,
-			).Scan(&shopID)
-
-			return err
-		},
-	)
+	err = tx.QueryRow(
+		ctx,
+		query.CreateAddressQuery,
+		addrParams,
+	).Scan(&addrID)
 
 	if err != nil {
 		return
 	}
 
-	err = categorymodel.Create(
-		ctx, pool,
+	shopParams := pgx.NamedArgs{
+		"user":      user,
+		"name":      shop.Name,
+		"slug":      slug.Make(shop.Name),
+		"address":   addrID,
+		"telephone": shop.Telephone,
+	}
+
+	err = tx.QueryRow(
+		ctx,
+		query.ShopCreateQuery,
+		shopParams,
+	).Scan(&shopID)
+
+	if err != nil {
+		return
+	}
+
+	err = categorymodel.CreateTx(
+		ctx, tx,
 		"n/a",
 		"Sem categoria",
 		shopID,
@@ -167,6 +181,8 @@ func Create(
 			err,
 		)
 	}
+
+	err = tx.Commit(ctx)
 
 	return
 }

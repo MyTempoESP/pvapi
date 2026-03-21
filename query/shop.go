@@ -3,7 +3,7 @@ package query
 import "fmt"
 
 const (
-	// Shop fields
+	// Shop fields, FIXME: should be a view
 	shopSelectBaseFields = `
 shop.id AS shop_id,
 shop.name AS name,
@@ -39,34 +39,19 @@ WHERE users.id = shop_users.user_id
 `
 
 	ShopCreateQuery = `
-WITH new_address AS (
-	INSERT into addresses
-	(
-		street, number, neighborhood, city,
-		state, cep, complement
-	)
-	VALUES
-	(
-		@addrstreet, @addrnumber,
-		@addrneigh, @addrcity,
-		@addrstate, @addrcep,
-		@addrcomplement
-	)
-
-	returning id
-)
 INSERT INTO shops
 	(
 		name, slug, telephone,
 		address_id, user_id
 	)
-SELECT
-	@name,
-	@slug,
-	@telephone,
-	new_address.id,
-	@user
-FROM new_address
+VALUES
+	(
+		@name,
+		@slug,
+		@telephone,
+		@address,
+		@user
+	)
 RETURNING id
 `
 )
