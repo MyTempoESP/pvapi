@@ -53,4 +53,9 @@ func setupRoutes(
 		products.PUT(":id", product.UpdateHandler(pool))
 		products.POST("", product.CreateHandler(pool))
 	}
+
+	consignees := t.Group("/monitores", withAuth)
+	{
+		consignees.POST("")
+	}
 }

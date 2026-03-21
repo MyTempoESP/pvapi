@@ -42,6 +42,13 @@ migrations_run() {
             -verbose up
 }
 
+migrations_create() {
+    podman run --rm -v ./internal/database/migrations:/migrations:Z \
+        --network host \
+        docker.io/migrate/migrate \
+            -verbose create -dir=/migrations/ -seq -ext sql "$1"
+}
+
 database_up() {
     postgres_start
     trap cleanup EXIT
@@ -73,6 +80,7 @@ test_program() {
 }
 
 CMD=${1:-"help"}
+shift
 
 case "$CMD" in
     image)
@@ -90,6 +98,11 @@ case "$CMD" in
 
     migrate)
         migrations_run
+        ;;
+
+    new_migration)
+        [[ -z "$1" ]] && exit 1
+        migrations_create "$1"
         ;;
 
     database)

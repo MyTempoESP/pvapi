@@ -54,6 +54,6 @@ RETURNING id
 
 	// listing
 	ProductGetByShop = `
-SELECT * FROM get_shop_products(@shop_id, @desc_tag, @spec_tag, @pack_tag)
+SELECT * FROM product_catalog WHERE product_shop_id = $1
 `
 )
