@@ -127,6 +127,6 @@ func UpdateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-
+		// TODO
 	}
 }
