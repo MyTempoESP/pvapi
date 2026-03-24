@@ -42,5 +42,14 @@ func Plant(
 		adminPass,
 	)
 
+	// recoverable
+	if err != nil {
+		logger.Error("Error creating admin user",
+			"user", adminUser, "pass", adminPass,
+			"error", err)
+
+		return nil
+	}
+
 	return
 }
