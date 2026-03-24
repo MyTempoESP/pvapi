@@ -65,6 +65,8 @@ func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 }
 
 func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	// TODO TEST: verify the success status works correctly for creating
+
 	return func(c *gin.Context) {
 		var (
 			shop shopmodel.CreateShopRequest
