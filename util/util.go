@@ -142,6 +142,7 @@ func WrapLabeled[R any](
 	label string, data R,
 ) {
 	c.JSON(200, gin.H{
+		"success": true,
 		"message": message,
 		"data": gin.H{
 			label: data,
@@ -158,6 +159,7 @@ func WrapLabeledFlat[R any](
 	label string, data R,
 ) {
 	c.JSON(200, gin.H{
+		"success": true,
 		"message": message,
 		label:     data,
 	})

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/policies/consigneepolicy"
+	"linhazero.com/pvapi/policies/consignmentpolicy"
 	"linhazero.com/pvapi/policies/productpolicy"
 	"linhazero.com/pvapi/policies/shoppolicy"
 )
@@ -26,6 +27,10 @@ func Gate(c *gin.Context, authUser *authmodel.AuthUser) bool {
 
 	if strings.HasPrefix(path, "/monitores") {
 		return consigneepolicy.Gate(authUser, resource, c.Params)
+	}
+
+	if strings.HasPrefix(path, "/remessas") {
+		return consignmentpolicy.Gate(authUser, resource, c.Params)
 	}
 
 	switch path {

@@ -40,7 +40,7 @@ func ListByShopHandler(
 		util.WrapLabeled(
 			c,
 			"produtos listados com sucesso",
-			"products", collection,
+			"data", collection,
 		)
 	}
 }
