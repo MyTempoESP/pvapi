@@ -1,33 +1,6 @@
 package query
 
-import "fmt"
-
 const (
-	// Shop fields, FIXME: should be a view
-	shopSelectBaseFields = `
-shop.id AS shop_id,
-shop.name AS name,
-shop.slug AS slug,
-shop.telephone AS telephone,
-'active' AS status,
-
-u.name AS user_name,
-u.email AS user_email,
-
-address.street AS addrstreet,
-address.number AS addrnumber,
-address.neighborhood AS addrneigh,
-address.city AS addrcity,
-address.state AS addrstate,
-address.cep AS addrcep,
-address.complement AS addrcomplement
-`
-	shopSelectTables = `
-FROM shops AS shop
-LEFT JOIN addresses AS address ON shop.address_id = address.id
-LEFT JOIN users AS u ON shop.user_id = u.id
-`
-
 	ShopUserUpdateEmail = `
 WITH shop_users AS (
 	SELECT id, user_id FROM shops WHERE id = $1
@@ -54,43 +27,40 @@ VALUES
 	)
 RETURNING id
 `
-)
 
-var (
-	SelectAllShopsQuery = fmt.Sprintf(`
+	SelectAllShopsQuery = `
+SELECT * FROM shops_info_view
+`
+
+	ShopFindQuery = `
+SELECT * FROM shops_info_view
+WHERE shop_id = $1
+`
+
+	ShopFindByUserQuery = `
 SELECT
-	%s
-%s
-`, shopSelectBaseFields, shopSelectTables)
+	s.shop_id,
+	s.name,
+	s.slug,
+	s.telephone,
+	s.status,
 
-	ShopFindQuery = fmt.Sprintf(`
-%s
-WHERE shop.id = $1
-`, SelectAllShopsQuery)
+	s.user_name,
+	s.user_email,
 
-	ShopFindByUserQuery = fmt.Sprintf(`
-%s
-WHERE shop.user_id = $1
-`, SelectAllShopsQuery)
+	s.addrstreet,
+	s.addrnumber,
+	s.addrneigh,
+	s.addrcity,
+	s.addrstate,
+	s.addrcep,
+	s.addrcomplement
+FROM shops_info_full_view s
+WHERE s.user_id = $1
+`
 
-	ShopFindDetailedQuery = fmt.Sprintf(`
-WITH product_count AS (
-	SELECT shop_id, COUNT(id) AS count
-	FROM products
-	GROUP BY shop_id
-),
-pickup_count AS (
-	SELECT shop_id, COUNT(id) AS count
-	FROM pickup_locations
-	GROUP BY shop_id
-)
-SELECT
-	%s,
-	COALESCE(product.count, 0) AS products_count,
-	COALESCE(pickup.count, 0) AS pickups
-%s
-LEFT JOIN product_count AS product ON product.shop_id = shop.id
-LEFT JOIN pickup_count AS pickup ON pickup.shop_id = shop.id
-WHERE shop.id = $1
-`, shopSelectBaseFields, shopSelectTables)
+	ShopFindDetailedQuery = `
+SELECT * FROM shops_info_detailed_view
+WHERE shop_id = $1
+`
 )

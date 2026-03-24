@@ -18,14 +18,19 @@ func Gate(
 	}
 
 	switch resource {
-	// Rota publica
 	case "POST/monitores":
 		return CreatePolicy(user)
+	case "GET/monitores":
+		return ListPolicy(user)
 	}
 
 	return false
 }
 
 func CreatePolicy(user *authmodel.AuthUser) bool {
+	return user.Role == "shop"
+}
+
+func ListPolicy(user *authmodel.AuthUser) bool {
 	return user.Role == "shop"
 }

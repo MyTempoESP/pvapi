@@ -1,19 +1,20 @@
 package shoputils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 )
 
 func FindFromContext(
 	c *gin.Context,
-	pool *pgxpool.Pool,
+	base db.Queryable,
 ) (*shopmodel.Shop, error) {
 	user, err := authmodel.GetUserFromContext(c)
 
@@ -23,7 +24,7 @@ func FindFromContext(
 		return nil, fmt.Errorf("erro ao obter usuário logado: %w", err)
 	}
 
-	shop, err := shopmodel.FindByUser(ctx, pool, user)
+	shop, err := shopmodel.FindByUser(ctx, base, user)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -36,4 +37,21 @@ func FindFromContext(
 	}
 
 	return &shop, nil
+}
+
+func WithShopFromContextReturn[T any](
+	c *gin.Context,
+	base db.Queryable,
+	provider func(context.Context, *shopmodel.Shop) (T, error),
+) (T, error) {
+	// empty value to return on failure
+	var zero T
+
+	shop, err := FindFromContext(c, base)
+
+	if err != nil {
+		return zero, err
+	}
+
+	return provider(c.Request.Context(), shop)
 }

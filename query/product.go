@@ -54,6 +54,6 @@ RETURNING id
 
 	// listing
 	ProductGetByShop = `
-SELECT * FROM product_catalog WHERE product_shop_id = $1
+SELECT * FROM product_catalog_view WHERE product_shop_id = $1
 `
 )

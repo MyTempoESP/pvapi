@@ -35,11 +35,13 @@ func ListByShopHandler(
 			return
 		}
 
-		resources := util.ResourceCollection(products)
+		collection := util.ResourceCollection(products)
 
-		c.JSON(200, gin.H{
-			"products": resources,
-		})
+		util.WrapLabeled(
+			c,
+			"produtos listados com sucesso",
+			"products", collection,
+		)
 	}
 }
 

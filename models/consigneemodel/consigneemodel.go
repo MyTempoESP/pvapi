@@ -5,9 +5,20 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/util"
 )
+
+type Consignee struct {
+	ID    int    `db:"consignee_id"`
+	Phone string `db:"phone"`
+
+	// anonymous fields
+	address.Address
+	usermodel.User
+}
 
 func CreateTx(
 	ctx context.Context,
@@ -55,4 +66,17 @@ func Create(
 	})
 
 	return
+}
+
+func List(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	shop int,
+) ([]Consignee, error) {
+	return util.WithCollect[Consignee](
+		ctx,
+		pool,
+		query.ListShopConsigneesQuery,
+		shop,
+	)
 }

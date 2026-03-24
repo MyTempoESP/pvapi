@@ -1,9 +1,12 @@
 package consignee
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/consigneemodel"
+	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/util/shoputils"
 )
@@ -11,8 +14,32 @@ import (
 func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
-	return func(c *gin.Context) {
+	type CCollection = []consigneemodel.Consignee
 
+	return func(c *gin.Context) {
+		consignees, err := shoputils.WithShopFromContextReturn(
+			c, pool,
+			func(ctx context.Context, shop *shopmodel.Shop) (CCollection, error) {
+				return consigneemodel.List(
+					ctx,
+					pool,
+					shop.ID,
+				)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(consignees)
+
+		util.WrapLabeled(
+			c,
+			"monitores listados com sucesso",
+			"monitors", collection,
+		)
 	}
 }
 
@@ -20,6 +47,7 @@ func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// TODO: generalize
 		var consigneeRequest consigneemodel.CreateConsigneeRequest
 
 		err := c.ShouldBind(&consigneeRequest)

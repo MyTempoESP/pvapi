@@ -12,7 +12,7 @@ RETURNS BOOLEAN AS $$
     WHERE c.product_id = p_id AND c.name = c_name;
 $$ LANGUAGE sql STABLE;
 
-CREATE VIEW public.product_catalog AS
+CREATE VIEW public.product_catalog_view AS
 SELECT
     p.id                AS product_id,
     p.name              AS product_name,
