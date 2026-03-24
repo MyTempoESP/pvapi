@@ -9,3 +9,13 @@ type Address struct {
 	CEP        string `json:"cep" db:"addrcep"`
 	Complement string `json:"complement" db:"addrcomplement"`
 }
+
+type AddressRequest struct {
+	Street       string `json:"street" binding:"required"`
+	Number       string `json:"number" binding:"required"`
+	Neighborhood string `json:"neighborhood" binding:"required"`
+	City         string `json:"city" binding:"required"`
+	State        string `json:"state" binding:"required"`
+	CEP          string `json:"CEP" binding:"required"`
+	Complement   string `json:"complement"`
+}

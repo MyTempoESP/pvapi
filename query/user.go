@@ -23,6 +23,13 @@ SELECT name, email FROM users WHERE id = $1
 SELECT id, email FROM users WHERE email = $1
 `
 
+	UserCreateIfNotExistsQuery = `
+INSERT INTO users (name, email, password_hash)
+VALUES (@name, @email, @password)
+ON CONFLICT DO NOTHING
+RETURNING id
+`
+
 	// level
 	UserMaxLevelQuery = `
 SELECT

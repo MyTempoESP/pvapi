@@ -10,34 +10,25 @@ import (
 	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/shoputils"
 )
 
 func ListByShopHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		user, err := authmodel.GetUserFromContext(c)
-
-		ctx := c.Request.Context()
+		shop, err := shoputils.FindFromContext(c, pool)
 
 		if err != nil {
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
-		shop, err := shopmodel.FindByUser(ctx, pool, user)
-
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				util.Handle404(c)
-				return
-			}
-
-			util.Handle500(c, err)
-			return
-		}
-
-		products, err := productmodel.GetByShop(ctx, pool, shop.ID)
+		products, err := productmodel.GetByShop(
+			c.Request.Context(),
+			pool,
+			shop.ID,
+		)
 
 		if err != nil {
 			util.Handle500(c, err)

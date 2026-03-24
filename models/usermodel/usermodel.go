@@ -3,6 +3,7 @@ package usermodel
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,37 +16,60 @@ type User struct {
 	Email string `json:"email" db:"user_email"`
 }
 
+func FindOrCreateTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	name, email, password string,
+) (userID int, err error) {
+
+	passwordHash, err := util.HashPassword(password)
+
+	if err != nil {
+		err = fmt.Errorf("can't create new user's password: %w", err)
+		return
+	}
+
+	err = tx.QueryRow(
+		ctx,
+		query.UserCreateIfNotExistsQuery,
+		pgx.NamedArgs{
+			"name":     name,
+			"email":    email,
+			"password": passwordHash,
+		},
+	).Scan(&userID)
+
+	if err == nil {
+		return // all ok
+	}
+
+	// if user exists (nothing returned on RETURNING id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = tx.QueryRow(
+			ctx,
+			query.UserFindByEmailQuery,
+			email,
+		).Scan(&userID)
+	}
+
+	return
+}
+
 func FindOrCreate(
 	ctx context.Context,
 	pool *pgxpool.Pool,
-	name string,
-	email string,
-	password string,
+	name, email, password string,
 ) (userID int, err error) {
 
-	userID, err = FindByEmail(
-		ctx, pool,
-		email,
-	)
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			// if user does not exist create a new one
-			// with telephone as password
-			userID, err = Create(
-				ctx, pool,
-				name,
-				email,
-				password,
-			)
-
-			if err != nil {
-				return
-			}
-		} else {
+	err = pgx.BeginFunc(
+		ctx,
+		pool,
+		func(tx pgx.Tx) (err error) {
+			// outer, inner =
+			userID, err = FindOrCreateTx(ctx, tx, name, email, password)
 			return
-		}
-	}
+		},
+	)
 
 	return
 }

@@ -4,6 +4,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/controllers/consignee"
 	"linhazero.com/pvapi/controllers/product"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
@@ -56,6 +57,6 @@ func setupRoutes(
 
 	consignees := t.Group("/monitores", withAuth)
 	{
-		consignees.POST("")
+		consignees.POST("", consignee.CreateHandler(pool))
 	}
 }

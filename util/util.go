@@ -1,12 +1,20 @@
 package util
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 	"linhazero.com/pvapi/middleware/logmw"
 )
+
+func GetPgError(err error) (pge *pgconn.PgError, ok bool) {
+	ok = errors.As(err, &pge)
+	return
+}
 
 // aliasing for centralization
 func HashPassword(pass string) ([]byte, error) {
@@ -55,6 +63,17 @@ func Handle500(c *gin.Context, err error) {
 			"message": err.Error(), //FIXME:debug (error leak)
 		},
 	)
+}
+
+// HandleGuessFromDBOperation guesses the correct error code based
+// on the error returned from a database operation
+func HandleGuessFromDBOperation(c *gin.Context, err error) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		Handle404(c)
+		return
+	}
+
+	Handle500(c, err)
 }
 
 type Show[R any] interface {
