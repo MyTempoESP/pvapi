@@ -130,6 +130,7 @@ func Create(
 
 	var addrID int
 
+	// TODO: make this a func
 	addrParams := pgx.NamedArgs{
 		"street":     shop.Address.Street,
 		"number":     shop.Address.Number,

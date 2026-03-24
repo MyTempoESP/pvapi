@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.shops
 (
     id serial NOT NULL,
     user_id integer NOT NULL,
-    address_id integer,
+    address_id integer NOT NULL,
     telephone text NOT NULL,
     slug text NOT NULL,
     name text NOT NULL,
@@ -43,8 +43,11 @@ CREATE TABLE IF NOT EXISTS public.consignees
 (
     id serial NOT NULL,
     user_id integer NOT NULL,
-    address_id integer,
-    PRIMARY KEY (id)
+    address_id integer NOT NULL,
+    shop_id integer NOT NULL,
+    telephone text NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT telephone_unique_for_consignee UNIQUE (telephone)
 );
 
 CREATE TABLE IF NOT EXISTS public.pickup_locations
@@ -201,6 +204,16 @@ ALTER TABLE IF EXISTS public.consignees
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
+
+
+ALTER TABLE IF EXISTS public.consignees
+    ADD CONSTRAINT consignee_shop_relation FOREIGN KEY (shop_id)
+    REFERENCES public.shops (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE CASCADE
+    NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_consignee_shop_relation
+    ON public.consignees(shop_id);
 
 
 ALTER TABLE IF EXISTS public.pickup_locations
