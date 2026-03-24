@@ -31,9 +31,11 @@ func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		c.JSON(200, gin.H{
-			"shop": shop.ToResource(),
-		})
+		util.WrapLabeledFlat(
+			c,
+			"lojas listadas com sucesso",
+			"shop", shop.ToResource(),
+		)
 	}
 }
 
@@ -53,7 +55,8 @@ func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 
 		collection := util.ResourceCollection(shops)
 
-		util.WrapLabeled(
+		// No 'data' wrapper label
+		util.WrapLabeledFlat(
 			c,
 			"lojas listadas com sucesso",
 			"shops", collection,
@@ -83,15 +86,16 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		c.JSON(200, gin.H{
-			"message": "estabelecimento criado com sucesso",
-			"shop": shopmodel.ShopSummaryResource{
+		util.WrapLabeledFlat(
+			c,
+			"estabelecimento criado com sucesso",
+			"shop", shopmodel.ShopSummaryResource{
 				ID:        shopID,
 				Name:      shop.Name,
 				Slug:      slug.Make(shop.Name),
 				Telephone: shop.Telephone,
 			},
-		})
+		)
 	}
 }
 
