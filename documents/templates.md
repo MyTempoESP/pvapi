@@ -74,7 +74,7 @@ func Create(
 	return
 }
 
-func Get(
+func List(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 ) (templateCollection []TemplateStruct, err error) {

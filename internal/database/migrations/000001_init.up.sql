@@ -154,8 +154,8 @@ CREATE TABLE IF NOT EXISTS public.earnings_modifiers
     id serial NOT NULL,
     product_id integer NOT NULL,
     name text NOT NULL,
-    type text NOT NULL,
-    value numeric(12, 2) NOT NULL,
+    type text NOT NULL DEFAULT 'percentage',
+    value numeric(12, 2) NOT NULL DEFAULT 5.00,
     PRIMARY KEY (id)
 );
 
@@ -169,7 +169,8 @@ CREATE TABLE IF NOT EXISTS public.categories
     name text NOT NULL,
     description text NOT NULL,
     shop_id integer NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    CONSTRAINT unique_for_shop_name UNIQUE (shop_id, name)
 );
 
 ALTER TABLE IF EXISTS public.shops

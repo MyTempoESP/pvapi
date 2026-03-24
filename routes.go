@@ -60,4 +60,9 @@ func setupRoutes(
 		consignees.POST("", consignee.CreateHandler(pool))
 		consignees.GET("", consignee.ListHandler(pool))
 	}
+
+	consignments := t.Group("/remessas", withAuth)
+	{
+		consignments.POST("")
+	}
 }
