@@ -58,5 +58,6 @@ func setupRoutes(
 	consignees := t.Group("/monitores", withAuth)
 	{
 		consignees.POST("", consignee.CreateHandler(pool))
+		consignees.GET("", consignee.ListHandler(pool))
 	}
 }

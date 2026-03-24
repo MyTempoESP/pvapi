@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
+	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/middleware/logmw"
 )
 
@@ -81,11 +83,65 @@ type Show[R any] interface {
 }
 
 func ResourceCollection[R any, M Show[R]](collection []M) []R {
-	resources := make([]R, 0, len(collection))
+	resources := make([]R, len(collection))
 
-	for _, item := range collection {
-		resources = append(resources, item.ToResource())
+	for i, item := range collection {
+		resources[i] = item.ToResource()
 	}
 
 	return resources
+}
+
+func WithCollectExactlyOneRow[T any](
+	ctx context.Context,
+	base db.Queryable,
+	query string,
+	params ...any,
+) (T, error) {
+	// empty value to return on failure
+	var zero T
+
+	row, err := base.Query(ctx, query, params...)
+
+	if err != nil {
+		return zero, err
+	}
+	// called internally by pgx.CollectRows
+	// defer rows.Close()
+
+	return pgx.CollectExactlyOneRow(
+		row, pgx.RowToStructByName[T],
+	)
+}
+
+func WithCollect[T any](
+	ctx context.Context,
+	base db.Queryable,
+	query string,
+	params ...any,
+) ([]T, error) {
+	rows, err := base.Query(ctx, query, params...)
+
+	if err != nil {
+		return nil, err
+	}
+	// called internally by pgx.CollectRows
+	// defer rows.Close()
+
+	return pgx.CollectRows(
+		rows, pgx.RowToStructByName[T],
+	)
+}
+
+func WrapLabeled[R any](
+	c *gin.Context,
+	message string,
+	label string, data R,
+) {
+	c.JSON(200, gin.H{
+		"message": message,
+		"data": gin.H{
+			label: data,
+		},
+	})
 }

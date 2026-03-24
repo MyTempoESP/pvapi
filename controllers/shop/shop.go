@@ -39,7 +39,7 @@ func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 
 func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		shops, err := shopmodel.Get(c.Request.Context(), pool)
+		shops, err := shopmodel.List(c.Request.Context(), pool)
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -51,11 +51,13 @@ func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		resources := util.ResourceCollection(shops)
+		collection := util.ResourceCollection(shops)
 
-		c.JSON(200, gin.H{
-			"shops": resources,
-		})
+		util.WrapLabeled(
+			c,
+			"lojas listadas com sucesso",
+			"shops", collection,
+		)
 	}
 }
 

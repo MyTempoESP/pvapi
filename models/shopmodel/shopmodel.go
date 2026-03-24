@@ -7,9 +7,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/address"
+	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/categorymodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/util"
 
 	"github.com/gosimple/slug"
 )
@@ -40,30 +42,15 @@ type DetailedShop struct {
 
 func FindByUser(
 	ctx context.Context,
-	pool *pgxpool.Pool,
+	base db.Queryable,
 	userID int,
-) (shop Shop, err error) {
-
-	row, err := pool.Query(
-		ctx, query.ShopFindByUserQuery, userID,
+) (Shop, error) {
+	return util.WithCollectExactlyOneRow[Shop](
+		ctx,
+		base,
+		query.ShopFindByUserQuery,
+		userID,
 	)
-
-	if err != nil {
-		return
-	}
-	defer row.Close()
-
-	shop, err = pgx.CollectExactlyOneRow(
-		row, pgx.RowToStructByName[Shop],
-	)
-
-	if err != nil {
-		return
-	}
-
-	err = row.Err()
-
-	return
 }
 
 func Update(
@@ -188,58 +175,28 @@ func Create(
 	return
 }
 
-func Get(
+func List(
 	ctx context.Context,
 	pool *pgxpool.Pool,
-) (shops []Shop, err error) {
-	rows, err := pool.Query(
-		ctx, query.SelectAllShopsQuery,
+) ([]Shop, error) {
+	return util.WithCollect[Shop](
+		ctx,
+		pool,
+		query.SelectAllShopsQuery,
 	)
-
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-
-	shops, err = pgx.CollectRows(
-		rows, pgx.RowToStructByName[Shop],
-	)
-
-	if err != nil {
-		return
-	}
-
-	err = rows.Err()
-
-	return
 }
 
 func Find(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	id string,
-) (shop Shop, err error) {
-	row, err := pool.Query(
-		ctx, query.ShopFindQuery,
+) (Shop, error) {
+	return util.WithCollectExactlyOneRow[Shop](
+		ctx,
+		pool,
+		query.ShopFindQuery,
 		id,
 	)
-
-	if err != nil {
-		return
-	}
-	defer row.Close()
-
-	shop, err = pgx.CollectExactlyOneRow(
-		row, pgx.RowToStructByName[Shop],
-	)
-
-	if err != nil {
-		return
-	}
-
-	err = row.Err()
-
-	return
 }
 
 // FindDetailed looks for the products count and
@@ -248,26 +205,11 @@ func FindDetailed(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	id string,
-) (shop DetailedShop, err error) {
-	row, err := pool.Query(
-		ctx, query.ShopFindDetailedQuery,
+) (DetailedShop, error) {
+	return util.WithCollectExactlyOneRow[DetailedShop](
+		ctx,
+		pool,
+		query.ShopFindDetailedQuery,
 		id,
 	)
-
-	if err != nil {
-		return
-	}
-	defer row.Close()
-
-	shop, err = pgx.CollectExactlyOneRow(
-		row, pgx.RowToStructByName[DetailedShop],
-	)
-
-	if err != nil {
-		return
-	}
-
-	err = row.Err()
-
-	return
 }
