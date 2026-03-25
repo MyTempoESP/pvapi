@@ -22,6 +22,7 @@ SELECT
 	),
 	@shop_id,
 	@telephone
+RETURNING id
 `
 
 	ListShopConsigneesQuery = `

@@ -26,7 +26,7 @@ func CreateHandler(
 			return
 		}
 
-		pickup, err := shoputils.WithShopFromContextReturn[PickupLocation](
+		pickup, err := shoputils.WithShopFromContextReturn(
 			c, pool,
 			func(ctx context.Context, s *shopmodel.Shop) (PickupLocation, error) {
 				return pickupmodel.Create(ctx, pool, request)

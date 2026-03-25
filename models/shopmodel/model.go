@@ -116,26 +116,21 @@ func CreateTx(
 	user userutils.User,
 ) (shopID int, err error) {
 
-	userID, err := user.MustCreate(ctx, tx)
+	userID, err := user.MustSave(ctx, tx)
 
 	if err != nil {
 		return
 	}
 
-	shopParams := pgx.NamedArgs{
-		"user":      userID,
-		"name":      shop.Name,
-		"slug":      slug.Make(shop.Name),
-		"telephone": shop.Telephone,
-
-		"street":     shop.Address.Street,
-		"number":     shop.Address.Number,
-		"neigh":      shop.Address.Neighborhood,
-		"city":       shop.Address.City,
-		"state":      shop.Address.State,
-		"cep":        shop.Address.CEP,
-		"complement": shop.Address.Complement,
-	}
+	shopParams := util.Merge(
+		pgx.NamedArgs{
+			"user":      userID,
+			"name":      shop.Name,
+			"slug":      slug.Make(shop.Name),
+			"telephone": shop.Telephone,
+		},
+		shop.Address.Params(),
+	)
 
 	err = tx.QueryRow(
 		ctx,

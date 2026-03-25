@@ -18,6 +18,5 @@ func Create(
 	pool *pgxpool.Pool,
 	pickupLocation CreatePickupLocationRequest,
 ) (PickupLocation, error) {
-	//return model.Create[PickupLocation]()
 	return PickupLocation{}, nil
 }
