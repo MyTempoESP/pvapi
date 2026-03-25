@@ -38,7 +38,7 @@ func ListHandler(
 		util.WrapLabeled(
 			c,
 			"monitores listados com sucesso",
-			"monitors", collection,
+			"data", collection,
 		)
 	}
 }
