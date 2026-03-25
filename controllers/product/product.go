@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gin-gonic/gin"
@@ -16,35 +17,31 @@ import (
 func ListByShopHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
+	type Pcollect = []productmodel.Product
+
 	return func(c *gin.Context) {
-		shop, err := shoputils.FindFromContextDetailed(c, pool)
+		products, err := shoputils.WithShopFromContextReturn(
+			c, pool,
+			func(ctx context.Context, shop *shopmodel.Shop) (Pcollect, error) {
+				return productmodel.GetByShop(
+					ctx,
+					pool,
+					shop.ID,
+				)
+			},
+		)
 
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
-		products, err := productmodel.GetByShop(
-			c.Request.Context(),
-			pool,
-			shop.ID,
-		)
-
-		if err != nil {
-			util.Handle500(c, err)
-			return
-		}
-
 		collection := util.ResourceCollection(products)
 
-		util.WrapMap(
+		util.WrapLabeled(
 			c,
 			"produtos listados com sucesso",
-			gin.H{
-				"products": collection,
-				"shop":     shop.Summarize(),
-				"total":    shop.Products,
-			},
+			"data", collection,
 		)
 	}
 }
