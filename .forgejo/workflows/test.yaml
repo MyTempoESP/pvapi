@@ -1,6 +1,41 @@
-on: [push]
+name: Go Build Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 jobs:
-  test:
+  compile:
     runs-on: docker
+    container:
+      image: golang:1.24-bookworm
+
     steps:
-      - run: echo All good!
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Verify Go Version
+        run: go version
+
+      - name: Download Dependencies
+        run: go mod download
+
+      - name: Run Linter
+        run: go fmt ./... && go vet ./...
+
+      - name: Run Tests
+        run: go test -v ./...
+
+      - name: Build Binary
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 go build -o dist/pvapi -ldflags="-s -w" .
+
+      - name: Archive Production Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-app-binary
+          path: dist/my-app
+          retention-days: 2
