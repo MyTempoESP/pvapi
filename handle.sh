@@ -126,6 +126,7 @@ ci)
     ;;
 
 prod)
+    git fetch && git merge
     build_ci
     database_reset
     ;;
