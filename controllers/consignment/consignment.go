@@ -10,6 +10,7 @@ func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+
 	}
 }
 

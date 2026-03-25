@@ -5,8 +5,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/util/userutils"
 )
 
 func Create(
@@ -17,8 +17,7 @@ func Create(
 	adminEmail,
 	adminPass string,
 ) (err error) {
-	userID, err := usermodel.Create(
-		ctx, pool,
+	user, err := userutils.NewUser(
 		adminUser,
 		adminEmail,
 		adminPass,
@@ -30,7 +29,13 @@ func Create(
 
 	err = pgx.BeginFunc(ctx, pool,
 		func(tx pgx.Tx) error {
-			_, err := tx.Exec(ctx, query.AdminCreateQuery, userID)
+			userID, err := user.Save(ctx, tx)
+
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.Exec(ctx, query.AdminCreateQuery, userID)
 			return err
 		})
 

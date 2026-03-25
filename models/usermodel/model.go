@@ -3,10 +3,10 @@ package usermodel
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
@@ -16,22 +16,18 @@ type User struct {
 	Email string `json:"email" db:"user_email"`
 }
 
-func FindOrCreateTx(
+// FindOrCreate is a utility function, not a controller resource
+// and as such, it should be used with care (e.g. remembering to initiate a tx)
+func FindOrCreate(
 	ctx context.Context,
-	tx pgx.Tx,
-	name, email, password string,
+	base db.Queryable,
+	name, email string,
+	passwordHash []byte,
 ) (userID int, err error) {
 
-	passwordHash, err := util.HashPassword(password)
-
-	if err != nil {
-		err = fmt.Errorf("can't create new user's password: %w", err)
-		return
-	}
-
-	err = tx.QueryRow(
+	err = base.QueryRow(
 		ctx,
-		query.UserCreateIfNotExistsQuery,
+		query.UserFindOrCreateQuery,
 		pgx.NamedArgs{
 			"name":     name,
 			"email":    email,
@@ -39,48 +35,16 @@ func FindOrCreateTx(
 		},
 	).Scan(&userID)
 
-	if err == nil {
-		return // all ok
-	}
-
-	// if user exists (nothing returned on RETURNING id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = tx.QueryRow(
-			ctx,
-			query.UserFindByEmailQuery,
-			email,
-		).Scan(&userID)
-	}
-
-	return
-}
-
-func FindOrCreate(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	name, email, password string,
-) (userID int, err error) {
-
-	err = pgx.BeginFunc(
-		ctx,
-		pool,
-		func(tx pgx.Tx) (err error) {
-			// outer, inner =
-			userID, err = FindOrCreateTx(ctx, tx, name, email, password)
-			return
-		},
-	)
-
 	return
 }
 
 func FindByEmail(
 	ctx context.Context,
-	pool *pgxpool.Pool,
+	base db.Queryable,
 	email string,
 ) (userID int, err error) {
 
-	err = pool.QueryRow(
+	err = base.QueryRow(
 		ctx, query.UserFindByEmailQuery, email,
 	).Scan(&userID)
 
@@ -89,32 +53,15 @@ func FindByEmail(
 
 func Create(
 	ctx context.Context,
-	pool *pgxpool.Pool,
-
-	userName,
-	userEmail,
-	userPassword string,
+	base db.Queryable,
+	name, email string,
+	passwordHash []byte,
 ) (userID int, err error) {
-	passwordHash, err := util.HashPassword(userPassword)
-
-	// TODO: Check error type, password too long etc.
-	if err != nil {
-		return
-	}
-
-	// rollback!
-	err = pgx.BeginFunc(
-		ctx, pool,
-		func(tx pgx.Tx) error {
-			err := tx.QueryRow(
-				ctx,
-				query.UserRegisterQuery,
-				userName, userEmail, passwordHash,
-			).Scan(&userID)
-
-			return err
-		},
-	)
+	err = base.QueryRow(
+		ctx,
+		query.UserRegisterQuery,
+		name, email, passwordHash,
+	).Scan(&userID)
 
 	return
 }

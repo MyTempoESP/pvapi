@@ -23,11 +23,27 @@ SELECT name, email FROM users WHERE id = $1
 SELECT id, email FROM users WHERE email = $1
 `
 
-	UserCreateIfNotExistsQuery = `
-INSERT INTO users (name, email, password_hash)
-VALUES (@name, @email, @password)
-ON CONFLICT DO NOTHING
-RETURNING id
+	UserFindOrCreateQuery = `
+WITH inserted_user AS (
+	INSERT INTO users
+	(
+		name,
+		email,
+		password_hash
+	)
+	VALUES
+	(
+		@name,
+		@email,
+		@password
+	)
+	ON CONFLICT (email) DO NOTHING
+	RETURNING id
+)
+SELECT id FROM inserted_user
+UNION ALL
+SELECT id FROM users u WHERE u.email = @email
+LIMIT 1
 `
 
 	// level

@@ -12,20 +12,42 @@ WHERE users.id = shop_users.user_id
 `
 
 	ShopCreateQuery = `
-INSERT INTO shops
+WITH new_shop AS (
+	INSERT INTO shops
+		(
+			name, slug, telephone,
+			address_id, user_id
+		)
+	VALUES
+		(
+			@name,
+			@slug,
+			@telephone,
+			insert_new_address(
+				@street,
+				@number,
+				@neigh,
+				@city,
+				@state,
+				@cep,
+				@complement
+			),
+			@user
+		)
+	RETURNING id
+)
+INSERT INTO categories
 	(
-		name, slug, telephone,
-		address_id, user_id
+		name,
+		description,
+		shop_id
 	)
-VALUES
-	(
-		@name,
-		@slug,
-		@telephone,
-		@address,
-		@user
-	)
-RETURNING id
+SELECT
+	'n/a',
+	'Sem categoria',
+	s.id
+FROM new_shop s
+RETURNING shop_id
 `
 
 	SelectAllShopsQuery = `

@@ -1,0 +1,6 @@
+package query
+
+const (
+	CreatePickupLocationQuery = `
+`
+)

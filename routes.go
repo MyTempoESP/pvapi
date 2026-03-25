@@ -74,4 +74,6 @@ func setupRoutes(
 		pickupLocations.POST("", pickups.CreateHandler(pool))
 		pickupLocations.GET("", pickups.ListHandler(pool))
 	}
+
+	t.Static("/assets", "./public/uploads")
 }

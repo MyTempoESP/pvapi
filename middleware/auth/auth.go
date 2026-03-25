@@ -13,6 +13,7 @@ import (
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/userutils"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -184,18 +185,20 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		var (
-			userName     = r.Name
-			userEmail    = r.Email
-			userPassword = r.Password
+		user, err := userutils.NewUser(
+			r.Name,
+			r.Email,
+			r.Password,
 		)
 
-		_, err = usermodel.Create(
-			c.Request.Context(),
-			pool,
-			userName,
-			userEmail,
-			userPassword,
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		err = util.Transaction(
+			c, pool,
+			user.JustSave,
 		)
 
 		if err != nil {
