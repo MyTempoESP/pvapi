@@ -105,6 +105,11 @@ database_reset() {
     sleep 5
 
     systemctl --user start "$pvapi_main_service_name"
+
+    # workaround for now, TODO/FIXME, investigating why the admin user
+    # is not creating on first try
+    sleep 2
+    systemctl --user restart "$pvapi_main_service_name"
 }
 
 CMD=${1:-"help"}
