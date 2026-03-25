@@ -53,6 +53,19 @@ func FindByUser(
 	)
 }
 
+func FindByUserDetailed(
+	ctx context.Context,
+	base db.Queryable,
+	userID int,
+) (DetailedShop, error) {
+	return util.WithCollectExactlyOneRow[DetailedShop](
+		ctx,
+		base,
+		query.ShopFindDetailedByUserQuery,
+		userID,
+	)
+}
+
 func Update(
 	ctx context.Context,
 	pool *pgxpool.Pool,

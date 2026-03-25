@@ -17,7 +17,7 @@ func ListByShopHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		shop, err := shoputils.FindFromContext(c, pool)
+		shop, err := shoputils.FindFromContextDetailed(c, pool)
 
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)
@@ -37,10 +37,14 @@ func ListByShopHandler(
 
 		collection := util.ResourceCollection(products)
 
-		util.WrapLabeled(
+		util.WrapMap(
 			c,
 			"produtos listados com sucesso",
-			"data", collection,
+			gin.H{
+				"products": collection,
+				"shop":     shop.Summarize(),
+				"total":    shop.Products,
+			},
 		)
 	}
 }

@@ -164,3 +164,14 @@ func WrapLabeledFlat[R any](
 		label:     data,
 	})
 }
+
+func WrapMap(
+	c *gin.Context,
+	message string,
+	m gin.H,
+) {
+	m["success"] = true
+	m["message"] = message
+
+	c.JSON(200, m)
+}

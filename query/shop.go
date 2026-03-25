@@ -60,7 +60,51 @@ WHERE s.user_id = $1
 `
 
 	ShopFindDetailedQuery = `
-SELECT * FROM shops_info_detailed_view
+SELECT
+    shop_id,
+    name,
+    slug,
+    telephone,
+    status,
+
+    user_name,
+    user_email,
+
+    addrstreet,
+    addrnumber,
+    addrneigh,
+    addrcity,
+    addrstate,
+    addrcep,
+    addrcomplement,
+
+    products_count,
+    pickups
+FROM shops_info_detailed_view
 WHERE shop_id = $1
+`
+
+	ShopFindDetailedByUserQuery = `
+SELECT
+    v.shop_id,
+    v.name,
+    v.slug,
+    v.telephone,
+    v.status,
+
+    v.user_name,
+    v.user_email,
+    v.addrstreet,
+    v.addrnumber,
+    v.addrneigh,
+    v.addrcity,
+    v.addrstate,
+    v.addrcep,
+    v.addrcomplement,
+
+    v.products_count,
+    v.pickups
+FROM shops_info_detailed_view v
+WHERE v.user_id = $1
 `
 )

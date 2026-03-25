@@ -39,6 +39,34 @@ func FindFromContext(
 	return &shop, nil
 }
 
+// TODO FIXME: avoid repetition
+func FindFromContextDetailed(
+	c *gin.Context,
+	base db.Queryable,
+) (*shopmodel.DetailedShop, error) {
+	user, err := authmodel.GetUserFromContext(c)
+
+	ctx := c.Request.Context()
+
+	if err != nil {
+		return nil, fmt.Errorf("erro ao obter usuário logado: %w", err)
+	}
+
+	shop, err := shopmodel.FindByUserDetailed(ctx, base, user)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf(
+				"loja não encontrada para usuário %q: %w", user, err)
+		}
+
+		return nil, fmt.Errorf(
+			"erro ao buscar loja do usuário %q: %w", user, err)
+	}
+
+	return &shop, nil
+}
+
 func WithShopFromContextReturn[T any](
 	c *gin.Context,
 	base db.Queryable,

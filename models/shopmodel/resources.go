@@ -1,6 +1,7 @@
 package shopmodel
 
 import (
+	"github.com/gosimple/slug"
 	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/models/usermodel"
 )
@@ -62,5 +63,32 @@ func (shop DetailedShop) ToResource() DetailedShopResource {
 
 		Address: shop.Address,
 		User:    shop.User,
+	}
+}
+
+func (shop Shop) Summarize() ShopSummaryResource {
+	return ShopSummaryResource{
+		ID:        shop.ID,
+		Name:      shop.Name,
+		Slug:      shop.Slug,
+		Telephone: shop.Telephone,
+	}
+}
+
+func (shop DetailedShop) Summarize() ShopSummaryResource {
+	return ShopSummaryResource{
+		ID:        shop.ID,
+		Name:      shop.Name,
+		Slug:      shop.Slug,
+		Telephone: shop.Telephone,
+	}
+}
+
+func SummarizeRequest(shopID int, shop CreateShopRequest) ShopSummaryResource {
+	return ShopSummaryResource{
+		ID:        shopID,
+		Name:      shop.Name,
+		Slug:      slug.Make(shop.Name),
+		Telephone: shop.Telephone,
 	}
 }
