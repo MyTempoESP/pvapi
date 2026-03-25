@@ -142,10 +142,10 @@ func WrapLabeled[R any](
 	label string, data R,
 ) {
 	c.JSON(200, gin.H{
-		"success": true,
-		"message": message,
 		"data": gin.H{
-			label: data,
+			"success": true,
+			"message": message,
+			label:     data,
 		},
 	})
 }
@@ -153,17 +153,19 @@ func WrapLabeled[R any](
 // WrapLabeledFlat works just like WrapLabeled, except it
 // does not wrap the inner resource inside a 'data' object,
 // instead the object is provided as-is with the specified label
-func WrapLabeledFlat[R any](
-	c *gin.Context,
-	message string,
-	label string, data R,
-) {
-	c.JSON(200, gin.H{
-		"success": true,
-		"message": message,
-		label:     data,
-	})
-}
+// func WrapLabeledFlat[R any](
+// 	c *gin.Context,
+// 	message string,
+// 	label string, data R,
+// ) {
+// 	c.JSON(200, gin.H{
+// 		"data": gin.H{
+// 			"success": true,
+// 			"message": message,
+// 			label:     data,
+// 		},
+// 	})
+// }
 
 func WrapMap(
 	c *gin.Context,
@@ -173,5 +175,7 @@ func WrapMap(
 	m["success"] = true
 	m["message"] = message
 
-	c.JSON(200, m)
+	c.JSON(200, gin.H{
+		"data": m,
+	})
 }
