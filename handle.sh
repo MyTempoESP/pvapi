@@ -96,7 +96,7 @@ database_reset() {
     systemctl --user stop "$pvapi_main_service_name"
 
     sleep 2
-    rm -rf "$pvapi_db_data_directory"
+    podman unshare rm -rf "$pvapi_db_data_directory"
 
     systemctl --user start "$pvapi_psql_service_name"
     systemctl --user start "$pvapi_main_service_name"
