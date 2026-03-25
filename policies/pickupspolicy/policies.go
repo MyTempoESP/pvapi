@@ -18,9 +18,9 @@ func Gate(
 	}
 
 	switch resource {
-	case "POST/pickups":
+	case "POST/pontos":
 		return CreatePolicy(user)
-	case "GET/pickups":
+	case "GET/pontos":
 		return ListPolicy(user)
 	}
 
