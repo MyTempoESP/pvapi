@@ -94,17 +94,17 @@ build_ci() {
 database_reset() {
     systemctl --user stop "$pvapi_psql_service_name"
     systemctl --user stop "$pvapi_main_service_name"
-
     sleep 2
 
     podman unshare rm -rf "$pvapi_db_data_directory"
 
     systemctl --user start "$pvapi_psql_service_name"
-    systemctl --user start "$pvapi_main_service_name"
-
     sleep 5
 
-    exec "$0" migrate
+    "$0" migrate
+    sleep 5
+
+    systemctl --user start "$pvapi_main_service_name"
 }
 
 CMD=${1:-"help"}
