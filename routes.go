@@ -5,6 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/controllers/consignee"
+	"linhazero.com/pvapi/controllers/consignment"
+	"linhazero.com/pvapi/controllers/pickups"
 	"linhazero.com/pvapi/controllers/product"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
@@ -63,6 +65,13 @@ func setupRoutes(
 
 	consignments := t.Group("/remessas", withAuth)
 	{
-		consignments.POST("")
+		consignments.POST("", consignment.CreateHandler(pool))
+		consignments.GET("", consignment.ListHandler(pool))
+	}
+
+	pickupLocations := t.Group("/pickups", withAuth)
+	{
+		pickupLocations.POST("", pickups.CreateHandler(pool))
+		pickupLocations.GET("", pickups.ListHandler(pool))
 	}
 }
