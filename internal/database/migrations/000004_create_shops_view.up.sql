@@ -57,4 +57,4 @@ SELECT
         FROM pickup_locations pl
         WHERE pl.shop_id = v.shop_id
     ), 0) AS pickups
-FROM public.shops_info_view v;
+FROM public.shops_info_full_view v;

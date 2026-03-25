@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/shopmodel"
@@ -91,12 +90,7 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		util.WrapLabeledFlat(
 			c,
 			"estabelecimento criado com sucesso",
-			"shop", shopmodel.ShopSummaryResource{
-				ID:        shopID,
-				Name:      shop.Name,
-				Slug:      slug.Make(shop.Name),
-				Telephone: shop.Telephone,
-			},
+			"shop", shopmodel.SummarizeRequest(shopID, shop),
 		)
 	}
 }
