@@ -14,12 +14,12 @@ import (
 func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
-	type CCollection = []consigneemodel.Consignee
+	type Consignees = []consigneemodel.Consignee
 
 	return func(c *gin.Context) {
 		consignees, err := shoputils.WithShopFromContextReturn(
 			c, pool,
-			func(ctx context.Context, shop *shopmodel.Shop) (CCollection, error) {
+			func(ctx context.Context, shop *shopmodel.Shop) (Consignees, error) {
 				return consigneemodel.List(
 					ctx,
 					pool,

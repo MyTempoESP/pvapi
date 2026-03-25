@@ -9,6 +9,7 @@ import (
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/userutils"
 )
 
 type Consignee struct {
@@ -24,15 +25,14 @@ func CreateTx(
 	ctx context.Context,
 	tx pgx.Tx,
 	consignee *ConsigneeBlueprint,
+	user userutils.User,
 ) (err error) {
 
-	userID, err := usermodel.FindOrCreateTx(
-		ctx,
-		tx,
-		consignee.Name,
-		consignee.Email,
-		consignee.Phone, // phone as password by default
-	)
+	userID, err := user.MustCreate(ctx, tx)
+
+	if err != nil {
+		return
+	}
 
 	_, err = tx.Exec(
 		ctx,
@@ -61,8 +61,14 @@ func Create(
 	consignee *ConsigneeBlueprint,
 ) (err error) {
 
+	user, err := userutils.NewUser(
+		consignee.Name,
+		consignee.Email,
+		consignee.Phone, // phone as password by default
+	)
+
 	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
-		return CreateTx(ctx, tx, consignee)
+		return CreateTx(ctx, tx, consignee, user)
 	})
 
 	return

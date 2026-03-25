@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/middleware/logmw"
@@ -153,4 +154,16 @@ func Wrap[R any](
 	data R,
 ) {
 	WrapLabeled(c, message, "data", data)
+}
+
+func Transaction(
+	c *gin.Context,
+	pool *pgxpool.Pool,
+	f func(context.Context, db.Queryable) error,
+) error {
+	return pgx.BeginFunc(c.Request.Context(), pool,
+		func(tx pgx.Tx) error {
+			return f(c.Request.Context(), tx)
+		},
+	)
 }

@@ -2,16 +2,15 @@ package shopmodel
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/db"
-	"linhazero.com/pvapi/models/categorymodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/userutils"
 
 	"github.com/gosimple/slug"
 )
@@ -110,28 +109,25 @@ func Update(
 	return
 }
 
-func Create(
+func CreateTx(
 	ctx context.Context,
-	pool *pgxpool.Pool,
+	tx pgx.Tx,
 	shop CreateShopRequest,
+	user userutils.User,
 ) (shopID int, err error) {
-	user, err := usermodel.FindOrCreate(
-		ctx, pool,
-		shop.Name,
-		shop.Email,
-		shop.Telephone, // telephone as password if does not exist
-	)
 
-	tx, err := pool.Begin(ctx)
+	userID, err := user.MustCreate(ctx, tx)
+
 	if err != nil {
 		return
 	}
-	defer tx.Rollback(ctx)
 
-	var addrID int
+	shopParams := pgx.NamedArgs{
+		"user":      userID,
+		"name":      shop.Name,
+		"slug":      slug.Make(shop.Name),
+		"telephone": shop.Telephone,
 
-	// TODO: make this a func
-	addrParams := pgx.NamedArgs{
 		"street":     shop.Address.Street,
 		"number":     shop.Address.Number,
 		"neigh":      shop.Address.Neighborhood,
@@ -143,47 +139,32 @@ func Create(
 
 	err = tx.QueryRow(
 		ctx,
-		query.CreateAddressQuery,
-		addrParams,
-	).Scan(&addrID)
-
-	if err != nil {
-		return
-	}
-
-	shopParams := pgx.NamedArgs{
-		"user":      user,
-		"name":      shop.Name,
-		"slug":      slug.Make(shop.Name),
-		"address":   addrID,
-		"telephone": shop.Telephone,
-	}
-
-	err = tx.QueryRow(
-		ctx,
 		query.ShopCreateQuery,
 		shopParams,
 	).Scan(&shopID)
 
+	return
+}
+
+func Create(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	shop CreateShopRequest,
+) (shopID int, err error) {
+	user, err := userutils.NewUser(
+		shop.Name,
+		shop.Email,
+		shop.Telephone,
+	)
+
 	if err != nil {
 		return
 	}
 
-	err = categorymodel.CreateTx(
-		ctx, tx,
-		"n/a",
-		"Sem categoria",
-		shopID,
-	)
-
-	if err != nil {
-		err = fmt.Errorf(
-			"couldn't create default category: %w",
-			err,
-		)
-	}
-
-	err = tx.Commit(ctx)
+	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) (err error) {
+		shopID, err = CreateTx(ctx, tx, shop, user)
+		return
+	})
 
 	return
 }
