@@ -8,6 +8,10 @@ db_name="pvauto_db"
 db_port="5434"
 db_dir=""
 
+pvapi_db_data_directory="/home/mytempogps/pvauto/pgdata/18"
+pvapi_psql_service_name="pva-postgresql"
+pvapi_main_service_name="pvapi"
+
 cleanup() {
     echo "Cleaning up..."
     podman stop test-postgres || true
@@ -37,16 +41,16 @@ migrations_run() {
     podman run --rm -v ./internal/database/migrations:/migrations:Z \
         --network host \
         docker.io/migrate/migrate -path /migrations/ \
-            -database \
-                "postgresql://${db_user}:${db_pass_encoded}@127.0.0.1:${db_port}/${db_name}?sslmode=disable" \
-            -verbose up
+        -database \
+        "postgresql://${db_user}:${db_pass_encoded}@127.0.0.1:${db_port}/${db_name}?sslmode=disable" \
+        -verbose up
 }
 
 migrations_create() {
     podman run --rm -v ./internal/database/migrations:/migrations:Z \
         --network host \
         docker.io/migrate/migrate \
-            -verbose create -dir=/migrations/ -seq -ext sql "$1"
+        -verbose create -dir=/migrations/ -seq -ext sql "$1"
 }
 
 database_up() {
@@ -79,43 +83,73 @@ test_program() {
     go run .
 }
 
+build_ci() {
+    podman build -t linhazero/pvapi:latest .
+    systemctl --user restart "$pvapi_main_service_name"
+
+    # user responsibility:
+    # podman image prune -f
+}
+
+database_reset() {
+    systemctl --user stop "$pvapi_psql_service_name"
+    systemctl --user stop "$pvapi_main_service_name"
+
+    sleep 2
+    rm -rf "$pvapi_db_data_directory"
+
+    systemctl --user start "$pvapi_psql_service_name"
+    systemctl --user start "$pvapi_main_service_name"
+
+    exec "$0" migrate
+}
+
 CMD=${1:-"help"}
 shift
 
 case "$CMD" in
-    image)
-        podman rmi -f linhazero/pvapi:latest || true
-        podman build -t linhazero/pvapi:latest .
-        ;;
+image)
+    podman rmi -f linhazero/pvapi:latest || true
+    podman build -t linhazero/pvapi:latest .
+    ;;
 
-    postgres)
-        postgres_start
-        ;;
+postgres)
+    postgres_start
+    ;;
 
-    cleanup)
-        cleanup
-        ;;
+cleanup)
+    cleanup
+    ;;
 
-    migrate)
-        migrations_run
-        ;;
+ci)
+    build_ci
+    ;;
 
-    new_migration)
-        [[ -z "$1" ]] && exit 1
-        migrations_create "$1"
-        ;;
+prod)
+    build_ci
+    database_reset
+    ;;
 
-    database)
-        database_up
-        read
-        ;;
+migrate)
+    migrations_run
+    ;;
 
-    test)
-        test_program
-        ;;
+new_migration)
+    [[ -z "$1" ]] && exit 1
+    migrations_create "$1"
+    ;;
 
-    *)
-        echo "Usage: $0 {image|postgres|cleanup|migrate|database|test}"
-        exit 1
-        ;;
+database)
+    database_up
+    read -r
+    ;;
+
+test)
+    test_program
+    ;;
+
+*)
+    echo "Usage: $0 {image|postgres|cleanup|migrate|database|test}"
+    exit 1
+    ;;
 esac
