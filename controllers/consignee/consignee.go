@@ -35,10 +35,9 @@ func ListHandler(
 
 		collection := util.ResourceCollection(consignees)
 
-		util.WrapLabeled(
-			c,
-			"monitores listados com sucesso",
-			"data", collection,
+		util.Wrap(
+			c, "monitores listados com sucesso",
+			collection,
 		)
 	}
 }

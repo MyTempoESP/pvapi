@@ -134,48 +134,23 @@ func WithCollect[T any](
 }
 
 // WrapLabeled wraps the specified labeled resource
-// into a HTTP 200 response, along with a message,
-// also wraps the inner resource in a 'data' object
+// into a HTTP 200 response, along with a message.
 func WrapLabeled[R any](
 	c *gin.Context,
 	message string,
 	label string, data R,
 ) {
 	c.JSON(200, gin.H{
-		"data": gin.H{
-			"success": true,
-			"message": message,
-			label:     data,
-		},
+		"success": true,
+		"message": message,
+		label:     data,
 	})
 }
 
-// WrapLabeledFlat works just like WrapLabeled, except it
-// does not wrap the inner resource inside a 'data' object,
-// instead the object is provided as-is with the specified label
-// func WrapLabeledFlat[R any](
-// 	c *gin.Context,
-// 	message string,
-// 	label string, data R,
-// ) {
-// 	c.JSON(200, gin.H{
-// 		"data": gin.H{
-// 			"success": true,
-// 			"message": message,
-// 			label:     data,
-// 		},
-// 	})
-// }
-
-func WrapMap(
+func Wrap[R any](
 	c *gin.Context,
 	message string,
-	m gin.H,
+	data R,
 ) {
-	m["success"] = true
-	m["message"] = message
-
-	c.JSON(200, gin.H{
-		"data": m,
-	})
+	WrapLabeled(c, message, "data", data)
 }

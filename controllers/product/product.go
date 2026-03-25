@@ -38,10 +38,9 @@ func ListByShopHandler(
 
 		collection := util.ResourceCollection(products)
 
-		util.WrapLabeled(
-			c,
-			"produtos listados com sucesso",
-			"data", collection,
+		util.Wrap(
+			c, "produtos listados com sucesso",
+			collection,
 		)
 	}
 }
