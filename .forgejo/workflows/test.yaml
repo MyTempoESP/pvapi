@@ -9,6 +9,8 @@ on:
 jobs:
   compile:
     runs-on: docker
+    container:
+        network: "host"
 
     steps:
       - name: Checkout Source Code
