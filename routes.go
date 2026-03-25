@@ -69,7 +69,7 @@ func setupRoutes(
 		consignments.GET("", consignment.ListHandler(pool))
 	}
 
-	pickupLocations := t.Group("/pickups", withAuth)
+	pickupLocations := t.Group("/pontos", withAuth)
 	{
 		pickupLocations.POST("", pickups.CreateHandler(pool))
 		pickupLocations.GET("", pickups.ListHandler(pool))
