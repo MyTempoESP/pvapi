@@ -30,7 +30,7 @@ func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		util.WrapLabeledFlat(
+		util.WrapLabeled(
 			c,
 			"lojas listadas com sucesso",
 			"shop", shop.ToResource(),
@@ -55,7 +55,7 @@ func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		collection := util.ResourceCollection(shops)
 
 		// No 'data' wrapper label
-		util.WrapLabeledFlat(
+		util.WrapLabeled(
 			c,
 			"lojas listadas com sucesso",
 			"shops", collection,
@@ -87,7 +87,7 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		util.WrapLabeledFlat(
+		util.WrapLabeled(
 			c,
 			"estabelecimento criado com sucesso",
 			"shop", shopmodel.SummarizeRequest(shopID, shop),
