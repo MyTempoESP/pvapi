@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"errors"
+	"maps"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -166,4 +167,12 @@ func Transaction(
 			return f(c.Request.Context(), tx)
 		},
 	)
+}
+
+func Merge(args ...pgx.NamedArgs) (merge pgx.NamedArgs) {
+	merge = make(pgx.NamedArgs)
+	for _, a := range args {
+		maps.Copy(merge, a)
+	}
+	return
 }

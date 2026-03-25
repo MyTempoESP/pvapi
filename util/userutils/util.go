@@ -78,8 +78,8 @@ func (u User) JustSave(
 	return err
 }
 
-// MustCreate inserts the user to the database, throwing an error if already exists
-func (u User) MustCreate(
+// MustSave inserts the user to the database, throwing an error if already exists
+func (u User) MustSave(
 	ctx context.Context,
 	base db.Queryable,
 ) (int, error) {

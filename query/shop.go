@@ -24,13 +24,13 @@ WITH new_shop AS (
 			@slug,
 			@telephone,
 			insert_new_address(
-				@street,
-				@number,
-				@neigh,
-				@city,
-				@state,
-				@cep,
-				@complement
+				@addrstreet,
+				@addrnumber,
+				@addrneigh,
+				@addrcity,
+				@addrstate,
+				@addrcep,
+				@addrcomplement
 			),
 			@user
 		)
@@ -106,6 +106,8 @@ FROM shops_info_detailed_view
 WHERE shop_id = $1
 `
 
+	// This query uses 'v' to mask one of the outputs (v.user_id)
+	// which we do not want to return.
 	ShopFindDetailedByUserQuery = `
 SELECT
     v.shop_id,

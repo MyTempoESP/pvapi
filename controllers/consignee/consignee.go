@@ -63,12 +63,16 @@ func CreateHandler(
 			return
 		}
 
-		blueprint := consigneeRequest.Prepare(shop.ID)
+		consignee, err := consigneeRequest.Prepare(shop.ID)
 
-		err = consigneemodel.Create(
-			c.Request.Context(),
-			pool,
-			blueprint,
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		err = util.Transaction(
+			c, pool,
+			consignee.Save,
 		)
 
 		if err != nil {
