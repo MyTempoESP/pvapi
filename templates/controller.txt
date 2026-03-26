@@ -1,7 +1,8 @@
-package template
+%%
+package %(flat)
 
 import (
-	"linhazero.com/pvapi/models/templatemodel"
+	"linhazero.com/pvapi/models/%(flat)model"
 	"linhazero.com/pvapi/util"
 )
 
