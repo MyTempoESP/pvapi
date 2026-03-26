@@ -1,15 +1,44 @@
 ---
-to: app/hello.js
+to: query/<%= h.changeCase.no(name) %>.go
 ---
-const hello = ```
-Hello!
-This is your first hygen template.
+<%
+    Flat = h.changeCase.no(name)
+    Table = h.inflection.pluralize(Flat)
 
-Learn what it can do here:
+    Class = h.changeCase.pascal(name)
+    Model = Flat + "model"
 
-https://github.com/jondot/hygen
-```
+    Char = name.charAt(0)
+%>package query
 
-console.log(hello)
+const (
+    Create<%= Class %>Query = `
+INSERT INTO <%= Table %>
+    (
+        field
+    )
+VALUES
+    (
+        @field
+    )
+RETURNING id
+`
 
+    ListAll<%= h.inflection.pluralize(Class) %>Query = `
+SELECT
+    *
+FROM <%= Table %>
+`
 
+    Find<%= Class %>Query = `
+SELECT
+    *
+FROM <%= Table %>
+WHERE id = $1
+`
+
+    Delete<%= Class %>Query = `
+DELETE FROM <%= Table %>
+WHERE id = $1
+`
+)
