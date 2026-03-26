@@ -1,1 +1,23 @@
-{}
+{
+  "name": "pvapi",
+  "version": "1.0.0",
+  "description": "PvAuto GO api",
+  "keywords": [
+    "go"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://forgejo.linhazero.com/pvauto/pvapi.git"
+  },
+  "license": "PROPRIETARY",
+  "author": "Rodrigo Monteiro Junior",
+  "type": "",
+  "main": "",
+  "scripts": {
+    "test": "./handle.sh test"
+  },
+  "dependencies": {
+    "hygen": "^6.2.11"
+  },
+  "devDependencies": {}
+}
