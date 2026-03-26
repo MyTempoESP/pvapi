@@ -12,6 +12,20 @@ pvapi_db_data_directory="/home/mytempogps/pvauto/pgdata/18"
 pvapi_psql_service_name="pva-postgresql"
 pvapi_main_service_name="pvapi"
 
+die() {
+    >&2 printf "%s\n" "$1"
+    exit 1
+}
+
+positional_arg() {
+    argname="$1"
+    argval="${2:-""}"
+
+    [[ -z $argval ]] && die "Missing positional argument: '$argname'"
+
+    printf "%s" "$argval"
+}
+
 cleanup() {
     echo "Cleaning up..."
     podman stop test-postgres || true
@@ -112,6 +126,25 @@ database_reset() {
     systemctl --user restart "$pvapi_main_service_name"
 }
 
+entity_new() {
+    local entity_name
+    local model_name, policy_name
+
+    entity_name=$(positional_arg "entity" "$@")
+    model_name="$entity_name"model
+
+    mkdir models/"$model_name"
+    cp templates/model.txt "models/$model_name/model.go"
+
+    mkdir policies/"$policy_name"
+    cp templates/policy.txt "policies/$policy_name/policies.go"
+
+    cp templates/query.txt "query/query.go"
+
+    mkdir controllers/"$entity_name"
+    cp templates/controller.txt "controllers/$entity_name/controller.go"
+}
+
 CMD=${1:-"help"}
 shift
 
@@ -151,6 +184,24 @@ new_migration)
 database)
     database_up
     read -r
+    ;;
+
+new_entity)
+    entity_new "$@"
+    ;;
+
+count_lines)
+    {
+        find . \
+            \( \
+            -name "*.go" -or \
+            -name "*.sql" -or \
+            -name "*.txt" -or \
+            -name "*.sh" \
+            \) \
+            -not -path "./vendor/*" \
+            -exec wc -l {} \; | awk '{s+=$1} END {print s}'
+    }
     ;;
 
 test)

@@ -2,10 +2,8 @@ package product
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/productmodel"
@@ -89,12 +87,7 @@ func CreateHandler(
 		)
 
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				util.Handle404(c)
-				return
-			}
-
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 

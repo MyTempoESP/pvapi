@@ -93,7 +93,10 @@ func (u User) MustSave(
 		pge, isPgErr := util.GetPgError(err)
 		if isPgErr {
 			if pge.Code == pgerrcode.UniqueViolation {
-				return 0, fmt.Errorf("user already exists: %w", err)
+				return 0, fmt.Errorf(
+					"user already exists: %w",
+					util.DuplicatedResourceError,
+				)
 			}
 		}
 

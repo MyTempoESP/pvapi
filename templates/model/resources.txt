@@ -1,0 +1,11 @@
+package templatemodel
+
+type TemplateResource struct {
+    Field any `json:"field"`
+}
+
+func (t Template) ToResource() TemplateResource {
+    return TemplateResource{
+        Field: t.Field,
+    }
+}

@@ -1,0 +1,5 @@
+package templatemodel
+
+type TemplateBlueprint struct {
+    Field any `json:"field"`
+}
