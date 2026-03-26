@@ -1,11 +1,9 @@
 package shop
 
 import (
-	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
@@ -21,12 +19,7 @@ func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		)
 
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				util.Handle404(c)
-				return
-			}
-
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
@@ -43,12 +36,7 @@ func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		shops, err := shopmodel.List(c.Request.Context(), pool)
 
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				util.Handle404(c)
-				return
-			}
-
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 

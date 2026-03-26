@@ -1,10 +1,7 @@
 package user
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/usermodel"
@@ -37,12 +34,7 @@ func UserPermissionLevelHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		)
 
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				util.Handle404(c)
-				return
-			}
-
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
@@ -67,12 +59,7 @@ func UserDataHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		).Scan(&userName, &userMail)
 
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				util.Handle404(c)
-				return
-			}
-
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 

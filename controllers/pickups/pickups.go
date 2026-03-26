@@ -8,29 +8,27 @@ import (
 	"linhazero.com/pvapi/models/pickupmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/pickuputils"
 	"linhazero.com/pvapi/util/shoputils"
 )
 
 func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
-	type PickupLocation = pickupmodel.PickupLocation
-
 	return func(c *gin.Context) {
-		var request pickupmodel.CreatePickupLocationRequest
-
-		err := c.ShouldBind(&request)
+		pickup, err := pickuputils.NewPickupHandler(
+			c,
+			pool,
+		)
 
 		if err != nil {
-			util.HandleBadRequest(c, err)
+			util.HandleGuess(c, err)
 			return
 		}
 
-		pickup, err := shoputils.WithShopFromContextReturn(
+		pickupID, err := shoputils.WithShopFromContextReturn(
 			c, pool,
-			func(ctx context.Context, s *shopmodel.Shop) (PickupLocation, error) {
-				return pickupmodel.Create(ctx, pool, request)
-			},
+			pickup.Save,
 		)
 
 		if err != nil {
@@ -40,7 +38,12 @@ func CreateHandler(
 
 		util.WrapLabeled(
 			c, "ponto criado com sucesso",
-			"ponto", pickup,
+			"ponto", pickupmodel.PickupLocationResource{
+				ID:       pickupID,
+				Name:     pickup.Name,
+				DateTime: pickup.DateTime,
+				Address:  *pickup.Address,
+			},
 		)
 	}
 }
@@ -48,11 +51,27 @@ func CreateHandler(
 func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
+	type Pickups = []pickupmodel.PickupLocation
+
 	return func(c *gin.Context) {
-		util.WrapLabeled(
+		pickups, err := shoputils.WithShopFromContextReturn(
+			c, pool,
+			func(ctx context.Context, s *shopmodel.Shop) (Pickups, error) {
+				return pickupmodel.List(ctx, pool)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(pickups)
+
+		util.Wrap(
 			c,
 			"pontos de entrega listados com sucesso",
-			"data", []any{},
+			collection,
 		)
 	}
 }

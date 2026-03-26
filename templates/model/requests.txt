@@ -1,0 +1,22 @@
+package templatemodel
+
+type CreateTemplateRequest struct {
+    Field any `json:"field" binding:"required"`
+}
+
+type UpdateTemplateRequest struct {
+    Field any `json:"field"`
+}
+
+func (c CreateTemplateRequest) Prepate() TemplateBlueprint {
+    return TemplateBlueprint{
+        Field: t.Field,
+    }
+}
+
+func (t UpdateTemplateRequest) Prepare(id int) Template {
+    return Template{
+        ID:    id,
+        Field: t.Field,
+    }
+}

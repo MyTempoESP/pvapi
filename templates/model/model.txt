@@ -1,0 +1,78 @@
+package templatemodel
+
+import (
+	"context"
+
+	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/util"
+)
+
+type Template struct {
+    ID    int
+    Field any
+}
+
+func (t Template) Save(
+	ctx context.Context,
+	base db.Queryable,
+) (err error) {
+	update := query.Update("templates AS template")
+
+	update.Set.Add("field", template.Field)
+
+	update.Where.AddMap("template.id", "template_id", template.ID)
+
+	query, params := update.Build()
+
+    _, err := base.Exec(ctx, query, params)
+
+    return err
+}
+
+func (t TemplateBlueprint) Save(
+	ctx context.Context,
+	base db.Queryable,
+) (int, error) {
+	return model.Create(
+        ctx,
+        base,
+        query.CreateTemplateQuery,
+        util.A{
+            "field": template.Field,
+        },
+	)
+}
+
+func List(
+	ctx context.Context,
+	base db.Queryable,
+) ([]Template, error) {
+	return util.WithCollect[Template](
+		ctx,
+		base,
+		query.ListAllTemplatesQuery,
+	)
+}
+
+func Find(
+	ctx context.Context,
+	base db.Queryable,
+	id int,
+) (Template, error) {
+	return util.WithCollectExactlyOneRow[Template](
+		ctx,
+		pool,
+		query.FindTemplateQuery,
+		id,
+	)
+}
+
+func Delete(
+	ctx context.Context,
+	base db.Queryable,
+	id int,
+) error {
+	_, err := base.Exec(ctx, query.DeleteTemplateQuery, id)
+	return err
+}

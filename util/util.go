@@ -15,6 +15,14 @@ import (
 	"linhazero.com/pvapi/middleware/logmw"
 )
 
+var (
+	BadRequestError         = errors.New("malformed request")
+	DuplicatedResourceError = errors.New("trying to create duplicated resource")
+)
+
+// A is a quick alias for NamedArgs
+type Args = pgx.NamedArgs
+
 func GetPgError(err error) (pge *pgconn.PgError, ok bool) {
 	ok = errors.As(err, &pge)
 	return
@@ -44,9 +52,9 @@ func HandleBadRequest(c *gin.Context, err error) {
 	)
 }
 
-func Handle404(c *gin.Context) {
+func Handle404(c *gin.Context, err error) {
 	logger := logmw.GetLogger(c)
-	logger.Warn("Resource not found")
+	logger.Warn("Resource not found", "error", err)
 
 	c.AbortWithStatusJSON(
 		404,
@@ -69,11 +77,28 @@ func Handle500(c *gin.Context, err error) {
 	)
 }
 
+// HandleGuess guesses the correct error code based
+// on the error returned from a generic operation
+func HandleGuess(c *gin.Context, err error) {
+	if errors.Is(err, BadRequestError) {
+		HandleBadRequest(c, err)
+		return
+	}
+
+	Handle500(c, err)
+}
+
 // HandleGuessFromDBOperation guesses the correct error code based
 // on the error returned from a database operation
 func HandleGuessFromDBOperation(c *gin.Context, err error) {
 	if errors.Is(err, pgx.ErrNoRows) {
-		Handle404(c)
+		Handle404(c, err)
+		return
+	}
+
+	if errors.Is(err, DuplicatedResourceError) {
+		// TODO: correct error code
+		Handle500(c, err)
 		return
 	}
 
@@ -157,20 +182,55 @@ func Wrap[R any](
 	WrapLabeled(c, message, "data", data)
 }
 
-func Transaction(
+func OK(
 	c *gin.Context,
+	message string,
+) {
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": message,
+	})
+}
+
+func Transaction(
+	ctx context.Context,
 	pool *pgxpool.Pool,
 	f func(context.Context, db.Queryable) error,
 ) error {
-	return pgx.BeginFunc(c.Request.Context(), pool,
+	return pgx.BeginFunc(ctx, pool,
 		func(tx pgx.Tx) error {
-			return f(c.Request.Context(), tx)
+			return f(ctx, tx)
 		},
 	)
 }
 
-func Merge(args ...pgx.NamedArgs) (merge pgx.NamedArgs) {
-	merge = make(pgx.NamedArgs)
+func TransactionReturn[T any](
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	f func(context.Context, db.Queryable) (T, error),
+) (T, error) {
+	var zero T
+
+	tx, err := pool.Begin(ctx)
+
+	if err != nil {
+		return zero, err
+	}
+	defer tx.Rollback(ctx)
+
+	t, err := f(ctx, tx)
+
+	if err != nil {
+		return zero, err
+	}
+
+	err = tx.Commit(ctx)
+
+	return t, err
+}
+
+func Merge(args ...Args) (merge Args) {
+	merge = make(Args)
 	for _, a := range args {
 		maps.Copy(merge, a)
 	}

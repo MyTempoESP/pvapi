@@ -71,7 +71,8 @@ func CreateHandler(
 		}
 
 		err = util.Transaction(
-			c, pool,
+			c.Request.Context(),
+			pool,
 			consignee.Save,
 		)
 
