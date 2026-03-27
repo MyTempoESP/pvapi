@@ -32,16 +32,9 @@ SELECT
 	p.id,
 	p.name,
 	p.pickup_at,
-
-	a.street     AS addrstreet,
-	a.number     AS addrnumber,
-	a.neigh      AS addrneigh,
-	a.city       AS addrcity,
-	a.state      AS addrstate,
-	a.cep        AS addrcep,
-	a.complement AS addrcomplement
+	a.* EXCEPT (address_id)
 FROM pickup_locations p
-LEFT JOIN addresses a ON a.id = p.address_id
+LEFT JOIN aliased_addresses a USING (address_id)
 WHERE p.shop_id = $1
 `
 )
