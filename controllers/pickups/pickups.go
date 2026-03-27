@@ -57,7 +57,7 @@ func ListHandler(
 		pickups, err := shoputils.WithShopFromContextReturn(
 			c, pool,
 			func(ctx context.Context, s *shopmodel.Shop) (Pickups, error) {
-				return pickupmodel.List(ctx, pool)
+				return pickupmodel.List(ctx, pool, s.ID)
 			},
 		)
 
