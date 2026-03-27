@@ -53,7 +53,7 @@ func setupRoutes(
 	products := t.Group("/produtos", withAuth)
 	{
 		products.GET("/estabelecimento", product.ListByShopHandler(pool))
-		products.PUT(":id", product.UpdateHandler(pool))
+		products.PUT(":product", product.UpdateHandler(pool))
 		products.POST("", product.CreateHandler(pool))
 	}
 
@@ -67,6 +67,10 @@ func setupRoutes(
 	{
 		consignments.POST("", consignment.CreateHandler(pool))
 		consignments.GET("", consignment.ListHandler(pool))
+
+		consignments.GET(":consignment", consignment.ViewHandler(pool))
+		consignments.PUT(":consignment", consignment.UpdateHandler(pool))
+		consignments.DELETE(":consignment", consignment.DeleteHandler(pool))
 	}
 
 	pickupLocations := t.Group("/pontos", withAuth)

@@ -26,9 +26,8 @@ func ListHandler(
 
 		collection := util.ResourceCollection(consignments)
 
-		// CHANGEME
 		util.Wrap(
-			c, "[consignment]s listados com sucesso",
+			c, "remessas listados com sucesso",
 			collection,
 		)
 	}
@@ -56,9 +55,8 @@ func CreateHandler(
 			return
 		}
 
-		// CHANGEME
 		util.WrapLabeled(
-			c, "[consignment] criado com sucesso",
+			c, "remessa criada com sucesso",
 			"id", id,
 		)
 	}
@@ -81,9 +79,8 @@ func ViewHandler(
 			return
 		}
 
-		// CHANGEME
 		util.WrapLabeled(
-			c, "[consignment] acessado com sucesso",
+			c, "remessa acessada com sucesso",
 			"consignment", consignment.ToResource(),
 		)
 	}
@@ -120,9 +117,8 @@ func UpdateHandler(
 			return
 		}
 
-		// CHANGEME
 		util.WrapLabeled(
-			c, "[consignment] atualizado com sucesso",
+			c, "remessa atualizada com sucesso",
 			"consignment", consignment.ToResource(),
 		)
 	}
@@ -143,7 +139,7 @@ func DeleteHandler(
 		}
 
 		util.OK(
-			c, "[consignment] deletado com sucesso",
+			c, "remessa deletada com sucesso",
 		)
 	}
 }

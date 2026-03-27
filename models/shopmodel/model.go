@@ -202,3 +202,74 @@ func FindDetailed(
 		id,
 	)
 }
+
+func HasResource(
+	ctx context.Context,
+	base db.Queryable,
+	query string,
+	shop, id int,
+) (hasResource bool, err error) {
+	err = base.QueryRow(
+		ctx,
+		query,
+		shop, id,
+	).Scan(&hasResource)
+
+	return
+}
+
+func HasProduct(
+	ctx context.Context,
+	base db.Queryable,
+	shop, product int,
+) (bool, error) {
+	return HasResource(
+		ctx,
+		base,
+		query.ShopHasProductQuery,
+		shop,
+		product,
+	)
+}
+
+func HasPickup(
+	ctx context.Context,
+	base db.Queryable,
+	shop, pickup int,
+) (bool, error) {
+	return HasResource(
+		ctx,
+		base,
+		query.ShopHasPickupQuery,
+		shop,
+		pickup,
+	)
+}
+
+func HasConsignment(
+	ctx context.Context,
+	base db.Queryable,
+	shop, consignment int,
+) (bool, error) {
+	return HasResource(
+		ctx,
+		base,
+		query.ShopHasConsignmentQuery,
+		shop,
+		consignment,
+	)
+}
+
+func HasConsignee(
+	ctx context.Context,
+	base db.Queryable,
+	shop, consignee int,
+) (bool, error) {
+	return HasResource(
+		ctx,
+		base,
+		query.ShopHasConsigneeQuery,
+		shop,
+		consignee,
+	)
+}

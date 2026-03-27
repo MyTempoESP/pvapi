@@ -10,6 +10,7 @@ import (
 	"linhazero.com/pvapi/controllers/policy"
 	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/policymodel"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/util/userutils"
@@ -55,7 +56,7 @@ func GenerateJwtInitParams(
 		return nil, err
 	}
 
-	bouncer := policy.Bouncer(pool)
+	bouncer := policy.New(pool)
 
 	return &jwtg.GinJWTMiddleware{
 		Realm:       "linhazero",
@@ -97,7 +98,7 @@ func unauthorized(c *gin.Context, code int, message string) {
 }
 
 func authorizationHandler(
-	bouncer policy.BouncerFunction,
+	bouncer *policymodel.Bouncer,
 ) func(c *gin.Context, data any) bool {
 	return func(c *gin.Context, data any) bool {
 		authUser, ok := data.(*authmodel.AuthUser)
@@ -106,7 +107,7 @@ func authorizationHandler(
 			return false
 		}
 
-		return bouncer(c, authUser)
+		return bouncer.Dispatch(c, authUser)
 	}
 }
 
