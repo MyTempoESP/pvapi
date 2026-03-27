@@ -173,6 +173,13 @@ CREATE TABLE IF NOT EXISTS public.categories
     CONSTRAINT unique_for_shop_name UNIQUE (shop_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS public.clients
+(
+    id serial NOT NULL,
+    user_id integer NOT NULL,
+    PRIMARY KEY (id)
+);
+
 ALTER TABLE IF EXISTS public.shops
     ADD CONSTRAINT shop_user_relation FOREIGN KEY (user_id)
     REFERENCES public.users (id) MATCH SIMPLE
@@ -353,5 +360,15 @@ ALTER TABLE IF EXISTS public.categories
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;
+
+
+ALTER TABLE IF EXISTS public.clients
+    ADD CONSTRAINT client_user_relation FOREIGN KEY (user_id)
+    REFERENCES public.users (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE CASCADE
+    NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_client_user_relation
+    ON public.clients(user_id);
 
 END;
