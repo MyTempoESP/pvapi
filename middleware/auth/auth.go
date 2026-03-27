@@ -127,6 +127,11 @@ func authenticator(pool *pgxpool.Pool) authFn {
 		)
 
 		if err != nil {
+			util.LogError(
+				c, "Error logging in user",
+				"loginForm", l,
+				"error", err,
+			)
 			return nil, jwtg.ErrFailedAuthentication
 		}
 
@@ -137,7 +142,11 @@ func authenticator(pool *pgxpool.Pool) authFn {
 		)
 
 		if err != nil {
-			return nil, jwtg.ErrFailedAuthentication
+			util.LogError(
+				c, "Error grabbing user permissions",
+				"error", err,
+			)
+			return nil, jwtg.ErrFailedTokenCreation
 		}
 
 		return &authmodel.AuthUser{
