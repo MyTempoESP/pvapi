@@ -16,7 +16,7 @@ func (p *ProductGate) Owns(u User, r Resource) (bool, error) {
 		return false, nil
 	}
 
-	id := r.Metadata["id"].(int)
+	id := r.Metadata["id"]
 
 	hasProduct, err := shopmodel.HasProduct(
 		r.Context, p.Base,

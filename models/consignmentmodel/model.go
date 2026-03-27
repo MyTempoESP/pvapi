@@ -40,25 +40,29 @@ type Consignment struct {
 	Pickup
 }
 
-func (c Consignment) Save(
+type DetailedConsignment struct {
+	Consignment
+}
+
+func (c ConsignmentUpdateBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (err error) {
-	// TODO
-	/*
-		update := query.Update("consignments AS consignment")
+	update := query.Update("consignments")
 
-		update.Set.Add("field", c.Field)
+	update.Set.Add("pickup_location_id", c.PickupID)
+	update.Set.Add("consignee_id", c.ConsigneeID)
+	update.Set.Add("comission_type", c.ComissionType)
+	update.Set.Add("comission_value", c.ComissionValue)
+	update.Set.Add("status", c.Status)
 
-		update.Where.AddMap("consignment.id", "consignment_id", c.ID)
+	update.Where.AddMap("id", "consignment_id", c.ID)
 
-		query, params := update.Build()
+	query, params := update.Build()
 
-		_, err = base.Exec(ctx, query, params)
+	_, err = base.Exec(ctx, query, params)
 
-		return err
-	*/
-	return util.NotImplemented("Consignee Update")
+	return err
 }
 
 func (c ConsignmentBlueprint) Save(
@@ -95,8 +99,8 @@ func Find(
 	ctx context.Context,
 	base db.Queryable,
 	id any,
-) (Consignment, error) {
-	return util.WithCollectExactlyOneRow[Consignment](
+) (DetailedConsignment, error) {
+	return util.WithCollectExactlyOneRow[DetailedConsignment](
 		ctx,
 		base,
 		query.FindConsignmentQuery,

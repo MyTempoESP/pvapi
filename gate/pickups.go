@@ -16,7 +16,7 @@ func (p *PickupsGate) Owns(u User, r Resource) (bool, error) {
 		return false, nil
 	}
 
-	id := r.Metadata["id"].(int)
+	id := r.Metadata["id"]
 
 	hasProduct, err := shopmodel.HasPickup(
 		r.Context, p.Base,

@@ -7,25 +7,32 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
-type CreateConsignmentRequest struct {
-	PickupID    int `json:"destinationId" binding:"required"`
-	ConsigneeID int `json:"monitorId" binding:"required"`
-
+type Comission struct {
 	CutPCT   *decimal.Decimal `json:"monitorProfitPercentage"`
 	CutFixed *decimal.Decimal `json:"monitorProfit"`
-
-	Status string `json:"status" binding:"required"`
 }
 
-// TODO
-type UpdateConsignmentRequest struct{}
+type CreateConsignmentRequest struct {
+	PickupID    int    `json:"destinationId" binding:"required"`
+	ConsigneeID int    `json:"monitorId" binding:"required"`
+	Status      string `json:"status" binding:"required"`
 
-func (c CreateConsignmentRequest) Prepare(shopID int) (ConsignmentBlueprint, error) {
-	var zero ConsignmentBlueprint
+	Comission
+}
 
-	var comissionType string
-	var comissionValue decimal.Decimal
+type UpdateConsignmentRequest struct {
+	PickupID    *int    `json:"destinationId"`
+	ConsigneeID *int    `json:"monitorId"`
+	Status      *string `json:"status"`
 
+	Comission
+}
+
+func (c Comission) defineComissionType() (
+	comissionType string,
+	comissionValue decimal.Decimal,
+	err error,
+) {
 	if c.CutPCT != nil {
 		comissionType = "PERCENT"
 		comissionValue = *c.CutPCT
@@ -38,10 +45,23 @@ func (c CreateConsignmentRequest) Prepare(shopID int) (ConsignmentBlueprint, err
 
 	// if still empty, we're kinda cooked
 	if comissionType == "" {
-		return zero, fmt.Errorf(
+		err = fmt.Errorf(
 			"nenhum tipo de comissão especificado %w",
 			util.BadRequestError,
 		)
+		return
+	}
+
+	return
+}
+
+func (c CreateConsignmentRequest) Prepare(shopID int) (ConsignmentBlueprint, error) {
+	var zero ConsignmentBlueprint
+
+	comissionType, comissionValue, err := c.defineComissionType()
+
+	if err != nil {
+		return zero, err
 	}
 
 	return ConsignmentBlueprint{
@@ -54,9 +74,23 @@ func (c CreateConsignmentRequest) Prepare(shopID int) (ConsignmentBlueprint, err
 	}, nil
 }
 
-// TODO
-func (c UpdateConsignmentRequest) Prepare(id int) Consignment {
-	return Consignment{
-		ID: id,
+func (c UpdateConsignmentRequest) Prepare(id int) ConsignmentUpdateBlueprint {
+	var comissionType *string = nil
+	var comissionValue *decimal.Decimal = nil
+
+	t, v, err := c.defineComissionType()
+
+	if err == nil {
+		comissionType = &t
+		comissionValue = &v
+	}
+
+	return ConsignmentUpdateBlueprint{
+		ID:             id,
+		PickupID:       c.PickupID,
+		ConsigneeID:    c.ConsigneeID,
+		ComissionType:  comissionType,
+		ComissionValue: comissionValue,
+		Status:         c.Status,
 	}
 }
