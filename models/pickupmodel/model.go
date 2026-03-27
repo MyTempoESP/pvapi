@@ -15,7 +15,8 @@ type PickupLocation struct {
 	ID       int
 	Name     string
 	Datetime time.Time `db:"pickup_at"`
-	Address  *address.Address
+
+	address.Address
 }
 
 func List(
