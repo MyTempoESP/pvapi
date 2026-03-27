@@ -20,7 +20,7 @@ type <%= Class %>Gate struct {
 	Base db.Queryable
 }
 
-func (<%= Char %> *<%= Class %>Gate) Dispatch(
+func (<%= Flat %> *<%= Class %>Gate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
@@ -29,39 +29,39 @@ func (<%= Char %> *<%= Class %>Gate) Dispatch(
 
 	if r.Method == "GET" {
 		if id == "" {
-			return <%= Char %>.List(u, r)
+			return <%= Flat %>.List(u, r)
 		}
-		return <%= Char %>.View(u, r)
+		return <%= Flat %>.View(u, r)
 	}
 
 	if r.Method == "PUT" {
-		return <%= Char %>.Modify(u, r)
+		return <%= Flat %>.Modify(u, r)
 	}
 
 	if r.Method == "DELETE" {
-		return <%= Char %>.Delete(u, r)
+		return <%= Flat %>.Delete(u, r)
 	}
 
 	return false, nil
 }
 
-func (<%= Char %> *<%= Class %>Gate) Create(u User, r Resource) (bool, error) {
+func (<%= Flat %> *<%= Class %>Gate) Create(u User, r Resource) (bool, error) {
 	return false, nil
 }
 
-func (<%= Char %> *<%= Class %>Gate) View(u User, r Resource) (bool, error) {
+func (<%= Flat %> *<%= Class %>Gate) View(u User, r Resource) (bool, error) {
 	return false, nil
 }
 
-func (<%= Char %> *<%= Class %>Gate) List(u User, r Resource) (bool, error) {
+func (<%= Flat %> *<%= Class %>Gate) List(u User, r Resource) (bool, error) {
 	return false, nil
 }
 
-func (<%= Char %> *<%= Class %>Gate) Modify(u User, r Resource) (bool, error) {
+func (<%= Flat %> *<%= Class %>Gate) Modify(u User, r Resource) (bool, error) {
 	return false, nil
 }
 
-func (<%= Char %> *<%= Class %>Gate) Delete(u User, r Resource) (bool, error) {
+func (<%= Flat %> *<%= Class %>Gate) Delete(u User, r Resource) (bool, error) {
 	return false, nil
 }
 
