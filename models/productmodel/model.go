@@ -67,6 +67,7 @@ type Product struct {
 	PackImages []string `db:"product_pack_images"`
 }
 
+// TODO: please diagram this for the love of God
 func productTransaction(
 	ctx context.Context,
 	pool *pgxpool.Pool,
@@ -210,3 +211,5 @@ func GetByShop(
 
 	return
 }
+
+// TODO: Update product (PAIN)
