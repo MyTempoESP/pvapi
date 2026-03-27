@@ -36,14 +36,14 @@ func (c *ConsigneeGate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
+	id := r.Params.ByName("consignee")
+	r.Metadata["id"] = id
+
 	if strings.HasPrefix(r.Path, "/monitores/me") {
 		return c.Me(u, r)
 	}
 
 	if r.Method == "GET" {
-		id := r.Params.ByName("consignee")
-		r.Metadata["id"] = id
-
 		if id == "" {
 			return c.List(u, r)
 		}

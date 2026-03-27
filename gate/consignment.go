@@ -34,10 +34,10 @@ func (c *ConsignmentGate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
-	if r.Method == "GET" {
-		id := r.Params.ByName("consignment")
-		r.Metadata["id"] = id
+	id := r.Params.ByName("consignment")
+	r.Metadata["id"] = id
 
+	if r.Method == "GET" {
 		if id == "" {
 			return c.List(u, r)
 		}
