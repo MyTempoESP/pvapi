@@ -34,10 +34,10 @@ func (p *PickupsGate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
-	if r.Method == "GET" {
-		id := r.Params.ByName("pickups")
-		r.Metadata["id"] = id
+	id := r.Params.ByName("pickups")
+	r.Metadata["id"] = id
 
+	if r.Method == "GET" {
 		if id == "" {
 			return p.List(u, r)
 		}

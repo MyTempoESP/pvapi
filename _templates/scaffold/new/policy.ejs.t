@@ -24,10 +24,10 @@ func (<%= Char %> *<%= Class %>Gate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
-	if r.Method == "GET" {
-		id := r.Params.ByName("<%= Flat %>")
-		r.Metadata["id"] = id
+	id := r.Params.ByName("<%= Flat %>")
+	r.Metadata["id"] = id
 
+	if r.Method == "GET" {
 		if id == "" {
 			return <%= Char %>.List(u, r)
 		}

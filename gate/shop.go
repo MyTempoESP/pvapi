@@ -13,10 +13,10 @@ func (s *ShopGate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
-	if r.Method == "GET" {
-		id := r.Params.ByName("shop")
-		r.Metadata["id"] = id
+	id := r.Params.ByName("shop")
+	r.Metadata["id"] = id
 
+	if r.Method == "GET" {
 		if id == "" {
 			return s.List(u, r)
 		}
