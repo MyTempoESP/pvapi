@@ -2,6 +2,7 @@ package pickupmodel
 
 import (
 	"context"
+	"time"
 
 	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/db"
@@ -13,7 +14,7 @@ import (
 type PickupLocation struct {
 	ID       int
 	Name     string
-	Datetime string
+	Datetime time.Time `db:"pickup_at"`
 	Address  *address.Address
 }
 
