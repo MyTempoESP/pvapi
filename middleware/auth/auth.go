@@ -59,7 +59,7 @@ func GenerateJwtInitParams(
 	return &jwtg.GinJWTMiddleware{
 		Realm:       "linhazero",
 		Key:         []byte(secret),
-		Timeout:     time.Minute * 15,
+		Timeout:     time.Hour * 24,
 		MaxRefresh:  time.Hour * 24 * 7,
 		IdentityKey: authmodel.IdentityKey,
 		PayloadFunc: withUser,
