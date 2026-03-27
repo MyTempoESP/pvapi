@@ -10,13 +10,26 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+type Consignee struct {
+	ID   int    `db:"consignee_id"`
+	Name string `db:"consignee_name"`
+}
+
+type Shop struct {
+	ID   int    `db:"shop_id"`
+	Name string `db:"shop_name"`
+}
+
 type Consignment struct {
 	ID             int             `db:"consignment_id"`
-	ConsigneeName  string          `db:"consignee_name"`
-	ShopName       string          `db:"shop_name"`
 	ComissionType  string          `db:"consignment_comission_type"`
 	ComissionValue decimal.Decimal `db:"consignment_comission_value"`
-	PickupName     string          `db:"pickup_location_name"`
+	Status         string          `db:"consignment_status"`
+
+	Pickup int `db:"consignment_pickup_location"`
+
+	Shop
+	Consignee
 }
 
 func (c Consignment) Save(
@@ -54,6 +67,7 @@ func (c ConsignmentBlueprint) Save(
 			"consignee_id":       c.ConsigneeID,
 			"comission_type":     c.ComissionType,
 			"comission_value":    c.ComissionValue,
+			"status":             c.Status,
 		},
 	)
 }

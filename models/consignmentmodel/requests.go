@@ -50,6 +50,7 @@ func (c CreateConsignmentRequest) Prepare(shopID int) (ConsignmentBlueprint, err
 		ConsigneeID:    c.ConsigneeID,
 		ComissionType:  comissionType,
 		ComissionValue: comissionValue,
+		Status:         c.Status,
 	}, nil
 }
 
