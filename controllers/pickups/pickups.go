@@ -42,7 +42,7 @@ func CreateHandler(
 				ID:       pickupID,
 				Name:     pickup.Name,
 				DateTime: pickup.DateTime,
-				Address:  *pickup.Address,
+				Address:  pickup.Address.Prepare(),
 			},
 		)
 	}

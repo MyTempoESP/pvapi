@@ -10,5 +10,5 @@ type PickupLocationBlueprint struct {
 	ShopID   int
 	Name     string
 	Datetime time.Time
-	Address  *address.Address
+	Address  address.Address
 }

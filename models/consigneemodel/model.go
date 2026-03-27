@@ -42,7 +42,7 @@ func (c ConsigneeBlueprint) Save(
 				"shop_id":   c.ShopID,
 				"user_id":   userID,
 			},
-			c.Address.Params(),
+			c.Address.Prepare().Params(),
 		),
 	)
 

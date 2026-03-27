@@ -34,14 +34,14 @@ func (a Address) Params() pgx.NamedArgs {
 	}
 }
 
-func (a AddressRequest) Params() pgx.NamedArgs {
-	return pgx.NamedArgs{
-		"addrstreet":     a.Street,
-		"addrnumber":     a.Number,
-		"addrneigh":      a.Neighborhood,
-		"addrcity":       a.City,
-		"addrstate":      a.State,
-		"addrcep":        a.CEP,
-		"addrcomplement": a.Complement,
+func (a AddressRequest) Prepare() Address {
+	return Address{
+		Street:     a.Street,
+		Number:     a.Number,
+		Neigh:      a.Neighborhood,
+		City:       a.City,
+		State:      a.State,
+		CEP:        a.CEP,
+		Complement: a.Complement,
 	}
 }
