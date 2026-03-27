@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"net/http"
 
@@ -18,7 +19,15 @@ import (
 var (
 	BadRequestError         = errors.New("malformed request")
 	DuplicatedResourceError = errors.New("trying to create duplicated resource")
+	NotImplementedError     = errors.New("function not yet implemented")
 )
+
+func NotImplemented(operation string) error {
+	return fmt.Errorf(
+		"could not fulfill request for operation %q: %w",
+		operation, NotImplementedError,
+	)
+}
 
 // A is a quick alias for NamedArgs
 type Args = pgx.NamedArgs

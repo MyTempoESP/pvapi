@@ -3,6 +3,7 @@ package consignmentmodel
 import (
 	"context"
 
+	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/query"
@@ -10,25 +11,33 @@ import (
 )
 
 type Consignment struct {
-	ID    int
-	Field any
+	ID             int             `db:"consignment_id"`
+	ConsigneeName  string          `db:"consignee_name"`
+	ShopName       string          `db:"shop_name"`
+	ComissionType  string          `db:"consignment_comission_type"`
+	ComissionValue decimal.Decimal `db:"consignment_comission_value"`
+	PickupName     string          `db:"pickup_location_name"`
 }
 
 func (c Consignment) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (err error) {
-	update := query.Update("consignments AS consignment")
+	// TODO
+	/*
+		update := query.Update("consignments AS consignment")
 
-	update.Set.Add("field", c.Field)
+		update.Set.Add("field", c.Field)
 
-	update.Where.AddMap("consignment.id", "consignment_id", c.ID)
+		update.Where.AddMap("consignment.id", "consignment_id", c.ID)
 
-	query, params := update.Build()
+		query, params := update.Build()
 
-	_, err = base.Exec(ctx, query, params)
+		_, err = base.Exec(ctx, query, params)
 
-	return err
+		return err
+	*/
+	return util.NotImplemented("Consignee Update")
 }
 
 func (c ConsignmentBlueprint) Save(
@@ -40,7 +49,11 @@ func (c ConsignmentBlueprint) Save(
 		base,
 		query.CreateConsignmentQuery,
 		util.Args{
-			"field": c.Field,
+			"shop_id":            c.ShopID,
+			"pickup_location_id": c.PickupID,
+			"consignee_id":       c.ConsigneeID,
+			"comission_type":     c.ComissionType,
+			"comission_value":    c.ComissionValue,
 		},
 	)
 }

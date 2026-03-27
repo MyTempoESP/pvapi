@@ -2,6 +2,8 @@ package shopmodel
 
 import "linhazero.com/pvapi/address"
 
+// TODO Shops are missing createTime
+
 type CreateShopRequest struct {
 	Name      string                  `json:"name" binding:"required"`
 	Telephone string                  `json:"telephone" binding:"required"`

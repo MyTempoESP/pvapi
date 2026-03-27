@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/consignmentmodel"
 	"linhazero.com/pvapi/util"
 )
@@ -46,7 +47,14 @@ func CreateHandler(
 			return
 		}
 
-		consignment := request.Prepare()
+		user := authmodel.GetUserFromContext(c)
+
+		consignment, err := request.Prepare(user.ActiveRoleID)
+
+		if err != nil {
+			util.HandleGuess(c, err)
+			return
+		}
 
 		id, err := consignment.Save(c.Request.Context(), pool)
 
