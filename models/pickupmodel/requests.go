@@ -9,7 +9,7 @@ import (
 type CreatePickupLocationRequest struct {
 	Name     string `json:"name"`
 	DateTime string `json:"datetime"`
-	Address  *address.Address
+	Address  *address.AddressRequest
 }
 
 func (c CreatePickupLocationRequest) Prepare(
@@ -26,7 +26,7 @@ func (c CreatePickupLocationRequest) Prepare(
 	return PickupLocationBlueprint{
 		Name:     c.Name,
 		Datetime: t,
-		Address:  c.Address,
+		Address:  c.Address.Prepare(),
 		ShopID:   shopID,
 	}, nil
 }

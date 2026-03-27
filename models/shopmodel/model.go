@@ -129,7 +129,7 @@ func CreateTx(
 			"slug":      slug.Make(shop.Name),
 			"telephone": shop.Telephone,
 		},
-		shop.Address.Params(),
+		shop.Address.Prepare().Params(),
 	)
 
 	err = tx.QueryRow(
