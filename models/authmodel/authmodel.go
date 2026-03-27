@@ -20,9 +20,9 @@ var (
 
 func GetUserFromClaims(c jwt.MapClaims) *AuthUser {
 	return &AuthUser{
-		UserID:       c[IdentityKey].(int),
+		UserID:       int(c[IdentityKey].(float64)),
 		Role:         c[RoleKey].(string),
-		ActiveRoleID: c[RoleIDKey].(int),
+		ActiveRoleID: int(c[RoleIDKey].(float64)),
 	}
 }
 

@@ -52,11 +52,12 @@ SELECT
 	a.id AS admin,
 	s.id AS shop,
 	c.id AS consignee,
-	u.id
+	l.id AS client
 FROM users           u
 LEFT JOIN admins     a ON u.id = a.user_id
 LEFT JOIN shops      s ON u.id = s.user_id
 LEFT JOIN consignees c ON u.id = c.user_id
+LEFT JOIN clients    l ON u.id = l.user_id
 WHERE u.id = $1
 `
 )

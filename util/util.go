@@ -77,9 +77,19 @@ func Handle500(c *gin.Context, err error) {
 	)
 }
 
-func Log(c *gin.Context, a ...any) {
+func LogInfo(c *gin.Context, message string, a ...any) {
 	logger := logmw.GetLogger(c)
-	logger.Info("General purpose logger called:", a...)
+	logger.Info(message, a...)
+}
+
+func LogWarn(c *gin.Context, message string, a ...any) {
+	logger := logmw.GetLogger(c)
+	logger.Warn(message, a...)
+}
+
+func LogError(c *gin.Context, message string, a ...any) {
+	logger := logmw.GetLogger(c)
+	logger.Error(message, a...)
 }
 
 // HandleGuess guesses the correct error code based
