@@ -20,11 +20,13 @@ type PickupLocation struct {
 func List(
 	ctx context.Context,
 	base db.Queryable,
+	shopID int,
 ) ([]PickupLocation, error) {
 	return util.WithCollect[PickupLocation](
 		ctx,
 		base,
 		query.ListPickupLocationsQuery,
+		shopID,
 	)
 }
 
