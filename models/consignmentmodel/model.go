@@ -2,6 +2,7 @@ package consignmentmodel
 
 import (
 	"context"
+	"time"
 
 	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
@@ -20,16 +21,23 @@ type Shop struct {
 	Name string `db:"shop_name"`
 }
 
+type Pickup struct {
+	ID   int    `db:"pickup_location_id"`
+	Name string `db:"pickup_location_name"`
+}
+
 type Consignment struct {
 	ID             int             `db:"consignment_id"`
 	ComissionType  string          `db:"consignment_comission_type"`
 	ComissionValue decimal.Decimal `db:"consignment_comission_value"`
 	Status         string          `db:"consignment_status"`
-
-	Pickup int `db:"consignment_pickup_location"`
+	CreatedAt      time.Time       `db:"consignment_created_at"`
+	Slug           string          `db:"consignment_slug"`
+	Code           string          `db:"consignment_code"`
 
 	Shop
 	Consignee
+	Pickup
 }
 
 func (c Consignment) Save(

@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.pickup_locations
     address_id integer,
     shop_id integer NOT NULL,
     name text NOT NULL,
-    pickup_at date NOT NULL,
+    pickup_at timestamp with time zone NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT pickup_location_unique_name UNIQUE (name)
 );
@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS public.consignments
     comission_value numeric(12, 2) NOT NULL,
     created_at timestamp with time zone DEFAULT NOW(),
     status text NOT NULL,
+    code uuid NOT NULL,
+    slug text NOT NULL,
     PRIMARY KEY (id)
 );
 

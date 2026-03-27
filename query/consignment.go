@@ -9,7 +9,9 @@ INSERT INTO consignments
 	consignee_id,
 	comission_type,
 	comission_value,
-	status
+	status,
+	code,
+	slug
     )
 VALUES
     (
@@ -18,7 +20,9 @@ VALUES
 	@consignee_id,
 	@comission_type,
 	@comission_value,
-	@status
+	@status,
+	uuidv4(),
+	'rem-generica'
     )
 RETURNING id
 `
@@ -28,14 +32,19 @@ SELECT
 	consignment_id,
 	consignment_comission_type,
 	consignment_comission_value,
-	consignment_pickup_location,
 	consignment_status,
+	consignment_created_at,
+	consignment_slug,
+	consignment_code,
 
 	consignee_id,
 	consignee_name,
 
 	shop_id,
-	shop_name
+	shop_name,
+
+	pickup_location_id,
+	pickup_location_name
 FROM consignments_listing_view
 `
 
@@ -44,14 +53,19 @@ SELECT
 	consignment_id,
 	consignment_comission_type,
 	consignment_comission_value,
-	consignment_pickup_location,
 	consignment_status,
+	consignment_created_at,
+	consignment_slug,
+	consignment_code,
 
 	consignee_id,
 	consignee_name,
 
 	shop_id,
-	shop_name
+	shop_name,
+
+	pickup_location_id,
+	pickup_location_name
 FROM consignments_listing_view
 WHERE consignment_id = $1
 `
