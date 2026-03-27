@@ -18,11 +18,11 @@ type newPickup struct {
 }
 
 func NewPickup(
-	c *gin.Context,
 	pool *pgxpool.Pool,
 	request pickupmodel.CreatePickupLocationRequest,
 ) (newPickup, error) {
 	return newPickup{
+		CreatePickupLocationRequest: request,
 		Save: func(
 			ctx context.Context,
 			s *shopmodel.Shop,
@@ -32,13 +32,6 @@ func NewPickup(
 			if err != nil {
 				return
 			}
-
-			util.Log(
-				c,
-				"name", pickup.Name,
-				"shop_id", pickup.ShopID,
-				"datetime", pickup.Datetime,
-			)
 
 			return util.TransactionReturn(ctx, pool, pickup.Save)
 		},
@@ -61,5 +54,5 @@ func NewPickupHandler(
 			"malformed pickup creation request: %w", util.BadRequestError)
 	}
 
-	return NewPickup(c, pool, request)
+	return NewPickup(pool, request)
 }
