@@ -125,10 +125,7 @@ func UpdateHandler(
 			return
 		}
 
-		util.WrapLabeled(
-			c, "remessa atualizada com sucesso",
-			"consignment", consignment.ToResource(),
-		)
+		util.OK(c, "remessa atualizada com sucesso")
 	}
 }
 

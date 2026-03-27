@@ -16,7 +16,7 @@ func (c *ConsignmentGate) Owns(u User, r Resource) (bool, error) {
 		return false, nil
 	}
 
-	id := r.Metadata["id"].(int)
+	id := r.Metadata["id"]
 
 	hasConsignment, err := shopmodel.HasConsignment(
 		r.Context, c.Base,

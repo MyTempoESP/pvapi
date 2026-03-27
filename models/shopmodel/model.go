@@ -207,7 +207,7 @@ func HasResource(
 	ctx context.Context,
 	base db.Queryable,
 	query string,
-	shop, id int,
+	shop, id any,
 ) (hasResource bool, err error) {
 	err = base.QueryRow(
 		ctx,
@@ -221,7 +221,7 @@ func HasResource(
 func HasProduct(
 	ctx context.Context,
 	base db.Queryable,
-	shop, product int,
+	shop, product any,
 ) (bool, error) {
 	return HasResource(
 		ctx,
@@ -235,7 +235,7 @@ func HasProduct(
 func HasPickup(
 	ctx context.Context,
 	base db.Queryable,
-	shop, pickup int,
+	shop, pickup any,
 ) (bool, error) {
 	return HasResource(
 		ctx,
@@ -249,7 +249,7 @@ func HasPickup(
 func HasConsignment(
 	ctx context.Context,
 	base db.Queryable,
-	shop, consignment int,
+	shop, consignment any,
 ) (bool, error) {
 	return HasResource(
 		ctx,
@@ -263,7 +263,7 @@ func HasConsignment(
 func HasConsignee(
 	ctx context.Context,
 	base db.Queryable,
-	shop, consignee int,
+	shop, consignee any,
 ) (bool, error) {
 	return HasResource(
 		ctx,

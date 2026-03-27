@@ -23,6 +23,10 @@ type Clause struct {
 // the database atom with the specified value via a parameter
 // mapping automatically fetched from the "field" name.
 func (c *Clause) Add(field string, value any) {
+	if value == nil {
+		return
+	}
+
 	c.Clauses = append(c.Clauses,
 		fmt.Sprintf("%s=%s", field, "@"+field))
 	c.Params[field] = value
@@ -32,6 +36,10 @@ func (c *Clause) Add(field string, value any) {
 // the mapping, for situations like "*.id" or COUNT, where
 // it's not sensible to use the field name for the param.
 func (c *Clause) AddMap(field, param string, value any) {
+	if value == nil {
+		return
+	}
+
 	c.Clauses = append(c.Clauses,
 		fmt.Sprintf("%s=%s", field, "@"+param))
 	c.Params[param] = value

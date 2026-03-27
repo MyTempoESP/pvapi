@@ -18,7 +18,7 @@ func (c *ConsigneeGate) Owns(u User, r Resource) (bool, error) {
 		return false, nil
 	}
 
-	id := r.Metadata["id"].(int)
+	id := r.Metadata["id"]
 
 	hasConsignee, err := shopmodel.HasConsignee(
 		r.Context, c.Base,
