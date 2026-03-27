@@ -2,6 +2,7 @@ package pickupmodel
 
 import (
 	"context"
+	"log/slog"
 
 	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/db"
@@ -34,6 +35,12 @@ func (p PickupLocationBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (int, error) {
+	slog.Default().Debug(
+		"DEBUG",
+		"name", p.Name,
+		"shop", p.ShopID,
+		"pickup_at", p.Datetime,
+	)
 	return model.Create(
 		ctx,
 		base,
