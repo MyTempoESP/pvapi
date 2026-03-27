@@ -1,32 +1,21 @@
 package consignee
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/consigneemodel"
-	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
-	"linhazero.com/pvapi/util/shoputils"
 )
 
 func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
-	type Consignees = []consigneemodel.Consignee
-
 	return func(c *gin.Context) {
-		consignees, err := shoputils.WithShopFromContextReturn(
-			c, pool,
-			func(ctx context.Context, shop *shopmodel.Shop) (Consignees, error) {
-				return consigneemodel.List(
-					ctx,
-					pool,
-					shop.ID,
-				)
-			},
-		)
+		user := authmodel.GetUserFromContext(c)
+
+		consignees, err := consigneemodel.List(
+			c.Request.Context(), pool, user.ActiveRoleID)
 
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)
@@ -56,14 +45,9 @@ func CreateHandler(
 			return
 		}
 
-		shop, err := shoputils.FindFromContext(c, pool)
+		user := authmodel.GetUserFromContext(c)
 
-		if err != nil {
-			util.HandleGuessFromDBOperation(c, err)
-			return
-		}
-
-		consignee, err := consigneeRequest.Prepare(shop.ID)
+		consignee, err := consigneeRequest.Prepare(user.ActiveRoleID)
 
 		if err != nil {
 			util.Handle500(c, err)

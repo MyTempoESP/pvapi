@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	jwtg "github.com/appleboy/gin-jwt/v3"
@@ -56,6 +55,8 @@ func GenerateJwtInitParams(
 		return nil, err
 	}
 
+	bouncer := policy.Bouncer(pool)
+
 	return &jwtg.GinJWTMiddleware{
 		Realm:       "linhazero",
 		Key:         []byte(secret),
@@ -71,7 +72,7 @@ func GenerateJwtInitParams(
 
 		IdentityHandler: retrieveUser,
 		Authenticator:   authenticator(pool),
-		Authorizer:      authorizationHandler(pool),
+		Authorizer:      authorizationHandler(bouncer),
 
 		Unauthorized:   unauthorized,
 		LogoutResponse: logoutResponse,
@@ -96,7 +97,7 @@ func unauthorized(c *gin.Context, code int, message string) {
 }
 
 func authorizationHandler(
-	_ *pgxpool.Pool, // TODO
+	bouncer policy.BouncerFunction,
 ) func(c *gin.Context, data any) bool {
 	return func(c *gin.Context, data any) bool {
 		authUser, ok := data.(*authmodel.AuthUser)
@@ -105,7 +106,7 @@ func authorizationHandler(
 			return false
 		}
 
-		return policy.Gate(c, authUser)
+		return bouncer(c, authUser)
 	}
 }
 
@@ -119,37 +120,30 @@ func authenticator(pool *pgxpool.Pool) authFn {
 			return nil, jwtg.ErrMissingLoginValues
 		}
 
-		var (
-			userMail = l.Email
-			password = l.Password
-
-			userID   int
-			userRole string
-		)
-
-		userID, err = usermodel.Login(
+		userID, err := usermodel.Login(
 			c.Request.Context(), pool,
-			userMail, password,
+			l.Email,
+			l.Password,
 		)
 
 		if err != nil {
 			return nil, jwtg.ErrFailedAuthentication
 		}
 
-		userRole, err = usermodel.GetUserPermissionLevel(
+		permissions, err := usermodel.GetUserPermissions(
 			c.Request.Context(),
-			pool, userID,
+			pool,
+			userID,
 		)
 
 		if err != nil {
 			return nil, jwtg.ErrFailedAuthentication
 		}
-
-		stringUserID := strconv.Itoa(userID)
 
 		return &authmodel.AuthUser{
-			UserID: stringUserID,
-			Role:   userRole,
+			UserID:       userID,
+			Role:         permissions.Highest,
+			ActiveRoleID: permissions.ActiveRoleID,
 		}, nil
 	}
 }
@@ -161,6 +155,7 @@ func withUser(data any) jwt.MapClaims {
 		return jwt.MapClaims{
 			authmodel.IdentityKey: v.UserID,
 			authmodel.RoleKey:     v.Role,
+			authmodel.RoleIDKey:   v.ActiveRoleID,
 		}
 	}
 

@@ -1,45 +1,36 @@
 package authmodel
 
 import (
-	"fmt"
-	"strconv"
-
 	jwtg "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthUser struct {
-	UserID string
-	Role   string
+	UserID       int
+	Role         string
+	ActiveRoleID int
 }
 
 var (
 	IdentityKey = "id"
 	RoleKey     = "role"
+	RoleIDKey   = "rid"
 )
 
 func GetUserFromClaims(c jwt.MapClaims) *AuthUser {
 	return &AuthUser{
-		UserID: c[IdentityKey].(string),
-		Role:   c[RoleKey].(string),
+		UserID:       c[IdentityKey].(int),
+		Role:         c[RoleKey].(string),
+		ActiveRoleID: c[RoleIDKey].(int),
 	}
 }
 
-func GetUserFromContext(c *gin.Context) (userID int, err error) {
+func GetUserFromContext(c *gin.Context) AuthUser {
 	var (
-		claims       = jwtg.ExtractClaims(c)
-		authUser     = GetUserFromClaims(claims)
-		userIDString = authUser.UserID
+		claims   = jwtg.ExtractClaims(c)
+		authUser = GetUserFromClaims(claims)
 	)
 
-	userID, err = strconv.Atoi(userIDString)
-
-	// wrapper for custom error instead of postgres screaming
-	if err != nil {
-		err = fmt.Errorf("failed to convert user id %q: %w", userIDString, err)
-		return
-	}
-
-	return
+	return *authUser
 }

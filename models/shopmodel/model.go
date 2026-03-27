@@ -177,12 +177,12 @@ func List(
 
 func Find(
 	ctx context.Context,
-	pool *pgxpool.Pool,
-	id string,
+	base db.Queryable,
+	id int,
 ) (Shop, error) {
 	return util.WithCollectExactlyOneRow[Shop](
 		ctx,
-		pool,
+		base,
 		query.ShopFindQuery,
 		id,
 	)
