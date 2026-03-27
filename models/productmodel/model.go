@@ -46,7 +46,6 @@ type Product struct {
 	Featured         bool            `db:"product_featured"`
 	ModerationStatus string          `db:"product_moderation_status"`
 	Description      string          `db:"product_description"`
-	ShopID           int             `db:"product_shop_id"`
 	Category         string          `db:"product_category"`
 	UUID             string          `db:"product_uuid"`
 	Code             string          `db:"product_code"`

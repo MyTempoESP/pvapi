@@ -25,6 +25,7 @@ SELECT
     p.shop_id           AS product_shop_id,
     p.attr              AS product_attr,
     c.name              AS product_category,
+    c.id                AS product_category_id,
 
     -- =================SPECIFICATIONS=================
     COALESCE((
