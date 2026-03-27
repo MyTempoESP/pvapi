@@ -30,3 +30,15 @@ RETURNS INTEGER AS $$
 		)
 	RETURNING id
 $$ LANGUAGE sql VOLATILE;
+
+CREATE OR REPLACE VIEW aliased_addresses_view AS
+SELECT
+  a.id AS address_id,
+  a.street AS addrstreet,
+  a.number AS addrnumber,
+  a.neighborhood AS addrneigh,
+  a.city AS addrcity,
+  a.state AS addrstate,
+  a.cep AS addrcep,
+  a.complement AS addrcomplement
+FROM addresses a;
