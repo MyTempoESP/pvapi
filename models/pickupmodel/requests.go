@@ -17,10 +17,10 @@ func (c CreatePickupLocationRequest) Prepare(
 ) (PickupLocationBlueprint, error) {
 	var zero PickupLocationBlueprint
 
-	t, err := time.Parse(time.RFC3339, c.DateTime)
+	t, err := time.Parse("2006-01-02T15:04:05", c.DateTime)
 
 	if err != nil {
-		return zero, nil
+		return zero, err
 	}
 
 	return PickupLocationBlueprint{
