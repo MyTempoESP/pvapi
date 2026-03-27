@@ -64,6 +64,7 @@ func (b *Bouncer) Dispatch(c *gin.Context, user User) bool {
 			if err != nil {
 				util.LogWarn(
 					c, "Authorization error",
+					"metadata", resource.Metadata,
 					"gate", g.Path,
 					"error", err,
 				)
