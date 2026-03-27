@@ -34,6 +34,44 @@ func ListHandler(
 	}
 }
 
+func ListProductsHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		consignmentID := c.Param("consignment")
+
+		products, err := consignmentmodel.ListProducts(
+			c.Request.Context(),
+			pool,
+			consignmentID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(products)
+
+		util.WrapMap(
+			c, "produtos listados com sucesso",
+			gin.H{
+				"products":       collection,
+				"total_products": len(collection),
+				"consignment_id": consignmentID,
+			},
+		)
+	}
+}
+
+func AddProductHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+	}
+}
+
 func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

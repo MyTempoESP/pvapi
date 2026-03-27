@@ -206,6 +206,15 @@ func Wrap[R any](
 	WrapLabeled(c, message, "data", data)
 }
 
+func WrapMap(
+	c *gin.Context,
+	message string,
+	json gin.H,
+) {
+	json["message"] = message
+	c.JSON(200, json)
+}
+
 func OK(
 	c *gin.Context,
 	message string,

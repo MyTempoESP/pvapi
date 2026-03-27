@@ -6,10 +6,30 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type ShopResource struct {
+type ProductResource struct {
+	ID               int             `json:"id"`
+	UUID             string          `json:"uuid"`
+	Name             string          `json:"name"`
+	Code             string          `json:"code"`
+	Description      string          `json:"description"`
+	Image            string          `json:"image"`
+	CategoryID       int             `json:"category_id"`
+	ShopID           int             `json:"shop_id"`
+	Featured         bool            `json:"featured"`
+	Discount         decimal.Decimal `json:"discount"`
+	OriginalPrice    decimal.Decimal `json:"original_price"`
+	OriginalQuantity int             `json:"original_quantity"`
+
+	// duplication here is intentional for backwards compatibility
+	PackagePrice    decimal.Decimal `json:"consignment_price"`
+	PackageQuantity int             `json:"consignment_quantity"`
+
+	Package PackageResource `json:"pivot"`
 }
 
-type ProductResource struct {
+type PackageResource struct {
+	Price    decimal.Decimal `json:"price"`
+	Quantity int             `json:"quantity"`
 }
 
 type ConsignmentResource struct {
@@ -39,5 +59,31 @@ func (c Consignment) ToResource() ConsignmentResource {
 		ConsigneeName: c.Consignee.Name,
 
 		CreatedAt: c.CreatedAt,
+	}
+}
+
+func (p Product) ToResource() ProductResource {
+	return ProductResource{
+		ID:               p.ID,
+		UUID:             p.UUID,
+		Name:             p.Name,
+		Code:             p.Code,
+		Description:      p.Description,
+		Image:            p.Image,
+		CategoryID:       p.CategoryID,
+		ShopID:           p.ShopID,
+		Featured:         p.Featured,
+		Discount:         p.Discount,
+		OriginalPrice:    p.OriginalPrice,
+		OriginalQuantity: p.OriginalQuantity,
+
+		PackagePrice:    p.Package.Price,
+		PackageQuantity: p.Package.Quantity,
+
+		// The nested "pivot" object
+		Package: PackageResource{
+			Price:    p.Package.Price,
+			Quantity: p.Package.Quantity,
+		},
 	}
 }

@@ -1,6 +1,8 @@
 package gate
 
 import (
+	"strings"
+
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/policymodel"
@@ -36,6 +38,10 @@ func (c *ConsignmentGate) Dispatch(
 ) (bool, error) {
 	id := r.Params.ByName("consignment")
 	r.Metadata["id"] = id
+
+	if strings.HasSuffix(r.Path, "/produtos") {
+		return c.View(u, r)
+	}
 
 	if r.Method == "GET" {
 		if id == "" {

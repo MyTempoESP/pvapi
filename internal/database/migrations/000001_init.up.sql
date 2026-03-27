@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS public.packages
     product_id integer NOT NULL,
     consignment_id integer NOT NULL,
     quantity integer NOT NULL,
+    price numeric(12, 2),
+    created_at timestamp with time zone DEFAULT NOW(),
     PRIMARY KEY (id)
 );
 

@@ -71,6 +71,14 @@ func setupRoutes(
 		consignments.GET(":consignment", consignment.ViewHandler(pool))
 		consignments.PUT(":consignment", consignment.UpdateHandler(pool))
 		consignments.DELETE(":consignment", consignment.DeleteHandler(pool))
+
+		consignments.GET(
+			":consignment/produtos",
+			consignment.ListProductsHandler(pool))
+
+		consignments.POST(
+			":consignment/produtos",
+			consignment.AddProductHandler(pool))
 	}
 
 	pickupLocations := t.Group("/pontos", withAuth)

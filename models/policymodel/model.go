@@ -59,18 +59,19 @@ func (b *Bouncer) Dispatch(c *gin.Context, user User) bool {
 
 	for _, g := range b.Protected {
 		if strings.HasPrefix(resource.Path, g.Path) {
-			allowed, err := g.Gate.Dispatch(user, resource)
+			isAllowed, err := g.Gate.Dispatch(user, resource)
 
 			if err != nil {
 				util.LogWarn(
-					c, "Authentication failure",
+					c, "Authorization error",
+					"gate", g.Path,
 					"error", err,
 				)
 				// block access just to be safe
 				return false
 			}
 
-			return allowed
+			return isAllowed
 		}
 	}
 
