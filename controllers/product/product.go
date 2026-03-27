@@ -1,32 +1,22 @@
 package product
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/productmodel"
-	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
-	"linhazero.com/pvapi/util/shoputils"
 )
 
 func ListByShopHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
-	type Pcollect = []productmodel.Product
-
 	return func(c *gin.Context) {
-		products, err := shoputils.WithShopFromContextReturn(
-			c, pool,
-			func(ctx context.Context, shop *shopmodel.Shop) (Pcollect, error) {
-				return productmodel.GetByShop(
-					ctx,
-					pool,
-					shop.ID,
-				)
-			},
+		user := authmodel.GetUserFromContext(c)
+
+		products, err := productmodel.GetByShop(
+			c.Request.Context(), pool,
+			user.ActiveRoleID,
 		)
 
 		if err != nil {
@@ -55,19 +45,11 @@ func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var (
-			product productmodel.CreateProductRequest
-			userID  int
-			err     error
-		)
+		var product productmodel.CreateProductRequest
 
-		userID, err = authmodel.GetUserFromContext(c)
+		user := authmodel.GetUserFromContext(c)
 
-		if err != nil {
-			return
-		}
-
-		err = c.ShouldBind(&product)
+		err := c.ShouldBind(&product)
 
 		if err != nil {
 			util.HandleBadRequest(c, err)
@@ -81,19 +63,11 @@ func CreateHandler(
 			return
 		}
 
-		shop, err := shopmodel.FindByUser(
-			c.Request.Context(),
-			pool, userID,
-		)
-
-		if err != nil {
-			util.HandleGuessFromDBOperation(c, err)
-			return
-		}
-
 		_, err = productmodel.Create(
-			c.Request.Context(), pool,
-			blueprint, shop.ID,
+			c.Request.Context(),
+			pool,
+			blueprint,
+			user.ActiveRoleID,
 		)
 
 		if err != nil {

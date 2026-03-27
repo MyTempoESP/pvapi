@@ -2,7 +2,6 @@ package usermodel
 
 import (
 	"context"
-	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,6 +13,18 @@ import (
 type User struct {
 	Name  string `json:"name" db:"user_name"`
 	Email string `json:"email" db:"user_email"`
+}
+
+type Permissions struct {
+	Highest      string
+	ActiveRoleID int
+}
+
+type permissionOutput struct {
+	Admin     *int `db:"admin"`
+	Shop      *int `db:"shop"`
+	Consignee *int `db:"consignee"`
+	Client    *int `db:"client"`
 }
 
 // FindOrCreate is a utility function, not a controller resource
@@ -89,48 +100,54 @@ func Login(
 	return
 }
 
-func GetUserPermissionLevel(
+func GetUserPermissions(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	user int,
-) (level string, err error) {
-	var (
-		admin,
-		shop,
-		consignee bool
+) (Permissions, error) {
+	var zero Permissions
 
-		_user int
+	levels, err := util.WithCollectExactlyOneRow[permissionOutput](
+		ctx,
+		pool,
+		query.UserPermissionsQuery,
+		user,
 	)
 
-	err = pool.QueryRow(
-		ctx,
-		query.UserMaxLevelQuery, user,
-	).Scan(&admin, &shop, &consignee, &_user)
-
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return
-		}
-
-		return
+		return zero, err
 	}
 
-	if admin {
-		level = "admin"
-		return
+	if levels.Admin != nil {
+		return Permissions{
+			Highest:      "admin",
+			ActiveRoleID: *levels.Admin,
+		}, nil
 	}
 
-	if shop {
-		level = "shop"
-		return
+	if levels.Shop != nil {
+		return Permissions{
+			Highest:      "shop",
+			ActiveRoleID: *levels.Shop,
+		}, nil
 	}
 
-	if consignee {
-		level = "consignee"
-		return
+	if levels.Consignee != nil {
+		return Permissions{
+			Highest:      "consignee",
+			ActiveRoleID: *levels.Consignee,
+		}, nil
 	}
 
-	level = "none"
+	if levels.Client != nil {
+		return Permissions{
+			Highest:      "client",
+			ActiveRoleID: *levels.Client,
+		}, nil
+	}
 
-	return
+	return Permissions{
+		Highest:      "user",
+		ActiveRoleID: user,
+	}, nil
 }

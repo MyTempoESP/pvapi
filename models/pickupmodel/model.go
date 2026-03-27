@@ -50,3 +50,5 @@ func (p PickupLocationBlueprint) Save(
 		),
 	)
 }
+
+// TODO: View/Delete

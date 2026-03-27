@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
-	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
@@ -21,41 +20,20 @@ func PermsConsignee(c *gin.Context) {
 
 func UserPermissionLevelHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		user, err := authmodel.GetUserFromContext(c)
-
-		if err != nil {
-			util.Handle500(c, err)
-			return
-		}
-
-		level, err := usermodel.GetUserPermissionLevel(
-			c.Request.Context(),
-			pool, user,
-		)
-
-		if err != nil {
-			util.HandleGuessFromDBOperation(c, err)
-			return
-		}
-
-		c.JSON(200, gin.H{"level": level})
+		user := authmodel.GetUserFromContext(c)
+		c.JSON(200, gin.H{"level": user.Role})
 	}
 }
 
 func UserDataHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		user, err := authmodel.GetUserFromContext(c)
-
-		if err != nil {
-			util.Handle500(c, err)
-			return
-		}
+		user := authmodel.GetUserFromContext(c)
 
 		var userName, userMail string
 
-		err = pool.QueryRow(
+		err := pool.QueryRow(
 			c.Request.Context(),
-			query.UserDataQuery, user,
+			query.UserDataQuery, user.UserID,
 		).Scan(&userName, &userMail)
 
 		if err != nil {

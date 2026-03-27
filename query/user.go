@@ -47,16 +47,16 @@ LIMIT 1
 `
 
 	// level
-	UserMaxLevelQuery = `
+	UserPermissionsQuery = `
 SELECT
-	(admins.id IS NOT NULL) AS admin,
-	(shops.id IS NOT NULL) AS shop,
-	(consignees.id IS NOT NULL) AS consignee,
-	users.id
-FROM users
-LEFT JOIN admins ON users.id = admins.user_id
-LEFT JOIN shops ON users.id = shops.user_id
-LEFT JOIN consignees ON users.id = consignees.user_id
-WHERE users.id = $1
+	a.id AS admin,
+	s.id AS shop,
+	c.id AS consignee,
+	u.id
+FROM users           u
+LEFT JOIN admins     a ON u.id = a.user_id
+LEFT JOIN shops      s ON u.id = s.user_id
+LEFT JOIN consignees c ON u.id = c.user_id
+WHERE u.id = $1
 `
 )
