@@ -14,6 +14,6 @@ func (p PickupLocation) ToResource() PickupLocationResource {
 		ID:       p.ID,
 		Name:     p.Name,
 		DateTime: p.Datetime.Format("2006-01-02T15:04:05"),
-		Address:  *p.Address,
+		Address:  p.Address,
 	}
 }
