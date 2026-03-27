@@ -8,7 +8,8 @@ INSERT INTO consignments
 	pickup_location_id,
 	consignee_id,
 	comission_type,
-	comission_value
+	comission_value,
+	status
     )
 VALUES
     (
@@ -16,7 +17,8 @@ VALUES
 	@pickup_location_id,
 	@consignee_id,
 	@comission_type,
-	@comission_value
+	@comission_value,
+	@status
     )
 RETURNING id
 `
@@ -26,10 +28,14 @@ SELECT
 	consignment_id,
 	consignment_comission_type,
 	consignment_comission_value,
+	consignment_pickup_location,
+	consignment_status,
 
-	shop_name,
+	consignee_id,
 	consignee_name,
-	pickup_location_name
+
+	shop_id,
+	shop_name
 FROM consignments_listing_view
 `
 
@@ -38,10 +44,14 @@ SELECT
 	consignment_id,
 	consignment_comission_type,
 	consignment_comission_value,
+	consignment_pickup_location,
+	consignment_status,
 
-	shop_name,
+	consignee_id,
 	consignee_name,
-	pickup_location_name
+
+	shop_id,
+	shop_name
 FROM consignments_listing_view
 WHERE consignment_id = $1
 `

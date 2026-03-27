@@ -9,4 +9,6 @@ type ConsignmentBlueprint struct {
 
 	ComissionType  string
 	ComissionValue decimal.Decimal
+
+	Status string
 }

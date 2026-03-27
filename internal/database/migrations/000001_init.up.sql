@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.shops
     telephone text NOT NULL,
     slug text NOT NULL,
     name text NOT NULL,
+    created_at timestamp with time zone DEFAULT NOW(),
     PRIMARY KEY (id),
     CONSTRAINT unique_shop_user_relation UNIQUE (user_id)
 );
@@ -69,6 +70,8 @@ CREATE TABLE IF NOT EXISTS public.consignments
     pickup_location_id integer,
     comission_type text NOT NULL,
     comission_value numeric(12, 2) NOT NULL,
+    created_at timestamp with time zone DEFAULT NOW(),
+    status text NOT NULL,
     PRIMARY KEY (id)
 );
 
