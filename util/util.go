@@ -269,3 +269,10 @@ func Merge(args ...Args) (merge Args) {
 	}
 	return
 }
+
+func Coalesce[T any](nullable *T, fallback T) T {
+	if nullable != nil {
+		return *nullable
+	}
+	return fallback
+}

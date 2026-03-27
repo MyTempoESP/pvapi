@@ -124,7 +124,7 @@ type CreateProductRequest struct {
 	Discount    decimal.Decimal `form:"discount"    binding:"required"`
 	Description string          `form:"description" binding:"required"`
 	Category    string          `form:"category"    binding:"required"`
-	Featured    bool            `form:"featured"    binding:"required"`
+	Featured    *bool           `form:"featured"`
 
 	Image      *multipart.FileHeader   `form:"imageUrl" binding:"required"`
 	DescImages []*multipart.FileHeader `form:"descriptionImages"`

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/util"
 )
 
 type SpecificationBlueprint struct {
@@ -133,12 +134,16 @@ func (p *CreateProductRequest) Prepare(
 		return
 	}
 
+	// i just realized sometimes the front-end doesnt send this.
+	// great job devs.
+	featured := util.Coalesce(p.Featured, false)
+
 	pb = &ProductBlueprint{
 		Name:        p.Name,
 		Price:       p.Price,
 		Stock:       p.Stock,
 		Discount:    p.Discount,
-		Featured:    p.Featured,
+		Featured:    featured,
 		Code:        code,
 		Description: p.Description,
 		Attributes:  attributes,
