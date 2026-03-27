@@ -131,4 +131,32 @@ SELECT
 FROM shops_info_detailed_view v
 WHERE v.user_id = $1
 `
+
+	ShopHasProductQuery = `
+SELECT (p.id IS NOT NULL) AS hasProduct
+FROM shops s
+LEFT JOIN products p ON p.shop_id = s.id
+WHERE s.id = $1 AND p.id = $2
+`
+
+	ShopHasPickupQuery = `
+SELECT (p.id IS NOT NULL) AS hasPickup
+FROM shops s
+LEFT JOIN pickups p ON p.shop_id = s.id
+WHERE s.id = $1 AND p.id = $2
+`
+
+	ShopHasConsignmentQuery = `
+SELECT (p.id IS NOT NULL) AS hasConsignment
+FROM shops s
+LEFT JOIN consignments p ON p.shop_id = s.id
+WHERE s.id = $1 AND p.id = $2
+`
+
+	ShopHasConsigneeQuery = `
+SELECT (p.id IS NOT NULL) AS hasConsignee
+FROM shops s
+LEFT JOIN consignees p ON p.shop_id = s.id
+WHERE s.id = $1 AND p.id = $2
+`
 )
