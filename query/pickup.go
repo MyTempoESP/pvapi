@@ -32,8 +32,16 @@ SELECT
 	p.id,
 	p.name,
 	p.pickup_at,
-	p.address_id
+
+	a.addrstreet,
+	a.addrnumber,
+	a.addrneigh,
+	a.addrcity,
+	a.addrstate,
+	a.addrcep,
+	a.addrcomplement
 FROM pickup_locations p
+LEFT JOIN addresses a ON a.id = p.address_id
 WHERE p.shop_id = $1
 `
 )
