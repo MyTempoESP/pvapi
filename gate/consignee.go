@@ -1,6 +1,8 @@
 package gate
 
 import (
+	"strings"
+
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/policymodel"
@@ -34,6 +36,10 @@ func (c *ConsigneeGate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
+	if strings.HasPrefix(r.Path, "/monitores/me") {
+		return c.Me(u, r)
+	}
+
 	if r.Method == "GET" {
 		id := r.Params.ByName("consignee")
 		r.Metadata["id"] = id
@@ -57,6 +63,10 @@ func (c *ConsigneeGate) Dispatch(
 	}
 
 	return false, nil
+}
+
+func (c *ConsigneeGate) Me(u User, r Resource) (bool, error) {
+	return u.Role == roles.Consignee, nil
 }
 
 func (c *ConsigneeGate) Create(u User, r Resource) (bool, error) {

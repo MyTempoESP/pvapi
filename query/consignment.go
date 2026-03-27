@@ -4,26 +4,46 @@ const (
 	CreateConsignmentQuery = `
 INSERT INTO consignments
     (
-        field
+	shop_id,
+	pickup_location_id,
+	consignee_id,
+	comission_type,
+	comission_value
     )
 VALUES
     (
-        @field
+        @shop_id,
+	@pickup_location_id,
+	@consignee_id,
+	@comission_type,
+	@comission_value
     )
 RETURNING id
 `
 
 	ListAllConsignmentsQuery = `
 SELECT
-    *
-FROM consignments
+	consignment_id,
+	consignment_comission_type,
+	consignment_comission_value,
+
+	shop_name,
+	consignee_name,
+	pickup_location_name
+FROM consignments_listing_view
 `
 
 	FindConsignmentQuery = `
 SELECT
-    *
-FROM consignments
-WHERE id = $1
+	consignment_id,
+	consignment_comission_type,
+	consignment_comission_value,
+
+	shop_name,
+	consignee_name,
+	pickup_location_name
+FROM consignments_listing_view
+WHERE consignment_id = $1
 `
 
 	DeleteConsignmentQuery = `
