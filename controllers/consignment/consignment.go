@@ -125,9 +125,9 @@ func ViewHandler(
 			return
 		}
 
-		util.WrapLabeled(
+		util.Wrap(
 			c, "remessa acessada com sucesso",
-			"consignment", consignment.ToResource(),
+			consignment.ToResource(),
 		)
 	}
 }
