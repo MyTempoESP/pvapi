@@ -1,6 +1,10 @@
 package consignmentmodel
 
-import "github.com/shopspring/decimal"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type ShopResource struct {
 }
@@ -12,17 +16,14 @@ type ConsignmentResource struct {
 	ID             int             `json:"id"`
 	ComissionType  string          `json:"commission_type"`
 	ComissionValue decimal.Decimal `json:"commission_value"`
+	Code           string          `json:"code"`
+	Slug           string          `json:"slug"`
 	Status         string          `json:"status"`
 
-	Pickup int `json:"pickup_location_id"`
+	PickupName    string `json:"destination"`
+	ConsigneeName string `json:"responsibleMonitor"`
 
-	ShopID   int    `json:"establishment_id"`
-	ShopName string `json:"establishment_name"`
-
-	ConsigneeID   int    `json:"monitor_id"`
-	ConsigneeName string `json:"monitor_name"`
-
-	Items []ProductResource `json:"items"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (c Consignment) ToResource() ConsignmentResource {
@@ -30,16 +31,13 @@ func (c Consignment) ToResource() ConsignmentResource {
 		ID:             c.ID,
 		ComissionType:  c.ComissionType,
 		ComissionValue: c.ComissionValue,
+		Code:           c.Code,
+		Slug:           c.Slug,
 		Status:         c.Status,
 
-		Pickup: c.Pickup,
-
-		ShopID:   c.Shop.ID,
-		ShopName: c.Shop.Name,
-
-		ConsigneeID:   c.Consignee.ID,
+		PickupName:    c.Pickup.Name,
 		ConsigneeName: c.Consignee.Name,
 
-		Items: []ProductResource{},
+		CreatedAt: c.CreatedAt,
 	}
 }
