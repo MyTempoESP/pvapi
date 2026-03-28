@@ -2,7 +2,9 @@ package consignmentmodel
 
 import (
 	"context"
+	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/query"
@@ -13,19 +15,49 @@ func (c ConsignmentUpdateBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (err error) {
-	update := query.Update("consignments")
+	q := util.SQL
 
-	update.Set.Add("pickup_location_id", c.PickupID)
-	update.Set.Add("consignee_id", c.ConsigneeID)
-	update.Set.Add("comission_type", c.ComissionType)
-	update.Set.Add("comission_value", c.ComissionValue)
-	update.Set.Add("status", c.Status)
+	fields := make(map[string]any)
 
-	update.Where.AddMap("id", "consignment_id", c.ID)
+	if c.PickupID != nil {
+		fields["pickup_location_id"] = *c.PickupID
+	}
 
-	query, params := update.Build()
+	if c.ConsigneeID != nil {
+		fields["consignee_id"] = *c.ConsigneeID
+	}
 
-	_, err = base.Exec(ctx, query, params)
+	if c.ComissionType != nil {
+		fields["comission_type"] = *c.ComissionType
+	}
+
+	if c.ComissionValue != nil {
+		fields["comission_value"] = *c.ComissionValue
+	}
+
+	if c.Status != nil {
+		fields["status"] = *c.Status
+	}
+
+	if len(fields) == 0 {
+		return
+	}
+
+	query, params, err := q.Update("consignments").
+		SetMap(fields).
+		Where(sq.Eq{"id": c.ID}).
+		ToSql()
+
+	if err != nil {
+		return fmt.Errorf("could not build SQL query: %w", err)
+	}
+
+	_, err = base.Exec(ctx, query, params...)
+
+	if err != nil {
+		return fmt.Errorf(
+			"could not update consignment, query: %q, %w", query, err)
+	}
 
 	return err
 }
