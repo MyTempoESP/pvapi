@@ -2,7 +2,9 @@ package shopmodel
 
 import (
 	"context"
+	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/address"
@@ -71,7 +73,21 @@ func Update(
 	shopID int,
 	shop UpdateShopRequest,
 ) (err error) {
-	update := query.Update("shops AS shop")
+	q := util.SQL
+
+	fields := make(map[string]any)
+
+	if shop.Name != nil {
+		fields["name"] = *shop.Name
+	}
+
+	if shop.Telephone != nil {
+		fields["telephone"] = *shop.Telephone
+	}
+
+	if len(fields) == 0 {
+		return
+	}
 
 	if shop.Email != nil {
 		err = pgx.BeginFunc(
@@ -91,17 +107,19 @@ func Update(
 		}
 	}
 
-	update.Set.Add("name", shop.Name)
-	update.Set.Add("telephone", shop.Telephone)
+	query, params, err := q.Update("shops").
+		SetMap(fields).
+		Where(sq.Eq{"id": shopID}).
+		ToSql()
 
-	update.Where.AddMap("shop.id", "shop_id", shopID)
-
-	query, params := update.Build()
+	if err != nil {
+		return fmt.Errorf("could not build SQL query: %w", err)
+	}
 
 	err = pgx.BeginFunc(
 		ctx, pool,
 		func(tx pgx.Tx) error {
-			_, err := tx.Exec(ctx, query, params)
+			_, err := tx.Exec(ctx, query, params...)
 			return err
 		},
 	)

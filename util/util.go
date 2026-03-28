@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -28,6 +29,8 @@ func NotImplemented(operation string) error {
 		operation, NotImplementedError,
 	)
 }
+
+var SQL = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
 // A is a quick alias for NamedArgs
 type Args = pgx.NamedArgs
