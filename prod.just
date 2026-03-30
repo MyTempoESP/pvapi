@@ -14,6 +14,7 @@ prod_db_dir := prod_dir + "/pgdata/18"
 
 prod_api_service := "pvapi"
 prod_db_service  := "pva-postgresql"
+prod_db_container:= "systemd-pva-postgresql"
 
 prod_db_url := (
     "postgresql://" +
@@ -62,4 +63,4 @@ erase:
     podman unshare rm -rf "{{prod_db_dir}}"
 
 [private]
-fresh: kill erase restart (tools::pg_poll prod_db_service) migrate
+fresh: kill erase restart (tools::pg_poll prod_db_container) migrate
