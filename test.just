@@ -23,8 +23,8 @@ db_url := (
 )
 
 # time for the db and program to run before killed
-max-life-db := "600s"
-max-life-go := "500s"
+max-life-db := "600"
+max-life-go := "500"
 
 # handle timeout gracefully without errors, should be quiet
 timeout-handler := '[ "$?" = "124" ] && exit 0'
@@ -77,7 +77,7 @@ worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
     PV_API_ADMIN_MAIL="sistemas@lzero.org" \
     PV_API_ADMIN_PASS="TestingPassword" \
     PV_API_LOG_LEVEL="debug" \
-        timeout {{max-life-go}} go run {{flags}} .; {{timeout-handler}}
+        timeout {{max-life-go}}s go run {{flags}} .; {{timeout-handler}}
 
 [group('util')]
 @clean:

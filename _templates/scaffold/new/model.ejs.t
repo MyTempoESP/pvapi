@@ -29,17 +29,31 @@ func (<%= Char %> <%= Class %>) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (err error) {
-	update := query.Update("<%= Table %> AS <%= Flat %>")
+	q := util.SQL
 
-	update.Set.Add("field", <%= Char %>.Field)
+	fields := make(map[string]any)
 
-	update.Where.AddMap("<%= Flat %>.id", "<%= Flat %>_id", <%= Char %>.ID)
+	if c.Field != nil {
+		fields["field"] = c.Field
+	}
 
-	query, params := update.Build()
+	query, params, err := q.Update("<%= Table %>").
+		SetMap(fields).
+		Where(sq.Eq{"id": c.ID}).
+		ToSql()
 
-    _, err = base.Exec(ctx, query, params)
+	if err != nil {
+		return fmt.Errorf("could not build SQL query: %w", err)
+	}
 
-    return err
+	_, err = base.Exec(ctx, query, params...)
+
+	if err != nil {
+		return fmt.Errorf(
+			"could not update <%= Flat %>, query: %q, %w", query, err)
+	}
+
+	return
 }
 
 func (<%= Char %> <%= Class %>Blueprint) Save(
