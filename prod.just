@@ -29,21 +29,21 @@ init := "systemctl --user"
 @default:
     just --list prod
 
-[group('command')]
+[group('target')]
 ci: fetch image restart
 
-[group('command')]
-prod: fetch image fresh
+[group('target')]
+new: fetch image fresh
 
-[group('tool')]
+[group('util')]
 image:
     podman build -t linhazero/pvapi:latest .
 
-[group('tool')]
+[group('util')]
 @migrate: (tools::migrate prod_db_url)
     printf "{{BOLD + BG_GREEN}}OK{{NORMAL}}\n"
 
-[group('update')]
+[group('util')]
 @fetch:
     echo "Fetching updates from remote"
     git fetch
