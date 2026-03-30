@@ -36,7 +36,7 @@ prod: fetch image fresh
 
 [group('tool')]
 image:
-    podman build -t linhazero/pvapi:latest
+    podman build -t linhazero/pvapi:latest .
 
 [group('tool')]
 @migrate: (tools::migrate prod_db_url)

@@ -22,6 +22,13 @@ db_url := (
         "/" + db_name + "?sslmode=disable"
 )
 
+# time for the db and program to run before killed
+max-life-db := "600s"
+max-life-go := "500s"
+
+# handle timeout gracefully without errors, should be quiet
+timeout-handler := '[ "$?" = "124" ] && exit 0'
+
 # ensures the test script properly executes cleanup
 test_header := '''
     set -xeuo pipefail
@@ -50,7 +57,7 @@ worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
 
     echo "Starting test database"
     ?(podman run \
-        --timeout 600 \
+        --timeout {{max-life-db}} \
         --rm -d --name {{db_container}} \
         -e       POSTGRES_DB="{{db_name}}" \
         -e     POSTGRES_USER="{{db_user}}" \
@@ -73,7 +80,7 @@ worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
     PV_API_ADMIN_MAIL="sistemas@lzero.org" \
     PV_API_ADMIN_PASS="TestingPassword" \
     PV_API_LOG_LEVEL="debug" \
-        go run {{flags}} .
+        timeout {{max-life-go}} go run {{flags}} .; {{timeout-handler}}
 
 [group('tool')]
 [group('cleanup')]
