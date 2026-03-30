@@ -1,3 +1,5 @@
+mod tools
+
 set shell := ["bash", "-uc"]
 
 prod_db_user     := "pvauto"
@@ -22,31 +24,42 @@ prod_db_url := (
 
 init := "systemctl --user"
 
-fetch:
-    git fetch && git merge
+[private]
+@default:
+    just --list prod
 
+[group('command')]
+ci: fetch image restart
+
+[group('command')]
+prod: fetch image fresh
+
+[group('tool')]
 image:
     podman build -t linhazero/pvapi:latest
 
+[group('tool')]
+@migrate: (tools::migrate prod_db_url)
+    printf "{{BOLD + BG_GREEN}}OK{{NORMAL}}\n"
+
+[group('update')]
+@fetch:
+    echo "Fetching updates from remote"
+    git fetch
+    git merge
+
+[private]
 restart:
     {{init}} restart "{{prod_api_service}}"
 
+[private]
 kill:
     {{init}} stop "{{prod_api_service}}"
     {{init}} stop "{{prod_db_service}}"
 
-_clean:
+[private]
+erase:
     podman unshare rm -rf "{{prod_db_dir}}"
 
-fresh: kill _clean
-    {{init}} start "{{prod_db_service}}"
-    @until \
-        pg_isready -h "{{prod_db_host}}" -p "{{prod_db_port}}"; do sleep 1; done
-    just _migrate "{{prod_db_url}}"
-
-ci: fetch image restart
-prod: ci fresh restart
-
-migrate:
-    @just _migrate "{{prod_db_url}}"
-    @printf "{{BOLD + BG_GREEN}}OK{{NORMAL}}\n"
+[private]
+fresh: kill erase restart (tools::pg_poll prod_db_service) migrate
