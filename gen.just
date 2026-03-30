@@ -1,4 +1,9 @@
-migration:
+[private]
+default:
+    just --list
+
+[group('cmd')]
+@migration:
     podman run --rm -v ./internal/database/migrations:/migrations:Z \
         --network host \
         docker.io/migrate/migrate \
