@@ -39,8 +39,7 @@ test_header := '''
 '''
 
 # default recipe
-[group('cmd')]
-[script('bash')]
+[group('target')]
 all:
     {{test_header}}
     just test::worker
@@ -48,8 +47,7 @@ all:
 [private]
 worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
 
-[group('tool')]
-[group('database')]
+[group('target')]
 @db:
     echo "Creating directory '{{db_dir}}'"
     mkdir -p "{{db_dir}}"
@@ -65,8 +63,7 @@ worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
         -v "{{db_dir}}:/var/lib/postgresql:Z" \
         -p "{{db_port}}:5432" docker.io/library/postgres || exit 1)
 
-[group('code')]
-[group('tool')]
+[group('target')]
 @go *flags="-v":
     printf "{{BOLD + WHITE}}go run {{flags}} .{{NORMAL}}\n"
     ?PV_API_SECURE_COOKIE="no" \
@@ -82,8 +79,7 @@ worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
     PV_API_LOG_LEVEL="debug" \
         timeout {{max-life-go}} go run {{flags}} .; {{timeout-handler}}
 
-[group('tool')]
-[group('cleanup')]
+[group('util')]
 @clean:
     echo "Stopping test database"
     -podman stop test-postgres
