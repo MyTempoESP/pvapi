@@ -4,6 +4,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/controllers/client"
 	"linhazero.com/pvapi/controllers/consignee"
 	"linhazero.com/pvapi/controllers/consignment"
 	"linhazero.com/pvapi/controllers/pickups"
@@ -85,6 +86,12 @@ func setupRoutes(
 	{
 		pickupLocations.POST("", pickups.CreateHandler(pool))
 		pickupLocations.GET("", pickups.ListHandler(pool))
+	}
+
+	clients := t.Group("/clientes", withAuth)
+	{
+		clients.POST("", client.CreateHandler(pool))
+		clients.GET("", client.ListHandler(pool))
 	}
 
 	t.Static("/assets", "./public/uploads")
