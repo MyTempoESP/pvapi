@@ -7,9 +7,28 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
+	//"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
+
+// TODO: avoid using any on this stuff, yes it's convenient, but not type-safe
+
+func AddProduct(
+	ctx context.Context,
+	base db.Queryable,
+	product,
+	consignment any,
+) (err error) {
+	/*productModel := productmodel.a
+
+	_, err = base.Exec(
+		ctx,
+		query.AddProductToConsignmentQuery,
+		product, consignment,
+	)*/
+	return
+}
 
 func (c ConsignmentUpdateBlueprint) Save(
 	ctx context.Context,

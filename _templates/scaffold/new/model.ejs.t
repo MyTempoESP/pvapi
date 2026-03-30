@@ -37,6 +37,10 @@ func (<%= Char %> <%= Class %>) Save(
 		fields["field"] = c.Field
 	}
 
+	if len(fields) == 0 {
+		return
+	}
+
 	query, params, err := q.Update("<%= Table %>").
 		SetMap(fields).
 		Where(sq.Eq{"id": c.ID}).

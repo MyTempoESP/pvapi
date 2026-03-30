@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/imagemodel"
 	"linhazero.com/pvapi/query"
 )
@@ -187,6 +188,30 @@ func Create(
 		product, shop,
 	)
 
+	return
+}
+
+func Find(
+	ctx context.Context,
+	base db.Queryable,
+	product any, // id
+) (p Product, err error) {
+	err = base.QueryRow(ctx, query.FindProductQuery, product).Scan(&p)
+	return
+}
+
+func Take(
+	ctx context.Context,
+	base db.Queryable,
+	product,
+	ammount any,
+) (err error) {
+	_, err = base.Exec(
+		ctx,
+		query.ProductTakeFromStock,
+		product,
+		ammount,
+	)
 	return
 }
 

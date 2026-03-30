@@ -9,6 +9,7 @@ import (
 	"linhazero.com/pvapi/controllers/consignment"
 	"linhazero.com/pvapi/controllers/pickups"
 	"linhazero.com/pvapi/controllers/product"
+	"linhazero.com/pvapi/controllers/report"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
 	"linhazero.com/pvapi/middleware/auth"
@@ -86,6 +87,11 @@ func setupRoutes(
 	{
 		pickupLocations.POST("", pickups.CreateHandler(pool))
 		pickupLocations.GET("", pickups.ListHandler(pool))
+	}
+
+	reports := t.Group("/ocorrencias", withAuth)
+	{
+		reports.GET("", report.ListHandler(pool))
 	}
 
 	clients := t.Group("/clientes", withAuth)

@@ -29,6 +29,10 @@ func (c Client) Save(
 		fields["field"] = c.Field
 	}
 
+	if len(fields) == 0 {
+		return
+	}
+
 	query, params, err := q.Update("clients").
 		SetMap(fields).
 		Where(sq.Eq{"id": c.ID}).

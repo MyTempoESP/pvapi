@@ -3,8 +3,8 @@ default:
     just --list
 
 [group('cmd')]
-@migration:
+@migration name:
     podman run --rm -v ./internal/database/migrations:/migrations:Z \
         --network host \
         docker.io/migrate/migrate \
-        -verbose create -dir=/migrations/ -seq -ext sql "$1"
+        -verbose create -dir=/migrations/ -seq -ext sql "{{name}}"

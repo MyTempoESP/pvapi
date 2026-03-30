@@ -1,5 +1,6 @@
 mod tools
 
+set script-interpreter := ['bash']
 set guards
 set lazy
 
@@ -40,6 +41,7 @@ test_header := '''
 
 # default recipe
 [group('target')]
+[script]
 all:
     {{test_header}}
     just test::worker
