@@ -5,6 +5,7 @@ mod gen
 set shell := ['bash', '-uc']
 set script-interpreter := ['bash']
 set guards
+set lazy
 
 db_user     := "test_user"
 db_pass     := "testing_database"
