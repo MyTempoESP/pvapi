@@ -68,6 +68,28 @@ type Product struct {
 	PackImages []string `db:"product_pack_images"`
 }
 
+func (p ProductBlueprint) Save(
+	ctx context.Context,
+	base db.Queryable,
+) (err error) {
+	params := pgx.NamedArgs{
+		"name":        p.Name,
+		"price":       p.Price,
+		"stock":       p.Stock,
+		"discount":    p.Discount,
+		"featured":    p.Featured,
+		"description": p.Description,
+		"code":        p.Code,
+		"category":    p.Category,
+		"shop_id":     p.Shop,
+		"attr":        p.Attributes,
+	}
+
+	_, err = base.Exec(ctx, query.ProductCreate, params)
+
+	return
+}
+
 // TODO: please diagram this for the love of God
 func productTransaction(
 	ctx context.Context,

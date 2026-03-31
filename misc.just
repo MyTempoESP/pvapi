@@ -1,10 +1,12 @@
 set quiet
 
+list-header-style := BG_CYAN + BOLD + WHITE
+
 [private]
 default:
     just --list
 
-[group('cmd')]
+[group('util')]
 count-lines:
     find . \
         \( \
@@ -18,3 +20,10 @@ count-lines:
         -not -path "./_templates/generator/*" \
         -not -path "./_templates/init/*" \
         -exec wc -l {} \; | awk '{s+=$1} END {print s}'
+
+[private]
+list *modules:
+    for i in {{modules}}; do \
+        printf "{{list-header-style}} $i {{NORMAL}}\n"; \
+        just  --color=always --list $i | sed '1d'; \
+    done

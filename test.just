@@ -1,6 +1,6 @@
-mod tools
+mod internal
+mod database
 
-set script-interpreter := ['bash']
 set guards
 set lazy
 
@@ -25,32 +25,31 @@ db_url := (
 
 # time for the db and program to run before killed
 max-life-db := "600"
-max-life-go := "500"
-
-# handle timeout gracefully without errors, should be quiet
-timeout-handler := '[ "$?" = "124" ] && exit 0'
-
-# ensures the test script properly executes cleanup
-test_header := '''
-    set -xeuo pipefail
-    cleanup() {
-        just test::clean
-    }
-    trap cleanup EXIT
-'''
+max-life-go := "500s"
 
 # default recipe
 [group('target')]
-[script]
-all:
-    {{test_header}}
-    just test::worker
+all: (internal::ensure 'test::worker' 'test::clean')
 
 [private]
-worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
+db-ui: test-db
+    printf "{{BOLD + BG_CYAN + GREEN}}Started PostgreSQL database.\n"
+    printf "{{NORMAL + YELLOW}}press [return] to stop...{{NORMAL}}"
+    read
 
+[doc('Roll a simple test database')]
 [group('target')]
-@db:
+[script]
+db: (internal::ensure 'test::db-ui' 'test::clean')
+
+# internal
+
+[private]
+worker: test-db go
+
+[private]
+[group('target')]
+@test-db: && (database::pg_poll db_container) (database::migrate db_url)
     echo "Creating directory '{{db_dir}}'"
     mkdir -p "{{db_dir}}"
     chmod 755 "{{db_dir}}"
@@ -79,7 +78,7 @@ worker: db (tools::pg_poll db_container) (tools::migrate db_url) go
     PV_API_ADMIN_MAIL="sistemas@lzero.org" \
     PV_API_ADMIN_PASS="TestingPassword" \
     PV_API_LOG_LEVEL="debug" \
-        timeout {{max-life-go}}s go run {{flags}} .; {{timeout-handler}}
+        timeout --foreground {{max-life-go}} go run {{flags}} .
 
 [group('util')]
 @clean:
