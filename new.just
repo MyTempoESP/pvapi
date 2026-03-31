@@ -1,9 +1,12 @@
-[private]
-default:
-    just --list
+set quiet
 
-[group('cmd')]
-@migration name:
+mod misc
+
+[private]
+default: (misc::list 'new')
+
+[group('database')]
+migration name:
     podman run --rm -v ./internal/database/migrations:/migrations:Z \
         --network host \
         docker.io/migrate/migrate \

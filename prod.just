@@ -1,4 +1,4 @@
-mod tools
+mod database
 
 set shell := ["bash", "-uc"]
 
@@ -40,7 +40,7 @@ image:
     podman build -t linhazero/pvapi:latest .
 
 [group('util')]
-@migrate: (tools::migrate prod_db_url)
+@migrate: (database::migrate prod_db_url)
     printf "{{BOLD + BG_GREEN}}OK{{NORMAL}}\n"
 
 [group('util')]
@@ -63,4 +63,4 @@ erase:
     podman unshare rm -rf "{{prod_db_dir}}"
 
 [private]
-fresh: kill erase restart (tools::pg_poll prod_db_container) migrate
+fresh: kill erase restart (database::pg_poll prod_db_container) migrate

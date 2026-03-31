@@ -1,7 +1,9 @@
-mod tools
+set script-interpreter := ['bash']
+
+mod database
 mod prod
 mod test
 mod misc
-mod gen
+mod new
 
-@default: (tools::list 'tools' 'prod' 'test' 'misc' 'gen')
+@default: (misc::list 'database' 'prod' 'test' 'misc' 'new')
