@@ -56,19 +56,14 @@ func CreateHandler(
 			return
 		}
 
-		blueprint, err := product.Prepare(c)
+		blueprint, err := product.Prepare(c, user.ActiveRoleID)
 
 		if err != nil {
 			util.Handle500(c, err)
 			return
 		}
 
-		_, err = productmodel.Create(
-			c.Request.Context(),
-			pool,
-			blueprint,
-			user.ActiveRoleID,
-		)
+		err = util.Transaction(c, pool, blueprint.Save)
 
 		if err != nil {
 			util.Handle500(c, err)
