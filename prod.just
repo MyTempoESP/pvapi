@@ -49,6 +49,10 @@ image:
     git fetch
     git merge
 
+[group('util')]
+@clean:
+    podman image prune
+
 [private]
 restart:
     {{init}} restart "{{prod_api_service}}"

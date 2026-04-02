@@ -26,6 +26,7 @@ type AttributesBlueprint struct {
 }
 
 type ProductBlueprint struct {
+	Shop        int
 	Name        string
 	Price       string
 	Stock       int
@@ -81,6 +82,7 @@ func PreparePolicies(
 
 func (p *CreateProductRequest) Prepare(
 	c *gin.Context,
+	shop int,
 ) (pb *ProductBlueprint, err error) {
 
 	policies := PreparePolicies(p)
@@ -139,6 +141,7 @@ func (p *CreateProductRequest) Prepare(
 	featured := util.Coalesce(p.Featured, false)
 
 	pb = &ProductBlueprint{
+		Shop:        shop,
 		Name:        p.Name,
 		Price:       p.Price,
 		Stock:       p.Stock,
