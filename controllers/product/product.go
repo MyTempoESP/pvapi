@@ -63,7 +63,7 @@ func CreateHandler(
 			return
 		}
 
-		err = util.Transaction(c, pool, blueprint.Save)
+		err = util.TransactionAware(c, pool, blueprint.Save)
 
 		if err != nil {
 			util.Handle500(c, err)

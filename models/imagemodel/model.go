@@ -2,6 +2,7 @@ package imagemodel
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
@@ -9,33 +10,43 @@ import (
 	"linhazero.com/pvapi/query"
 )
 
+type imageURL string
+
 type Image struct {
-	Filename URL    `json:"filename"`
-	Alt      string `json:"alt"`
-	Tag      string `json:"tag"`
-	Product  int    `json:"product_id"`
+	Filename imageURL `json:"filename"`
+	Alt      string   `json:"alt"`
+	Tag      string   `json:"tag"`
+	Product  int      `json:"product_id"`
 }
 
-type URL string
+func NewUrl(s string) imageURL {
+	imageURL := imageURL(strings.Replace(
+		s,
+		".",
+		"https://pvauto.linhazero.com/", 1,
+	))
+
+	return imageURL
+}
 
 type ImageCollection []Image
 
-func NewImage(url URL, tag string, product int) Image {
+func NewImage(imageURL imageURL, tag string, product int) Image {
 	return Image{
-		Filename: url,
-		Alt:      slug.Make(string(url)),
+		Filename: imageURL,
+		Alt:      slug.Make(string(imageURL)),
 		Tag:      tag,
 		Product:  product,
 	}
 }
 
 func NewTaggedImageCollection(
-	urls []string,
+	imageURLs []string,
 	tag string,
 	product int,
 ) (imc ImageCollection) {
-	for _, url := range urls {
-		imc = append(imc, NewImage(URL(url), tag, product))
+	for _, imageURL := range imageURLs {
+		imc = append(imc, NewImage(NewUrl(imageURL), tag, product))
 	}
 
 	return

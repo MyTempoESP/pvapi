@@ -25,17 +25,17 @@ db_url := (
 
 # time for the db and program to run before killed
 max-life-db := "600"
-max-life-go := "500s"
+max-life-go := "300s"
 
 # default recipe
 [group('target')]
 all: (internal::ensure 'test::worker' 'test::clean')
 
 [private]
-db-ui: test-db
-    printf "{{BOLD + BG_CYAN + GREEN}}Started PostgreSQL database.\n"
-    printf "{{NORMAL + YELLOW}}press [return] to stop...{{NORMAL}}"
-    read
+@db-ui: test-db
+    printf "\n{{BOLD + BG_CYAN + GREEN}}Started PostgreSQL database.\n"
+    printf "\n{{NORMAL + YELLOW}}press [return] to stop...{{NORMAL}}"
+    read a
 
 [doc('Roll a simple test database')]
 [group('target')]
@@ -86,3 +86,4 @@ worker: test-db go
     -podman stop test-postgres
     echo "Removing test database directory '{{db_base_dir}}'"
     -podman unshare rm -rf "{{db_base_dir}}"
+    rm -rf "{{invocation_directory()}}/public/uploads"
