@@ -27,6 +27,10 @@ type ProductResource struct {
 	Colors []string `json:"colors,omitempty"`
 	Sizes  []string `json:"sizes,omitempty"`
 
+	AllowCustomName           bool `json:"allowCustomName"`
+	AllowCustomModality       bool `json:"allowCustomModality"`
+	AllowCustomColorSelection bool `json:"allowCustomColorSelection"`
+
 	ModerationStatus string `json:"moderation_status"`
 
 	// Specifications
@@ -41,10 +45,6 @@ type ProductResource struct {
 
 func (p Product) ToResource() ProductResource {
 
-	if p.PlatformCut == nil {
-		p.PlatformCut = &EarningsModifier{}
-	}
-
 	return ProductResource{
 		ID:                  p.ID,
 		Name:                p.Name,
@@ -56,16 +56,24 @@ func (p Product) ToResource() ProductResource {
 		ModerationStatus:    p.ModerationStatus,
 		Colors:              p.Attributes.Colors,
 		Sizes:               p.Attributes.Sizes,
-		PlatformCut:         p.PlatformCut.Value,
-		PlatformCutType:     p.PlatformCut.Type,
+		PlatformCut:         p.PlatformCut,
+		PlatformCutType:     p.PlatformCutType,
 		Category:            p.Category,
 		ImageURL:            p.Image,
 		SpecificationImages: p.SpecImages,
 		DescriptionImages:   p.DescImages,
 		DeliveryImages:      p.PackImages,
-		Specifications:      util.ResourceCollection(p.Specifications),
-		Code:                p.Code,
-		UUID:                p.UUID,
+
+		AllowCustomColorSelection: p.Attributes.AllowCustomColor,
+		AllowCustomModality:       p.Attributes.AllowCustomModality,
+		AllowCustomName:           p.Attributes.AllowCustomName,
+
+		Specifications: util.ResourceCollection(
+			p.Attributes.Specifications,
+		),
+
+		Code: p.Code,
+		UUID: p.UUID,
 	}
 }
 

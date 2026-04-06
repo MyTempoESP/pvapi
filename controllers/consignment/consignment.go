@@ -68,7 +68,41 @@ func AddProductHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		var request consignmentmodel.AddProductRequest
 
+		err := c.ShouldBind(&request)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		consignmentID, err := strconv.Atoi(c.Param("consignment"))
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		util.LogInfo(
+			c,
+			"Trying to add products to consignment",
+			"Consignment", consignmentID,
+		)
+
+		action := request.Prepare(consignmentID)
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			action.Exec,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Produto adicionado na remessa com sucesso")
 	}
 }
 
@@ -87,14 +121,19 @@ func CreateHandler(
 
 		user := authmodel.GetUserFromContext(c)
 
-		consignment, err := request.Prepare(user.ActiveRoleID)
+		consignment, err := request.Prepare(
+			user.ActiveRoleID, // ShopID
+		)
 
 		if err != nil {
 			util.HandleGuess(c, err)
 			return
 		}
 
-		id, err := consignment.Save(c.Request.Context(), pool)
+		id, err := util.TransactionReturn(
+			c.Request.Context(), pool,
+			consignment.Save,
+		)
 
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)

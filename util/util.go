@@ -291,3 +291,31 @@ func Coalesce[T any](nullable *T, fallback T) T {
 	}
 	return fallback
 }
+
+// Bake exec's a *pgx.Batch, based on its Len().
+// Every query in the batch gets executed or returns
+// early on error.
+func Bake(
+	ctx context.Context,
+	base db.Queryable,
+	batch *pgx.Batch,
+) (err error) {
+	b := base.SendBatch(ctx, batch)
+	defer b.Close()
+
+	for range batch.Len() {
+		_, err = b.Exec()
+
+		if err != nil {
+			return
+		}
+	}
+
+	err = b.Close()
+
+	if err != nil {
+		return
+	}
+
+	return
+}

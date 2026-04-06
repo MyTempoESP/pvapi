@@ -40,7 +40,13 @@ func (c *ConsignmentGate) Dispatch(
 	r.Metadata["id"] = id
 
 	if strings.HasSuffix(r.Path, "/produtos") {
-		return c.View(u, r)
+		if r.Method == "GET" {
+			return c.View(u, r)
+		}
+
+		if r.Method == "POST" {
+			return c.Modify(u, r)
+		}
 	}
 
 	if r.Method == "GET" {

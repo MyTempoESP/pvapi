@@ -81,9 +81,8 @@ worker: test-db go
         timeout --foreground {{max-life-go}} go run {{flags}} .
 
 [group('util')]
-@clean:
-    echo "Stopping test database"
+clean:
     -podman stop test-postgres
-    echo "Removing test database directory '{{db_base_dir}}'"
     -podman unshare rm -rf "{{db_base_dir}}"
-    rm -rf "{{invocation_directory()}}/public/uploads"
+    -killall pvapi
+    -rm -rf "{{invocation_directory()}}/public/uploads"

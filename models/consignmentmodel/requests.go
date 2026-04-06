@@ -7,6 +7,22 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+type AddProductUnit struct {
+	ID          int             `json:"productId" binding:"required"`
+	Quantity    int             `json:"quantity"  binding:"required"`
+	Price       decimal.Decimal `json:"price"     binding:"required"`
+	Color       string          `json:"color"     binding:"required"`
+	Discount    decimal.Decimal `json:"discount"  binding:"required"`
+	Featured    bool            `json:"featured"  binding:"required"`
+	Name        string          `json:"productName"`
+	Description string          `json:"description"`
+	Category    string          `json:"category"`
+}
+
+type AddProductRequest struct {
+	Products []AddProductUnit `json:"products"`
+}
+
 type Comission struct {
 	CutPCT   *decimal.Decimal `json:"monitorProfitPercentage"`
 	CutFixed *decimal.Decimal `json:"monitorProfit"`

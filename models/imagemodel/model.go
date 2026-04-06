@@ -23,7 +23,7 @@ func NewUrl(s string) imageURL {
 	imageURL := imageURL(strings.Replace(
 		s,
 		".",
-		"https://pvauto.linhazero.com/", 1,
+		"https://pvauto.linhazero.com", 1,
 	))
 
 	return imageURL

@@ -101,4 +101,5 @@ func setupRoutes(
 	}
 
 	t.Static("/assets", "./public/uploads")
+	t.Static("/public/uploads", "./public/uploads") // alias
 }

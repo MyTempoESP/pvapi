@@ -29,6 +29,14 @@ init := "systemctl --user"
 @default:
     just --list prod
 
+[group('remote')]
+deploy:
+    git add .
+    git commit
+    git push origin wip
+    ssh mytempogps@mytempogps.com.br \
+        just -f /home/mytempogps/pvauto/pvapi prod::new
+
 [group('target')]
 ci: fetch image restart
 
