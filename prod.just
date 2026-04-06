@@ -58,7 +58,7 @@ restart: kill && db (database::pg_poll prod_db_container) api
 
 [private]
 db:
-    {{init}} start "{{prod_db_container}}"
+    {{init}} start "{{prod_db_service}}"
 
 [private]
 api:
