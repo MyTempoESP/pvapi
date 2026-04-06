@@ -56,6 +56,7 @@ image:
 [private]
 restart:
     {{init}} restart "{{prod_api_service}}"
+    {{init}} restart "{{prod_db_service}}"
 
 [private]
 kill:
