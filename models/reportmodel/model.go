@@ -3,6 +3,7 @@ package reportmodel
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
@@ -13,14 +14,26 @@ import (
 )
 
 type Report struct {
-	ID    int
-	Field any
+	ID            int       `db:"id"`
+	Description   string    `db:"description"`
+	Moment        string    `db:"moment"`
+	Monitor       string    `db:"consignee_id"`
+	Scope         string    `db:"scope"`
+	ConsignmentID int       `db:"consignment_id"`
+	Priority      string    `db:"priority"`
+	Status        string    `db:"status"`
+	Type          string    `db:"type"`
+	CreatedAt     time.Time `db:"created_at"`
 }
 
 func (r Report) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (err error) {
+	if true {
+		return util.NotImplemented("Atualizar ocorrencia")
+	}
+
 	q := util.SQL
 
 	fields := make(map[string]any)
@@ -58,7 +71,14 @@ func (r ReportBlueprint) Save(
 		base,
 		query.CreateReportQuery,
 		util.Args{
-			"field": r.Field,
+			"description":    r.Description,
+			"moment":         r.Moment,
+			"consignee_name": r.Monitor,
+			"scope":          r.Scope,
+			"consignment_id": r.ConsignmentID,
+			"priority":       r.Priority,
+			"status":         r.Status,
+			"type":           r.Type,
 		},
 	)
 }

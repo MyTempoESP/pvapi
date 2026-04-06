@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
@@ -221,27 +222,12 @@ func FindDetailed(
 	)
 }
 
-func HasResource(
-	ctx context.Context,
-	base db.Queryable,
-	query string,
-	shop, id any,
-) (hasResource bool, err error) {
-	err = base.QueryRow(
-		ctx,
-		query,
-		shop, id,
-	).Scan(&hasResource)
-
-	return
-}
-
 func HasProduct(
 	ctx context.Context,
 	base db.Queryable,
 	shop, product any,
 ) (bool, error) {
-	return HasResource(
+	return model.HasResource(
 		ctx,
 		base,
 		query.ShopHasProductQuery,
@@ -255,7 +241,7 @@ func HasPickup(
 	base db.Queryable,
 	shop, pickup any,
 ) (bool, error) {
-	return HasResource(
+	return model.HasResource(
 		ctx,
 		base,
 		query.ShopHasPickupQuery,
@@ -269,7 +255,7 @@ func HasConsignment(
 	base db.Queryable,
 	shop, consignment any,
 ) (bool, error) {
-	return HasResource(
+	return model.HasResource(
 		ctx,
 		base,
 		query.ShopHasConsignmentQuery,
@@ -283,11 +269,25 @@ func HasConsignee(
 	base db.Queryable,
 	shop, consignee any,
 ) (bool, error) {
-	return HasResource(
+	return model.HasResource(
 		ctx,
 		base,
 		query.ShopHasConsigneeQuery,
 		shop,
 		consignee,
+	)
+}
+
+func HasReport(
+	ctx context.Context,
+	base db.Queryable,
+	shop, report any,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ShopHasConsigneeQuery,
+		shop,
+		report,
 	)
 }

@@ -43,4 +43,18 @@ SELECT
 FROM consignees_info_full_view v
 WHERE v.consignee_shop_id = $1
 `
+
+	ConsigneeHasConsignment = `
+SELECT (p.id IS NOT NULL) AS hasConsignment
+FROM consignees c
+LEFT JOIN consignments p ON p.consignee_id = c.id
+WHERE c.id = $1 AND p.id = $2
+`
+
+	ConsigneeHasReportQuery = `
+SELECT (r.id IS NOT NULL) AS hasReport
+FROM consignees c
+LEFT JOIN reports r ON r.consignee_id = c.id
+WHERE c.id = $1 AND r.id = $2
+`
 )

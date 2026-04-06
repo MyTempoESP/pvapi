@@ -22,3 +22,19 @@ func Create(
 
 	return id, err
 }
+
+func HasResource(
+	ctx context.Context,
+	base db.Queryable,
+	query string,
+	owner, owns any,
+) (hasResource bool, err error) {
+	err = base.QueryRow(
+		ctx,
+		query,
+		owner,
+		owns,
+	).Scan(&hasResource)
+
+	return
+}

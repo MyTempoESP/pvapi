@@ -159,4 +159,12 @@ FROM shops s
 LEFT JOIN consignees p ON p.shop_id = s.id
 WHERE s.id = $1 AND p.id = $2
 `
+
+	ShopHasReportQuery = `
+SELECT (r.id IS NOT NULL) AS hasReport
+FROM shops s
+LEFT JOIN consignments c ON c.shop_id = s.id
+LEFT JOIN reports r ON r.consignment_id = c.id
+WHERE s.id = $1 AND r.id = $2
+`
 )
