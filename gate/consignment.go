@@ -5,6 +5,7 @@ import (
 
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/gate/roles"
+	"linhazero.com/pvapi/models/consigneemodel"
 	"linhazero.com/pvapi/models/policymodel"
 	"linhazero.com/pvapi/models/shopmodel"
 )
@@ -13,13 +14,28 @@ type ConsignmentGate struct {
 	Base db.Queryable
 }
 
-func (c *ConsignmentGate) Owns(u User, r Resource) (bool, error) {
-	if u.Role != roles.Shop {
-		return false, nil
+func (c *ConsignmentGate) consigneeOwns(
+	u User,
+	r Resource,
+	id any,
+) (bool, error) {
+	hasConsignment, err := consigneemodel.HasConsignment(
+		r.Context, c.Base,
+		u.ActiveRoleID, id,
+	)
+
+	if err != nil {
+		return false, err
 	}
 
-	id := r.Metadata["id"]
+	return hasConsignment, nil
+}
 
+func (c *ConsignmentGate) shopOwns(
+	u User,
+	r Resource,
+	id any,
+) (bool, error) {
 	hasConsignment, err := shopmodel.HasConsignment(
 		r.Context, c.Base,
 		u.ActiveRoleID, id,
@@ -30,6 +46,20 @@ func (c *ConsignmentGate) Owns(u User, r Resource) (bool, error) {
 	}
 
 	return hasConsignment, nil
+}
+
+func (c *ConsignmentGate) Owns(u User, r Resource) (bool, error) {
+	id := r.Metadata["id"]
+
+	if u.Role == roles.Consignee {
+		return c.consigneeOwns(u, r, id)
+	}
+
+	if u.Role != roles.Shop {
+		return false, nil
+	}
+
+	return c.shopOwns(u, r, id)
 }
 
 func (c *ConsignmentGate) Dispatch(

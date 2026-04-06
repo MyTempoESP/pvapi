@@ -1,32 +1,52 @@
 package query
 
 const (
-    CreateReportQuery = `
+	CreateReportQuery = `
+WITH consignee AS (
+	SELECT c.*
+	FROM consignees c
+	LEFT JOIN users u ON c.user_id = u.id
+	WHERE u.name = @consignee_name
+)
 INSERT INTO reports
-    (
-        field
-    )
+	(
+		description,
+		moment,
+		consignee_id,
+		scope,
+		consignment_id,
+		priority,
+		status,
+		type
+	)
 VALUES
-    (
-        @field
-    )
+	(
+		@description,
+		@moment,
+		(SELECT id FROM consignee),
+		@scope,
+		@consignment_id,
+		@priority,
+		@status,
+		@type
+	)
 RETURNING id
 `
 
-    ListAllReportsQuery = `
+	ListAllReportsQuery = `
 SELECT
     *
 FROM reports
 `
 
-    FindReportQuery = `
+	FindReportQuery = `
 SELECT
     *
 FROM reports
 WHERE id = $1
 `
 
-    DeleteReportQuery = `
+	DeleteReportQuery = `
 DELETE FROM reports
 WHERE id = $1
 `

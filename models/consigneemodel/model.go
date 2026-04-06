@@ -61,3 +61,31 @@ func List(
 		shop,
 	)
 }
+
+func HasConsignment(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID, id any,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ConsigneeHasConsignment,
+		consigneeID,
+		id,
+	)
+}
+
+func HasReport(
+	ctx context.Context,
+	base db.Queryable,
+	consignee, report any,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ConsigneeHasReportQuery,
+		consignee,
+		report,
+	)
+}

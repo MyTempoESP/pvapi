@@ -81,10 +81,14 @@ CREATE TABLE IF NOT EXISTS public.reports
 (
     id serial NOT NULL,
     consignment_id integer NOT NULL,
-    title text NOT NULL,
+    scope text NOT NULL,
     type text NOT NULL,
-    priority integer NOT NULL,
-    content text NOT NULL,
+    priority text NOT NULL,
+    description text NOT NULL,
+    status text NOT NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
+    consignee_id integer NOT NULL,
+    moment text NOT NULL,
     PRIMARY KEY (id)
 );
 

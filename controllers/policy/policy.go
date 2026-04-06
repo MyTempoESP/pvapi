@@ -35,5 +35,10 @@ func New(base db.Queryable) *policymodel.Bouncer {
 		Gate: gate.NewConsignment(base),
 	})
 
+	bouncer.Register(policymodel.Guard{
+		Path: "/ocorrencias",
+		Gate: gate.NewReport(base),
+	})
+
 	return bouncer
 }

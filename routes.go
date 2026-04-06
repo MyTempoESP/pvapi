@@ -92,6 +92,10 @@ func setupRoutes(
 	reports := t.Group("/ocorrencias", withAuth)
 	{
 		reports.GET("", report.ListHandler(pool))
+		reports.POST("", report.CreateHandler(pool))
+		reports.PUT(":report", report.UpdateHandler(pool))
+		reports.DELETE(":report", report.DeleteHandler(pool))
+		reports.GET(":report", report.ViewHandler(pool))
 	}
 
 	clients := t.Group("/clientes", withAuth)
