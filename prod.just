@@ -54,9 +54,15 @@ image:
     podman image prune
 
 [private]
-restart:
-    {{init}} restart "{{prod_api_service}}"
-    {{init}} restart "{{prod_db_service}}"
+restart: kill && db (database::pg_poll prod_db_container) api
+
+[private]
+db:
+    {{init}} start "{{prod_db_container}}"
+
+[private]
+api:
+    {{init}} start "{{prod_api_service}}"
 
 [private]
 kill:
@@ -68,4 +74,4 @@ erase:
     podman unshare rm -rf "{{prod_db_dir}}"
 
 [private]
-fresh: kill erase restart (database::pg_poll prod_db_container) migrate
+fresh: kill erase db (database::pg_poll prod_db_container) && migrate api
