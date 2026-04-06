@@ -240,6 +240,18 @@ func Transaction(
 	)
 }
 
+func TransactionAware(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	f func(context.Context, pgx.Tx) error,
+) error {
+	return pgx.BeginFunc(ctx, pool,
+		func(tx pgx.Tx) error {
+			return f(ctx, tx)
+		},
+	)
+}
+
 func TransactionReturn[T any](
 	ctx context.Context,
 	pool *pgxpool.Pool,

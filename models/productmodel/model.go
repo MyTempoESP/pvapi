@@ -68,70 +68,15 @@ type Product struct {
 	PackImages []string `db:"product_pack_images"`
 }
 
-func (p ProductBlueprint) Save(
+func (p ProductBlueprint) CreateProductInfo(
 	ctx context.Context,
-	base db.Queryable,
+	base pgx.Tx,
+	productID int,
 ) (err error) {
-	params := pgx.NamedArgs{
-		"name":        p.Name,
-		"price":       p.Price,
-		"stock":       p.Stock,
-		"discount":    p.Discount,
-		"featured":    p.Featured,
-		"description": p.Description,
-		"code":        p.Code,
-		"category":    p.Category,
-		"shop_id":     p.Shop,
-		"attr":        p.Attributes,
-	}
-
-	_, err = base.Exec(ctx, query.ProductCreate, params)
-
-	return
-}
-
-// TODO: please diagram this for the love of God
-func productTransaction(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	product *ProductBlueprint,
-	shop int,
-) (err error) {
-	var productID int
-
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return
-	}
-	defer tx.Rollback(ctx)
-
-	params := pgx.NamedArgs{
-		"name":        product.Name,
-		"price":       product.Price,
-		"stock":       product.Stock,
-		"discount":    product.Discount,
-		"featured":    product.Featured,
-		"description": product.Description,
-		"code":        product.Code,
-		"category":    product.Category,
-		"shop_id":     shop,
-		"attr":        product.Attributes,
-	}
-
-	err = tx.QueryRow(
-		ctx,
-		query.ProductCreate,
-		params,
-	).Scan(&productID)
-
-	if err != nil {
-		return
-	}
-
 	err = imagemodel.NewImage(
-		imagemodel.URL(product.ImageURL),
+		imagemodel.NewUrl(p.ImageURL),
 		defaultImageTag, productID,
-	).Create(ctx, tx)
+	).Create(ctx, base)
 
 	if err != nil {
 		return
@@ -140,7 +85,7 @@ func productTransaction(
 	batch := &pgx.Batch{}
 
 	// specifications
-	for _, spec := range product.Specifications {
+	for _, spec := range p.Specifications {
 		batch.Queue(
 			query.CreateSpecificationQuery,
 			spec.Name,
@@ -149,7 +94,7 @@ func productTransaction(
 		)
 	}
 
-	for _, pol := range product.Policies {
+	for _, pol := range p.Policies {
 		batch.Queue(
 			query.CreatePolicyQuery,
 			pol.Name,
@@ -159,24 +104,24 @@ func productTransaction(
 	}
 
 	imagemodel.NewTaggedImageCollection(
-		product.DescImages,
+		p.DescImages,
 		descriptionImageTag,
 		productID,
 	).Queue(batch)
 
 	imagemodel.NewTaggedImageCollection(
-		product.SpecImages,
+		p.SpecImages,
 		specificationImageTag,
 		productID,
 	).Queue(batch)
 
 	imagemodel.NewTaggedImageCollection(
-		product.PackImages,
+		p.PackImages,
 		deliveryImageTag,
 		productID,
 	).Queue(batch)
 
-	b := tx.SendBatch(ctx, batch)
+	b := base.SendBatch(ctx, batch)
 	defer b.Close()
 
 	for range batch.Len() {
@@ -193,22 +138,35 @@ func productTransaction(
 		return
 	}
 
-	err = tx.Commit(ctx)
-
 	return
 }
 
-func Create(
+func (p ProductBlueprint) Save(
 	ctx context.Context,
-	pool *pgxpool.Pool,
-	product *ProductBlueprint,
-	shop int,
-) (productID int, err error) {
+	base pgx.Tx,
+) (err error) {
+	params := pgx.NamedArgs{
+		"name":        p.Name,
+		"price":       p.Price,
+		"stock":       p.Stock,
+		"discount":    p.Discount,
+		"featured":    p.Featured,
+		"description": p.Description,
+		"code":        p.Code,
+		"category":    p.Category,
+		"shop_id":     p.Shop,
+		"attr":        p.Attributes,
+	}
 
-	err = productTransaction(
-		ctx, pool,
-		product, shop,
-	)
+	var productID int
+
+	err = base.QueryRow(ctx, query.ProductCreate, params).Scan(&productID)
+
+	if err != nil {
+		return
+	}
+
+	err = p.CreateProductInfo(ctx, base, productID)
 
 	return
 }
