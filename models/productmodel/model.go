@@ -9,6 +9,7 @@ import (
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/imagemodel"
 	"linhazero.com/pvapi/query"
+	"linhazero.com/pvapi/util"
 )
 
 const (
@@ -23,19 +24,16 @@ type Specification struct {
 	Value string `json:"value"`
 }
 
-type Policy struct {
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
-}
-
-type EarningsModifier struct {
-	Type  string          `json:"type"`
-	Value decimal.Decimal `json:"value"`
-}
-
 type ProductAttr struct {
-	Colors []string `json:"colors"`
-	Sizes  []string `json:"sizes"`
+	Colors     []string `json:"colors,omitempty"`
+	Sizes      []string `json:"sizes,omitempty"`
+	Modalities []string `json:"modalities,omitempty"`
+
+	AllowCustomColor    bool `json:"customColor,omitempty"`
+	AllowCustomModality bool `json:"customModality,omitempty"`
+	AllowCustomName     bool `json:"customName,omitempty"`
+
+	Specifications []Specification `json:"specifications"`
 }
 
 type Product struct {
@@ -50,17 +48,9 @@ type Product struct {
 	Category         string          `db:"product_category"`
 	UUID             string          `db:"product_uuid"`
 	Code             string          `db:"product_code"`
-
-	Attributes ProductAttr `db:"product_attr"`
-
-	Specifications []Specification `db:"product_specifications"`
-
-	AllowCustomName           bool `db:"product_p_cname"`
-	AllowCustomModality       bool `db:"product_p_cmod"`
-	AllowCustomColorSelection bool `db:"product_p_ccolor"`
-
-	// nullable
-	PlatformCut *EarningsModifier `db:"product_platform_cut"`
+	Attributes       ProductAttr     `db:"product_attr"`
+	PlatformCutType  string          `db:"product_platform_cut_type"`
+	PlatformCut      decimal.Decimal `db:"product_platform_cut"`
 
 	Image      string   `db:"product_main_image"`
 	SpecImages []string `db:"product_spec_images"`
@@ -84,25 +74,6 @@ func (p ProductBlueprint) CreateProductInfo(
 
 	batch := &pgx.Batch{}
 
-	// specifications
-	for _, spec := range p.Specifications {
-		batch.Queue(
-			query.CreateSpecificationQuery,
-			spec.Name,
-			spec.Value,
-			productID,
-		)
-	}
-
-	for _, pol := range p.Policies {
-		batch.Queue(
-			query.CreatePolicyQuery,
-			pol.Name,
-			pol.Enabled,
-			productID,
-		)
-	}
-
 	imagemodel.NewTaggedImageCollection(
 		p.DescImages,
 		descriptionImageTag,
@@ -121,22 +92,7 @@ func (p ProductBlueprint) CreateProductInfo(
 		productID,
 	).Queue(batch)
 
-	b := base.SendBatch(ctx, batch)
-	defer b.Close()
-
-	for range batch.Len() {
-		_, err = b.Exec()
-
-		if err != nil {
-			return
-		}
-	}
-
-	err = b.Close()
-
-	if err != nil {
-		return
-	}
+	err = util.Bake(ctx, base, batch)
 
 	return
 }

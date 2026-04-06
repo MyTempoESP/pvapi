@@ -26,35 +26,8 @@ SELECT
     p.attr              AS product_attr,
     c.name              AS product_category,
     c.id                AS product_category_id,
-
-    -- =================SPECIFICATIONS=================
-    COALESCE((
-        SELECT json_agg(json_build_object(
-            'name' , s.name,
-            'value', s.value
-        ))
-        FROM specifications s
-        WHERE s.product_id = p.id
-    ), '[]'::json) AS product_specifications,
-    -- ================================================
-
-    -- ==================POLICIES=====================
-    get_product_policy(p.id,    'customColor') AS product_p_ccolor,
-    get_product_policy(p.id, 'customModality') AS product_p_cmod,
-    get_product_policy(p.id,     'customName') AS product_p_cname,
-    -- ================================================
-
-    -- ==============EARNINGS_MODIFIERS================
-    (
-        SELECT json_build_object(
-            'type' , m.type,
-            'value', m.value
-        )
-        FROM earnings_modifiers m
-        WHERE m.product_id = p.id AND m.name = 'platform_cut'
-        LIMIT 1
-    ) AS product_platform_cut,
-    -- ================================================
+    platform_cut        AS product_platform_cut,
+    platform_cut_type   AS product_platform_cut_type,
 
     -- ====================IMAGES======================
     COALESCE((

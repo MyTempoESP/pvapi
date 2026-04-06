@@ -18,75 +18,73 @@ WITH product_category AS (
 		)
 	ON CONFLICT (shop_id, name) DO UPDATE SET name = EXCLUDED.name
 	RETURNING id
-), product_created AS (
-	INSERT INTO products
-		(
-			name,
-			price,
-			stock,
-			discount,
-			featured,
-			shop_id,
-			moderation_status,
-			category_id,
-			description,
-			attr,
-			code,
-			uniqueid
-		)
-	VALUES
-		(
-			@name,
-			@price,
-			@stock,
-			@discount,
-			@featured,
-			@shop_id,
-			'pending',
-			(SELECT id FROM product_category),
-			@description,
-			@attr,
-			@code,
-			uuidv4()
-		)
-	RETURNING id
-), platform_cut_modifier AS (
-	INSERT INTO earnings_modifiers
-		(
-			name,
-			type,
-			value,
-			product_id
-		)
-	SELECT
-		'platform_cut',
-		'percentage',
-		5.00,
-		id
-	FROM product_created
 )
-SELECT id FROM product_created
+INSERT INTO products
+	(
+		name,
+		price,
+		stock,
+		discount,
+		featured,
+		shop_id,
+		moderation_status,
+		category_id,
+		description,
+		attr,
+		code,
+		uniqueid,
+		platform_cut,
+		platform_cut_type
+	)
+VALUES
+	(
+		@name,
+		@price,
+		@stock,
+		@discount,
+		@featured,
+		@shop_id,
+		'pending',
+		(SELECT id FROM product_category),
+		@description,
+		@attr,
+		@code,
+		uuidv4(),
+		5.00,
+		'percentage'
+	)
+RETURNING id
 `
 
 	ProductAddToConsignmentQuery = `
+WITH product_decrement_new_quantity AS (
+	SELECT product_decrement_inventory(@product_id, @quantity)
+)
 INSERT INTO packages
 	(
 		product_id,
 		consignment_id,
 		quantity,
-		price
+		price,
+		attributesValues,
+		discount,
+		featured
 	)
 VALUES
 	(
 		@product_id,
 		@consignment_id,
 		@quantity,
-		@price
+		@price,
+		@attr,
+		@discount,
+		@featured
 	)
+RETURNING id
 `
 
 	ProductTakeFromStock = `
-UPDATE products SET stock = stock - $2 WHERE id = $1
+SELECT product_decrement_inventory($1, $2)
 `
 
 	FindProductQuery = `
@@ -102,16 +100,9 @@ SELECT
 	product_category,
 	product_uuid,
 	product_code,
-
 	product_attr,
-
-	product_specifications,
-
-	product_p_cname,
-	product_p_cmod,
-	product_p_ccolor,
-
 	product_platform_cut,
+	product_platform_cut_type,
 
 	product_main_image,
 	product_spec_images,
@@ -135,16 +126,9 @@ SELECT
 	product_category,
 	product_uuid,
 	product_code,
-
 	product_attr,
-
-	product_specifications,
-
-	product_p_cname,
-	product_p_cmod,
-	product_p_ccolor,
-
 	product_platform_cut,
+	product_platform_cut_type,
 
 	product_main_image,
 	product_spec_images,

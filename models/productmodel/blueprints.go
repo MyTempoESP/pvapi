@@ -9,22 +9,6 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
-type SpecificationBlueprint struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-type PolicyBlueprint struct {
-	Name    string
-	Value   string
-	Enabled bool
-}
-
-type AttributesBlueprint struct {
-	Colors []string `json:"colors,omitempty"`
-	Sizes  []string `json:"sizes,omitempty"`
-}
-
 type ProductBlueprint struct {
 	Shop        int
 	Name        string
@@ -41,60 +25,12 @@ type ProductBlueprint struct {
 	DescImages []string
 	SpecImages []string
 	PackImages []string
-
-	Specifications []SpecificationBlueprint
-
-	Policies []PolicyBlueprint
-}
-
-func PrepareSpecifications(
-	p *CreateProductRequest,
-) (specifications []SpecificationBlueprint, err error) {
-	// Fetch the user specifications
-	err = json.Unmarshal([]byte(p.SpecificationsJSON), &specifications)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return
-}
-
-func PreparePolicies(
-	p *CreateProductRequest,
-) (policies []PolicyBlueprint) {
-	policies = append(policies,
-		PolicyBlueprint{
-			Name:    "customName",
-			Enabled: p.CustomName,
-		},
-		PolicyBlueprint{
-			Name:    "customModality",
-			Enabled: p.customModality,
-		},
-		PolicyBlueprint{
-			Name:    "customColor",
-			Enabled: p.CustomColorSelection,
-		},
-	)
-	return
 }
 
 func (p *CreateProductRequest) Prepare(
 	c *gin.Context,
 	shop int,
 ) (pb *ProductBlueprint, err error) {
-
-	policies := PreparePolicies(p)
-
-	specifications, err := PrepareSpecifications(p)
-
-	if err != nil {
-		return
-	}
-
-	var colors []string
-	json.Unmarshal([]byte(p.ColorListJSON), &colors)
 
 	image, err := handleImage(c, p.Image)
 
@@ -120,20 +56,35 @@ func (p *CreateProductRequest) Prepare(
 		return
 	}
 
-	code := slug.Make(p.Name) + slug.Make(p.Category)
+	var a ProductAttr
 
-	// at least of the form: X, description, category
-	if len(specifications) > 2 {
-		code += specifications[0].Value
-	}
-
-	attributes, err := json.Marshal(AttributesBlueprint{
-		Colors: colors,
-		Sizes:  []string{},
-	})
+	err = json.Unmarshal([]byte(p.SpecificationsJSON), &a.Specifications)
 
 	if err != nil {
 		return
+	}
+
+	err = json.Unmarshal([]byte(p.ColorListJSON), &a.Colors)
+
+	if err != nil {
+		return
+	}
+
+	a.AllowCustomColor = p.CustomColorSelection
+	a.AllowCustomModality = p.CustomModality
+	a.AllowCustomName = p.CustomName
+
+	attributes, err := json.Marshal(a)
+
+	if err != nil {
+		return
+	}
+
+	code := slug.Make(p.Name) + slug.Make(p.Category)
+
+	// at least of the form: X, description, category
+	if len(a.Specifications) > 2 {
+		code += a.Specifications[0].Value
 	}
 
 	// i just realized sometimes the front-end doesnt send this.
@@ -150,9 +101,6 @@ func (p *CreateProductRequest) Prepare(
 		Code:        code,
 		Description: p.Description,
 		Attributes:  attributes,
-
-		Specifications: specifications,
-		Policies:       policies,
 
 		ImageURL:   image,
 		DescImages: descImages,

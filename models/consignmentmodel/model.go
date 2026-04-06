@@ -5,28 +5,48 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
+
 	//"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
 
-// TODO: avoid using any on this stuff, yes it's convenient, but not type-safe
-
-func AddProduct(
+func (a AddProductAction) Exec(
 	ctx context.Context,
-	base db.Queryable,
-	product,
-	consignment any,
+	tx pgx.Tx,
 ) (err error) {
-	/*productModel := productmodel.a
+	batch := &pgx.Batch{}
 
-	_, err = base.Exec(
-		ctx,
-		query.AddProductToConsignmentQuery,
-		product, consignment,
-	)*/
+	for _, p := range a.Products {
+		product := p.Prepare()
+
+		batch.Queue(
+			query.ProductAddToConsignmentQuery,
+			util.Args{
+				"product_id":     product.ID,
+				"consignment_id": a.ConsignmentID,
+				"quantity":       product.Quantity,
+				"price":          product.Price,
+				"attr":           product.AttrVal,
+				"discount":       product.Discount,
+				"featured":       product.Featured,
+			},
+		)
+	}
+
+	err = util.Bake(ctx, tx, batch)
+
+	if err != nil {
+		return fmt.Errorf(
+			"Couldn't add product to consignment %q: %w",
+			a.ConsignmentID,
+			err,
+		)
+	}
+
 	return
 }
 

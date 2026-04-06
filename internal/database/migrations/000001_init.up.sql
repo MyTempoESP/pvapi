@@ -102,7 +102,9 @@ CREATE TABLE IF NOT EXISTS public.products
     description text NOT NULL,
     attr jsonb NOT NULL DEFAULT '{}'::jsonb,
     code text NOT NULL,
-    uniqueid uuid NOT NULL,
+    uniqueid uuid NOT NULL DEFAULT uuidv4(),
+    platform_cut numeric(12, 2) NOT NULL,
+    platform_cut_type text NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -114,6 +116,9 @@ CREATE TABLE IF NOT EXISTS public.packages
     quantity integer NOT NULL,
     price numeric(12, 2),
     created_at timestamp with time zone DEFAULT NOW(),
+    discount numeric(12, 2) NOT NULL,
+    featured boolean NOT NULL,
+    attributesvalues json NOT NULL DEFAULT '{}'::json,
     PRIMARY KEY (id)
 );
 
@@ -155,20 +160,6 @@ CREATE TABLE IF NOT EXISTS public.admins
     user_id integer NOT NULL,
     PRIMARY KEY (id)
 );
-
-CREATE TABLE IF NOT EXISTS public.earnings_modifiers
-(
-    id serial NOT NULL,
-    product_id integer NOT NULL,
-    name text NOT NULL,
-    type text NOT NULL DEFAULT 'percentage',
-    value numeric(12, 2) NOT NULL DEFAULT 5.00,
-    PRIMARY KEY (id)
-);
-
-COMMENT ON TABLE public.earnings_modifiers
-    IS 'The modifiers to be applied on product price before earnings calculations for the shop owner.
-Ex: platform_cut/consignee commissions';
 
 CREATE TABLE IF NOT EXISTS public.categories
 (
@@ -349,16 +340,6 @@ ALTER TABLE IF EXISTS public.admins
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
-
-
-ALTER TABLE IF EXISTS public.earnings_modifiers
-    ADD CONSTRAINT product_earnings_modifier_relation FOREIGN KEY (product_id)
-    REFERENCES public.products (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE CASCADE
-    NOT VALID;
-CREATE INDEX IF NOT EXISTS fki_product_earnings_modifier_relation
-    ON public.earnings_modifiers(product_id);
 
 
 ALTER TABLE IF EXISTS public.categories
