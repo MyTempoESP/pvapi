@@ -47,12 +47,7 @@ func CreateHandler(
 			return
 		}
 
-		report, err := request.Prepare()
-
-		if err != nil {
-			util.HandleBadRequest(c, err)
-			return
-		}
+		report := request.Prepare()
 
 		id, err := report.Save(c.Request.Context(), pool)
 
