@@ -8,6 +8,38 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func ListPendingModerationHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		products, err := productmodel.PendingIndex(
+			c.Request.Context(), pool,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		collection := util.ToResourceCollection(
+			products,
+			productmodel.Product.ToPendingResource,
+		)
+
+		util.Wrap(
+			c, "produtos pendentes listados com sucesso",
+			collection,
+		)
+	}
+}
+
+func ModerationHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+	}
+}
+
 func ListByShopHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

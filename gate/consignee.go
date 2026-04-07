@@ -1,8 +1,6 @@
 package gate
 
 import (
-	"strings"
-
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/policymodel"
@@ -39,7 +37,7 @@ func (c *ConsigneeGate) Dispatch(
 	id := r.Params.ByName("consignee")
 	r.Metadata["id"] = id
 
-	if strings.HasPrefix(r.Path, "/monitores/me") {
+	if r.EndPointPrefix("/monitores/me") {
 		return c.Me(u, r)
 	}
 

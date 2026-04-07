@@ -43,6 +43,43 @@ type ProductResource struct {
 	Specifications      []SpecificationResource `json:"specifications"`
 }
 
+/*
+'id' => (string) $this->id,
+'name' => (string) $this->name,
+'description' => (string) $this->description,
+'price' => (float) $this->price,
+'category' => $this->category ? $this->category->name : 'Sem categoria',
+'imageUrl' => $this->image ? url('storage/' . $this->image) : null,
+'establishmentId' => (string) $this->shop_id,
+'establishmentName' => $this->shop ? $this->shop->name : 'Sem loja',
+'taxType' => $this->platform_cut_type === 'fixed' ? 'fixed' : 'percentage',
+*/
+type PendingProductResource struct {
+	ID              int             `json:"id"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	Price           decimal.Decimal `json:"price"`
+	Category        string          `json:"category"`
+	ImageURL        string          `json:"imageUrl"`
+	ShopID          int             `json:"establishmentId"`
+	ShopName        string          `json:"establishmentName"`
+	PlatformCutType string          `json:"taxType"`
+}
+
+func (p Product) ToPendingResource() PendingProductResource {
+	return PendingProductResource{
+		ID:              p.ID,
+		Name:            p.Name,
+		Description:     p.Description,
+		Price:           p.Price,
+		Category:        p.Category,
+		ImageURL:        p.Image,
+		ShopID:          p.ShopID,
+		ShopName:        p.ShopName,
+		PlatformCutType: p.PlatformCutType,
+	}
+}
+
 func (p Product) ToResource() ProductResource {
 
 	return ProductResource{

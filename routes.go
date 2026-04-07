@@ -103,6 +103,13 @@ func setupRoutes(
 		clients.GET("", client.ListHandler(pool))
 	}
 
+	admin := t.Group("/admin", withAuth)
+	{
+		admin.GET(
+			"/moderacao/pendentes",
+			product.ListPendingModerationHandler(pool))
+	}
+
 	t.Static("/assets", "./public/uploads")
 	t.Static("/public/uploads", "./public/uploads") // alias
 }

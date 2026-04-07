@@ -5,13 +5,6 @@ RETURNS JSON AS $$
     WHERE i.product_id = p_id AND i.tag = i_tag;
 $$ LANGUAGE sql STABLE;
 
-CREATE FUNCTION public.get_product_policy(p_id INT, c_name TEXT)
-RETURNS BOOLEAN AS $$
-    SELECT c.enabled
-    FROM policies c
-    WHERE c.product_id = p_id AND c.name = c_name;
-$$ LANGUAGE sql STABLE;
-
 CREATE VIEW public.product_catalog_view AS
 SELECT
     p.id                AS product_id,
@@ -23,6 +16,7 @@ SELECT
     p.moderation_status AS product_moderation_status,
     p.description       AS product_description,
     p.shop_id           AS product_shop_id,
+    s.name              AS product_shop_name,
     p.attr              AS product_attr,
     c.name              AS product_category,
     c.id                AS product_category_id,
@@ -47,4 +41,5 @@ SELECT
     p.uniqueid AS product_uuid
     -- ================================================
 FROM products p
+LEFT JOIN shops      s ON s.id = p.shop_id
 LEFT JOIN categories c ON c.id = p.category_id;

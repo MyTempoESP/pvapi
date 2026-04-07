@@ -28,6 +28,17 @@ func NewResource(c *gin.Context) Resource {
 	}
 }
 
+// EndPointPrefix returns true if r.Path
+// is prefixed by 'path'
+func (r Resource) EndPointPrefix(path string) bool {
+	return strings.HasPrefix(r.Path, path)
+}
+
+// EndPoint returns true if r.Path ends in path
+func (r Resource) EndPoint(path string) bool {
+	return strings.HasSuffix(r.Path, path)
+}
+
 type User *authmodel.AuthUser
 type Gate interface {
 	Dispatch(User, Resource) (bool, error)
@@ -70,6 +81,16 @@ func (b *Bouncer) Dispatch(c *gin.Context, user User) bool {
 				)
 				// block access just to be safe
 				return false
+			}
+
+			if !isAllowed {
+				util.LogInfo(
+					c, "Unauthorized",
+					"metadata", resource.Metadata,
+					"gate", g.Path,
+					"user", user,
+					"resource", resource.Path,
+				)
 			}
 
 			return isAllowed

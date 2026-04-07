@@ -59,5 +59,6 @@ LEFT JOIN shops      s ON u.id = s.user_id
 LEFT JOIN consignees c ON u.id = c.user_id
 LEFT JOIN clients    l ON u.id = l.user_id
 WHERE u.id = $1
+LIMIT 1
 `
 )

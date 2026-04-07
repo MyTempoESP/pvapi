@@ -136,14 +136,19 @@ type Show[R any] interface {
 	ToResource() R
 }
 
-func ResourceCollection[R any, M Show[R]](collection []M) []R {
+func ToResourceCollection[M any, R any](
+	collection []M,
+	toResource func(M) R,
+) []R {
 	resources := make([]R, len(collection))
-
 	for i, item := range collection {
-		resources[i] = item.ToResource()
+		resources[i] = toResource(item)
 	}
-
 	return resources
+}
+
+func ResourceCollection[R any, M Show[R]](collection []M) []R {
+	return ToResourceCollection(collection, M.ToResource)
 }
 
 func WithCollectExactlyOneRow[T any](

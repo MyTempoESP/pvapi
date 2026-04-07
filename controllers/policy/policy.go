@@ -40,5 +40,15 @@ func New(base db.Queryable) *policymodel.Bouncer {
 		Gate: gate.NewReport(base),
 	})
 
+	bouncer.Register(policymodel.Guard{
+		Path: "/admin",
+		Gate: gate.NewAdmin(base),
+	})
+
+	bouncer.Register(policymodel.Guard{
+		Path: "/clientes",
+		Gate: gate.NewClient(base),
+	})
+
 	return bouncer
 }
