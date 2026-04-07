@@ -1,0 +1,9 @@
+
+lojas 'Recursos relacionados a loja-cliente':
+	- [] `/lojas`: Substituir mock por GET api/shops
+
+lojas-adm 'Recursos de administrador de loja':
+	- [] `|Clientes`: Paginacao e filtragem no front-end.
+
+admin 'Recursos de administrador':
+	- [] `|Moderacao`: Paginacao e filtragem no front-end.

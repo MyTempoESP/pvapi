@@ -186,6 +186,21 @@ func PendingIndex(
 	)
 }
 
+func Moderate(
+	ctx context.Context,
+	base db.Queryable,
+	productID int,
+	newStatus string,
+) (err error) {
+	_, err = base.Exec(
+		ctx,
+		query.ProductModerate,
+		productID,
+		newStatus,
+	)
+	return
+}
+
 func GetByShop(
 	ctx context.Context,
 	pool *pgxpool.Pool,
