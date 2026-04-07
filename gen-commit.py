@@ -98,7 +98,7 @@ def main():
 
         print("No files are currently staged for commit.")
         selected_files = questionary.checkbox(
-            "Select files to stage (Use Space to select, Enter to confirm):",
+            "Select files to stage:",
             choices=unstaged
         ).ask()
 

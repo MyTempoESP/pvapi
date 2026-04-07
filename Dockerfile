@@ -3,7 +3,7 @@ FROM golang:1.25 AS build
 WORKDIR /src
 COPY . .
 RUN mkdir -p /app/public/uploads
-RUN CGO_ENABLED=0 go build -o /bin/pvapi .
+RUN CGO_ENABLED=0 go build -v -o /bin/pvapi .
 
 FROM scratch
 WORKDIR /app
