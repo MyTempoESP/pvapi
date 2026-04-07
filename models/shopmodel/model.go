@@ -212,7 +212,7 @@ func Find(
 func FindDetailed(
 	ctx context.Context,
 	pool *pgxpool.Pool,
-	id string,
+	id int,
 ) (DetailedShop, error) {
 	return util.WithCollectExactlyOneRow[DetailedShop](
 		ctx,
@@ -220,6 +220,20 @@ func FindDetailed(
 		query.ShopFindDetailedQuery,
 		id,
 	)
+}
+
+func Resolve(
+	ctx context.Context,
+	base db.Queryable,
+	shopSlug string,
+) (shopID int, err error) {
+	err = base.QueryRow(
+		ctx,
+		query.ShopResolveSlug,
+		shopSlug,
+	).Scan(&shopID)
+
+	return
 }
 
 func HasProduct(
