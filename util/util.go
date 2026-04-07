@@ -313,9 +313,5 @@ func Bake(
 
 	err = b.Close()
 
-	if err != nil {
-		return
-	}
-
 	return
 }
