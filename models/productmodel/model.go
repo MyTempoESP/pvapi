@@ -189,14 +189,19 @@ func PendingIndex(
 func Moderate(
 	ctx context.Context,
 	base db.Queryable,
+	request ModerateProductRequest,
 	productID int,
 	newStatus string,
 ) (err error) {
 	_, err = base.Exec(
 		ctx,
 		query.ProductModerate,
-		productID,
-		newStatus,
+		util.Args{
+			"id":                productID,
+			"status":            newStatus,
+			"platform_cut":      request.PlatformCut,
+			"platform_cut_type": request.PlatformCutType,
+		},
 	)
 	return
 }
