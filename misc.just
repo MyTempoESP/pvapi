@@ -14,6 +14,8 @@ count-lines:
         -name "*.sh" -or \
         -name "*.sql" -or \
         -name "*.txt" -or \
+        -name "*.py" -or \
+        -name "*.just" -or \
         -name "*.ejs.t" \
         \) \
         -not -path "./vendor/*" \
