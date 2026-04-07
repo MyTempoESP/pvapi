@@ -2,6 +2,7 @@ package gate
 
 import (
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/policymodel"
 )
 
@@ -43,7 +44,7 @@ func (client *ClientGate) View(u User, r Resource) (bool, error) {
 }
 
 func (client *ClientGate) List(u User, r Resource) (bool, error) {
-	return false, nil
+	return u.Role == roles.Shop, nil
 }
 
 func (client *ClientGate) Modify(u User, r Resource) (bool, error) {
