@@ -69,11 +69,13 @@ func (c ClientBlueprint) Save(
 func List(
 	ctx context.Context,
 	base db.Queryable,
+	shopID int,
 ) ([]Client, error) {
 	return util.WithCollect[Client](
 		ctx,
 		base,
 		query.ListAllClientsQuery,
+		shopID,
 	)
 }
 
