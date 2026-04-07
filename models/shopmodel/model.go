@@ -226,14 +226,13 @@ func Resolve(
 	ctx context.Context,
 	base db.Queryable,
 	shopSlug string,
-) (shopID int, err error) {
-	err = base.QueryRow(
+) (Shop, error) {
+	return util.WithCollectExactlyOneRow[Shop](
 		ctx,
+		base,
 		query.ShopResolveSlug,
 		shopSlug,
-	).Scan(&shopID)
-
-	return
+	)
 }
 
 func HasProduct(

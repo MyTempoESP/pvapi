@@ -16,7 +16,7 @@ func PublicListProductsHandler(
 	return func(c *gin.Context) {
 		slug := c.Param("shop")
 
-		shopID, err := shopmodel.Resolve(
+		shop, err := shopmodel.Resolve(
 			c.Request.Context(), pool,
 			slug,
 		)
@@ -28,7 +28,7 @@ func PublicListProductsHandler(
 
 		products, err := productmodel.PublicIndexByShop(
 			c.Request.Context(), pool,
-			shopID,
+			shop.ID,
 		)
 
 		if err != nil {
@@ -38,9 +38,13 @@ func PublicListProductsHandler(
 
 		collection := util.ResourceCollection(products)
 
-		util.Wrap(
+		util.WrapMap(
 			c, "produtos listados com sucesso",
-			collection,
+			gin.H{
+				"shop":     shop.ToResource(),
+				"products": collection,
+				"total":    len(collection),
+			},
 		)
 	}
 }
