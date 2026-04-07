@@ -41,7 +41,7 @@ func (a AddProductAction) Exec(
 
 	if err != nil {
 		return fmt.Errorf(
-			"Couldn't add product to consignment %q: %w",
+			"Couldn't add products to consignment %q: %w",
 			a.ConsignmentID,
 			err,
 		)

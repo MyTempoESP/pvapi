@@ -57,7 +57,7 @@ RETURNING id
 `
 
 	ProductAddToConsignmentQuery = `
-WITH product_decrement_new_quantity AS (
+WITH inventory_check AS (
 	SELECT product_decrement_inventory(@product_id, @quantity)
 )
 INSERT INTO packages
@@ -70,16 +70,15 @@ INSERT INTO packages
 		discount,
 		featured
 	)
-VALUES
-	(
-		@product_id,
-		@consignment_id,
-		@quantity,
-		@price,
-		@attr,
-		@discount,
-		@featured
-	)
+SELECT
+	@product_id,
+	@consignment_id,
+	@quantity,
+	@price,
+	@attr,
+	@discount,
+	@featured
+FROM inventory_check
 RETURNING id
 `
 
