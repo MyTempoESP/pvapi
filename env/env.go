@@ -17,6 +17,12 @@ func wrapEnv(k string) func() (string, error) {
 	}
 }
 
+// booleanEnv looks for an environment variable and wheter or not it's set
+func booleanEnv(k string) (set bool) {
+	_, set = os.LookupEnv(k)
+	return
+}
+
 func toLogLevel(
 	logLevelEnv func() (string, error),
 ) (v slog.LevelVar) {
@@ -39,6 +45,10 @@ var (
 	// Auth
 	JwtSecretKey  = wrapEnv("PV_API_SECRET")
 	SecureCookies = wrapEnv("PV_API_SECURE_COOKIE")
+
+	// Domain
+	DomainName   = wrapEnv("PV_API_DOMAIN_NAME")
+	HTTPSEnabled = booleanEnv("PV_API_HTTPS_ENABLED")
 
 	// Database
 	DBHost = wrapEnv("PV_API_DB_HOST")

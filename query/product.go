@@ -56,6 +56,7 @@ VALUES
 RETURNING id
 `
 
+	// TODO: only approved products can get into consignments
 	ProductAddToConsignmentQuery = `
 WITH inventory_check AS (
 	SELECT product_decrement_inventory(@product_id, @quantity)
@@ -103,12 +104,7 @@ SELECT
 	product_platform_cut,
 	product_platform_cut_type,
 	product_shop_id,
-	product_shop_name,
-
-	product_main_image,
-	product_spec_images,
-	product_desc_images,
-	product_pack_images
+	product_shop_name
 FROM product_catalog_view
 WHERE product_id = $1
 `
@@ -130,12 +126,7 @@ SELECT
 	product_platform_cut,
 	product_platform_cut_type,
 	product_shop_id,
-	product_shop_name,
-
-	product_main_image,
-	product_spec_images,
-	product_desc_images,
-	product_pack_images
+	product_shop_name
 FROM product_catalog_view
 WHERE product_id = $1 AND product_moderation_status = 'approved'
 `
@@ -158,12 +149,7 @@ SELECT
 	product_platform_cut,
 	product_platform_cut_type,
 	product_shop_id,
-	product_shop_name,
-
-	product_main_image,
-	product_spec_images,
-	product_desc_images,
-	product_pack_images
+	product_shop_name
 FROM product_catalog_view
 WHERE product_shop_id = $1
 `
@@ -194,12 +180,7 @@ SELECT
 	product_platform_cut,
 	product_platform_cut_type,
 	product_shop_id,
-	product_shop_name,
-
-	product_main_image,
-	product_spec_images,
-	product_desc_images,
-	product_pack_images
+	product_shop_name
 FROM product_catalog_view
 WHERE product_shop_id = $1 AND product_moderation_status = 'approved'
 `
@@ -221,13 +202,30 @@ SELECT
 	product_platform_cut,
 	product_platform_cut_type,
 	product_shop_id,
-	product_shop_name,
-
-	product_main_image,
-	product_spec_images,
-	product_desc_images,
-	product_pack_images
+	product_shop_name
 FROM product_catalog_view
 WHERE product_moderation_status = 'pending'
+`
+
+	ProductListInConsignmentQuery = `
+SELECT
+	c.product_id,
+	c.product_name,
+	c.product_price,
+	c.product_stock,
+	c.product_discount,
+	c.product_featured,
+	c.product_attr->'main_image' AS product_main_image,
+	c.product_description,
+	c.product_category_id,
+	c.product_shop_id,
+	c.product_code,
+	c.product_uuid,
+
+	p.price AS package_price,
+	p.quantity AS package_quantity
+FROM packages p
+LEFT JOIN product_catalog_view c ON c.product_id = p.product_id
+WHERE p.consignment_id = $1
 `
 )

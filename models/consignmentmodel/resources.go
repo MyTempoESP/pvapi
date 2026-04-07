@@ -62,7 +62,7 @@ func (c Consignment) ToResource() ConsignmentResource {
 	}
 }
 
-func (p Product) ToResource() ProductResource {
+func (p ConsignmentProduct) ToResource() ProductResource {
 	return ProductResource{
 		ID:               p.ID,
 		UUID:             p.UUID,
