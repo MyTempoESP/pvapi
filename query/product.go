@@ -143,8 +143,8 @@ WHERE product_shop_id = $1
 
 	ProductModerate = `
 UPDATE products
-SET moderation_status = @status
-WHERE id = @product_id
+SET moderation_status = $2
+WHERE id = $1
 `
 
 	ProductPublicIndexByShopQuery = `

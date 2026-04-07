@@ -1,6 +1,8 @@
 package product
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
@@ -35,8 +37,28 @@ func ListPendingModerationHandler(
 
 func ModerationHandler(
 	pool *pgxpool.Pool,
+	newStatus string,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		productID, err := strconv.Atoi(c.Param("product"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = productmodel.Moderate(
+			c.Request.Context(), pool,
+			productID,
+			newStatus,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Product "+newStatus+"ed")
 	}
 }
 
