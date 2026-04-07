@@ -219,6 +219,7 @@ func WrapMap(
 	message string,
 	json gin.H,
 ) {
+	json["success"] = true
 	json["message"] = message
 	c.JSON(200, json)
 }
