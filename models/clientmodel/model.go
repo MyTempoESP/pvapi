@@ -74,7 +74,7 @@ func List(
 	return util.WithCollect[Client](
 		ctx,
 		base,
-		query.ListAllClientsQuery,
+		query.ListShopClientsQuery,
 		shopID,
 	)
 }

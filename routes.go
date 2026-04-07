@@ -49,7 +49,6 @@ func setupRoutes(
 
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
-
 	}
 
 	products := t.Group("/produtos", withAuth)

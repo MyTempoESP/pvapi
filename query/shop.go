@@ -167,4 +167,10 @@ LEFT JOIN consignments c ON c.shop_id = s.id
 LEFT JOIN reports r ON r.consignment_id = c.id
 WHERE s.id = $1 AND r.id = $2
 `
+
+	ShopResolveSlug = `
+SELECT s.id
+FROM shops s
+WHERE s.slug = $1
+`
 )

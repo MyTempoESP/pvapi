@@ -1,17 +1,69 @@
 package shop
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
 
+func publicListProductsHandler(
+	c *gin.Context,
+	pool *pgxpool.Pool,
+	slug string,
+) {
+	shopID, err := shopmodel.Resolve(
+		c.Request.Context(), pool,
+		slug,
+	)
+
+	if err != nil {
+		util.HandleGuessFromDBOperation(c, err)
+		return
+	}
+
+	products, err := productmodel.GetByShop(
+		c.Request.Context(), pool,
+		shopID,
+	)
+
+	if err != nil {
+		util.HandleGuessFromDBOperation(c, err)
+		return
+	}
+
+	collection := util.ResourceCollection(products)
+
+	util.Wrap(
+		c, "produtos listados com sucesso",
+		collection,
+	)
+}
+
 func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		shopID := c.Param("shop")
+		shopIdentification := c.Param("shop")
+
+		shopID, err := strconv.Atoi(shopIdentification)
+
+		// if can't convert to int it's probably the fucking slug
+		if err != nil {
+			if c.FullPath() == "/estabelecimentos/:shop/produtos" {
+				publicListProductsHandler(
+					c,
+					pool,
+					shopIdentification,
+				)
+				return
+			}
+
+			util.Handle404(c, fmt.Errorf("rota nao encontrada"))
+			return
+		}
 
 		shop, err := shopmodel.FindDetailed(
 			c.Request.Context(),
