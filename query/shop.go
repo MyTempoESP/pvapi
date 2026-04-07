@@ -132,6 +132,12 @@ FROM shops_info_detailed_view v
 WHERE v.user_id = $1
 `
 
+	ShopResolveSlug = `
+SELECT *
+FROM shops_info_view
+WHERE slug = $1
+`
+
 	ShopHasProductQuery = `
 SELECT (p.id IS NOT NULL) AS hasProduct
 FROM shops s
@@ -166,11 +172,5 @@ FROM shops s
 LEFT JOIN consignments c ON c.shop_id = s.id
 LEFT JOIN reports r ON r.consignment_id = c.id
 WHERE s.id = $1 AND r.id = $2
-`
-
-	ShopResolveSlug = `
-SELECT s.id
-FROM shops s
-WHERE s.slug = $1
 `
 )
