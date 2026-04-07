@@ -40,6 +40,15 @@ func ModerationHandler(
 	newStatus string,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		var request productmodel.ModerateProductRequest
+
+		err := c.ShouldBind(&request)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
 		productID, err := strconv.Atoi(c.Param("product"))
 
 		if err != nil {
@@ -49,6 +58,7 @@ func ModerationHandler(
 
 		err = productmodel.Moderate(
 			c.Request.Context(), pool,
+			request,
 			productID,
 			newStatus,
 		)
@@ -58,7 +68,7 @@ func ModerationHandler(
 			return
 		}
 
-		util.OK(c, "Product "+newStatus+"ed")
+		util.OK(c, "Product "+newStatus)
 	}
 }
 

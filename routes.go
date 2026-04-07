@@ -108,6 +108,16 @@ func setupRoutes(
 		admin.GET(
 			"/moderacao/pendentes",
 			product.ListPendingModerationHandler(pool))
+
+		admin.POST(
+			"/moderacao/produtos/:product/aprovar",
+			product.ModerationHandler(pool, "approved"),
+		)
+
+		admin.POST(
+			"/moderacao/produtos/:product/rejeitar",
+			product.ModerationHandler(pool, "rejected"),
+		)
 	}
 
 	t.Static("/assets", "./public/uploads")

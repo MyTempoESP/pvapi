@@ -139,3 +139,8 @@ type CreateProductRequest struct {
 	CustomModality       bool   `form:"allowCustomModality"`
 	CustomColorSelection bool   `form:"allowCustomColorSelection"`
 }
+
+type ModerateProductRequest struct {
+	PlatformCut     decimal.Decimal `json:"platform_cut" binding:"required"`
+	PlatformCutType string          `json:"platform_cut_type" binding:"required"`
+}
