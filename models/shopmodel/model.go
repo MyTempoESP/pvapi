@@ -286,7 +286,7 @@ func HasReport(
 	return model.HasResource(
 		ctx,
 		base,
-		query.ShopHasConsigneeQuery,
+		query.ShopHasReportQuery,
 		shop,
 		report,
 	)
