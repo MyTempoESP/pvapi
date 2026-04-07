@@ -136,28 +136,6 @@ CREATE TABLE IF NOT EXISTS public.images
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.specifications
-(
-    id serial NOT NULL,
-    product_id integer NOT NULL,
-    name text NOT NULL,
-    value text NOT NULL,
-    PRIMARY KEY (id),
-    CONSTRAINT unique_name_per_product UNIQUE (product_id, name)
-);
-
-CREATE TABLE IF NOT EXISTS public.policies
-(
-    id serial NOT NULL,
-    product_id integer NOT NULL,
-    name text NOT NULL,
-    enabled boolean NOT NULL,
-    PRIMARY KEY (id)
-);
-
-COMMENT ON TABLE public.policies
-    IS 'Permission handles for product selectable specifications';
-
 CREATE TABLE IF NOT EXISTS public.admins
 (
     id serial NOT NULL,
@@ -318,32 +296,14 @@ CREATE INDEX IF NOT EXISTS fki_product_images_relation
     ON public.images(product_id);
 
 
-ALTER TABLE IF EXISTS public.specifications
-    ADD CONSTRAINT specification_product_id FOREIGN KEY (product_id)
-    REFERENCES public.products (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE CASCADE
-    NOT VALID;
-CREATE INDEX IF NOT EXISTS fki_specification_product_id
-    ON public.specifications(product_id);
-
-
-ALTER TABLE IF EXISTS public.policies
-    ADD CONSTRAINT product_policy_relation FOREIGN KEY (product_id)
-    REFERENCES public.products (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE CASCADE
-    NOT VALID;
-CREATE INDEX IF NOT EXISTS fki_product_policy_relation
-    ON public.policies(product_id);
-
-
 ALTER TABLE IF EXISTS public.admins
     ADD CONSTRAINT admin_user_relation FOREIGN KEY (user_id)
     REFERENCES public.users (id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE CASCADE
     NOT VALID;
+CREATE INDEX IF NOT EXISTS fki_admin_user_relation
+    ON public.admins(user_id);
 
 
 ALTER TABLE IF EXISTS public.categories

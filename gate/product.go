@@ -37,7 +37,7 @@ func (p *ProductGate) Dispatch(
 	id := r.Params.ByName("product")
 	r.Metadata["id"] = id
 
-	if r.Path == "/produtos/estabelecimento" {
+	if r.EndPoint("/estabelecimento") {
 		return p.List(u, r)
 	}
 

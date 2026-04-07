@@ -37,6 +37,8 @@ type ProductAttr struct {
 }
 
 type Product struct {
+	ShopID           int             `db:"product_shop_id"`
+	ShopName         string          `db:"product_shop_name"`
 	ID               int             `db:"product_id"`
 	Name             string          `db:"product_name"`
 	Price            decimal.Decimal `db:"product_price"`
@@ -140,7 +142,7 @@ func Take(
 	ctx context.Context,
 	base db.Queryable,
 	product,
-	ammount any,
+	ammount int,
 ) (err error) {
 	_, err = base.Exec(
 		ctx,
@@ -171,6 +173,17 @@ func PublicIndexByShop(
 	products, err = pgx.CollectRows(rows, pgx.RowToStructByName[Product])
 
 	return
+}
+
+func PendingIndex(
+	ctx context.Context,
+	base db.Queryable,
+) ([]Product, error) {
+	return util.WithCollect[Product](
+		ctx,
+		base,
+		query.ProductsPendingModerationQuery,
+	)
 }
 
 func GetByShop(
