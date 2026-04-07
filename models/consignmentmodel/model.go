@@ -20,6 +20,11 @@ func (a AddProductAction) Exec(
 ) (err error) {
 	batch := &pgx.Batch{}
 
+	// TODO: if product already exists in consignment,
+	// add to the quantity of the existing package.
+	// Thinking about it, it doesn't make much sense, since
+	// the same product could be in the same consignment but with
+	// different name/color etc.
 	for _, p := range a.Products {
 		product := p.Prepare()
 
@@ -135,11 +140,11 @@ func ListProducts(
 	ctx context.Context,
 	base db.Queryable,
 	id any,
-) ([]Product, error) {
-	return util.WithCollect[Product](
+) ([]ConsignmentProduct, error) {
+	return util.WithCollect[ConsignmentProduct](
 		ctx,
 		base,
-		query.ListAllConsignmentProductsQuery,
+		query.ProductListInConsignmentQuery,
 		id,
 	)
 }

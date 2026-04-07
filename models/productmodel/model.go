@@ -7,16 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
-	"linhazero.com/pvapi/models/imagemodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
-)
-
-const (
-	defaultImageTag       = "default"
-	descriptionImageTag   = "description"
-	specificationImageTag = "specification"
-	deliveryImageTag      = "delivery"
 )
 
 type Specification struct {
@@ -34,6 +26,11 @@ type ProductAttr struct {
 	AllowCustomName     bool `json:"customName,omitempty"`
 
 	Specifications []Specification `json:"specifications"`
+
+	Image      string   `json:"main_image"`
+	SpecImages []string `json:"spec_images"`
+	DescImages []string `json:"desc_images"`
+	PackImages []string `json:"pack_images"`
 }
 
 type Product struct {
@@ -53,79 +50,28 @@ type Product struct {
 	Attributes       ProductAttr     `db:"product_attr"`
 	PlatformCutType  string          `db:"product_platform_cut_type"`
 	PlatformCut      decimal.Decimal `db:"product_platform_cut"`
-
-	Image      string   `db:"product_main_image"`
-	SpecImages []string `db:"product_spec_images"`
-	DescImages []string `db:"product_desc_images"`
-	PackImages []string `db:"product_pack_images"`
-}
-
-func (p ProductBlueprint) CreateProductInfo(
-	ctx context.Context,
-	base pgx.Tx,
-	productID int,
-) (err error) {
-	err = imagemodel.NewImage(
-		imagemodel.NewUrl(p.ImageURL),
-		defaultImageTag, productID,
-	).Create(ctx, base)
-
-	if err != nil {
-		return
-	}
-
-	batch := &pgx.Batch{}
-
-	imagemodel.NewTaggedImageCollection(
-		p.DescImages,
-		descriptionImageTag,
-		productID,
-	).Queue(batch)
-
-	imagemodel.NewTaggedImageCollection(
-		p.SpecImages,
-		specificationImageTag,
-		productID,
-	).Queue(batch)
-
-	imagemodel.NewTaggedImageCollection(
-		p.PackImages,
-		deliveryImageTag,
-		productID,
-	).Queue(batch)
-
-	err = util.Bake(ctx, base, batch)
-
-	return
 }
 
 func (p ProductBlueprint) Save(
 	ctx context.Context,
 	base pgx.Tx,
 ) (err error) {
-	params := pgx.NamedArgs{
-		"name":        p.Name,
-		"price":       p.Price,
-		"stock":       p.Stock,
-		"discount":    p.Discount,
-		"featured":    p.Featured,
-		"description": p.Description,
-		"code":        p.Code,
-		"category":    p.Category,
-		"shop_id":     p.Shop,
-		"attr":        p.Attributes,
-	}
-
-	var productID int
-
-	err = base.QueryRow(ctx, query.ProductCreate, params).Scan(&productID)
-
-	if err != nil {
-		return
-	}
-
-	err = p.CreateProductInfo(ctx, base, productID)
-
+	_, err = base.Exec(
+		ctx,
+		query.ProductCreate,
+		pgx.NamedArgs{
+			"name":        p.Name,
+			"price":       p.Price,
+			"stock":       p.Stock,
+			"discount":    p.Discount,
+			"featured":    p.Featured,
+			"description": p.Description,
+			"code":        p.Code,
+			"category":    p.Category,
+			"shop_id":     p.Shop,
+			"attr":        p.Attributes,
+		},
+	)
 	return
 }
 

@@ -20,43 +20,37 @@ type ProductBlueprint struct {
 	Code        string
 	Description string
 	Attributes  []byte
-
-	ImageURL   string
-	DescImages []string
-	SpecImages []string
-	PackImages []string
 }
 
 func (p *CreateProductRequest) Prepare(
 	c *gin.Context,
 	shop int,
 ) (pb *ProductBlueprint, err error) {
-
-	image, err := handleImage(c, p.Image)
-
-	if err != nil {
-		return
-	}
-
-	descImages, err := handleImages(c, p.DescImages)
-
-	if err != nil {
-		return
-	}
-
-	specImages, err := handleImages(c, p.SpecImages)
-
-	if err != nil {
-		return
-	}
-
-	packImages, err := handleImages(c, p.PackImages)
-
-	if err != nil {
-		return
-	}
-
 	var a ProductAttr
+
+	a.Image, err = handleImage(c, p.Image)
+
+	if err != nil {
+		return
+	}
+
+	a.DescImages, err = handleImages(c, p.DescImages)
+
+	if err != nil {
+		return
+	}
+
+	a.SpecImages, err = handleImages(c, p.SpecImages)
+
+	if err != nil {
+		return
+	}
+
+	a.PackImages, err = handleImages(c, p.PackImages)
+
+	if err != nil {
+		return
+	}
 
 	err = json.Unmarshal([]byte(p.SpecificationsJSON), &a.Specifications)
 
@@ -101,11 +95,6 @@ func (p *CreateProductRequest) Prepare(
 		Code:        code,
 		Description: p.Description,
 		Attributes:  attributes,
-
-		ImageURL:   image,
-		DescImages: descImages,
-		SpecImages: specImages,
-		PackImages: packImages,
 	}
 
 	return

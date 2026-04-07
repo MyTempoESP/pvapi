@@ -78,6 +78,7 @@ worker: test-db go
     PV_API_ADMIN_MAIL="sistemas@lzero.org" \
     PV_API_ADMIN_PASS="TestingPassword" \
     PV_API_LOG_LEVEL="debug" \
+    PV_API_DOMAIN_NAME="localhost" \
         timeout --foreground {{max-life-go}} go run {{flags}} .
 
 [group('util')]

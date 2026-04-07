@@ -6,7 +6,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type Product struct {
+type ConsignmentProduct struct {
 	// Base Product Fields
 	ID               int             `db:"product_id"`
 	Name             string          `db:"product_name"`

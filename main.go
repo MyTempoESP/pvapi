@@ -41,6 +41,11 @@ func main() {
 }
 
 func run(logger *slog.Logger) (err error) {
+	// ensuring some essential configs are set
+	if _, err = env.DomainName(); err != nil {
+		return
+	}
+
 	t := gin.New()
 	t.Use(logmw.LogMiddleware(logger))
 	t.Use(gin.Recovery())

@@ -74,26 +74,4 @@ WHERE consignment_id = $1
 DELETE FROM consignments
 WHERE id = $1
 `
-
-	ListAllConsignmentProductsQuery = `
-SELECT
-	c.product_id,
-	c.product_name,
-	c.product_price,
-	c.product_stock,
-	c.product_discount,
-	c.product_featured,
-	c.product_description,
-	c.product_main_image,
-	c.product_category_id,
-	c.product_shop_id,
-	c.product_code,
-	c.product_uuid,
-
-	p.price AS package_price,
-	p.quantity AS package_quantity
-FROM packages p
-LEFT JOIN product_catalog_view c ON c.product_id = p.product_id
-WHERE p.consignment_id = $1
-`
 )
