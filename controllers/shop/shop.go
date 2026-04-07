@@ -14,7 +14,7 @@ func PublicListProductsHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		slug := c.Param("shop-slug")
+		slug := c.Param("shop")
 
 		shopID, err := shopmodel.Resolve(
 			c.Request.Context(), pool,
