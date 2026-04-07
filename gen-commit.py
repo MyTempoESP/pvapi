@@ -2,50 +2,91 @@
 import subprocess
 import os
 import sys
-from google import genai
 import questionary
+from google import genai
+from google.genai import errors
 
-# Ensure API Key is set
+# Import the necessary tenacity modules
+from tenacity import retry, wait_random_exponential, stop_after_attempt, retry_if_exception
+
 if not os.getenv("GEMINI_API_KEY"):
     print("Error: Please set the GEMINI_API_KEY environment variable.")
     sys.exit(1)
 
 client = genai.Client()
 
+def should_retry_api_error(exception):
+    """
+    Evaluates if the exception is a recoverable HTTP error.
+    Returns True for 429 (Rate Limit) and 503 (Service Unavailable).
+    """
+    if isinstance(exception, errors.ClientError):
+        # Extract the status code from the exception arguments
+        status_code = exception.args[0] if len(exception.args) > 0 else None
+
+        if status_code in (429, 503):
+            # We print a subtle log here just so the user knows the CLI isn't hanging
+            print("⏳ Rate limit or server load detected. Backing off and retrying...")
+            return True
+
+    return False
+
+# The Tenacity Decorator
+@retry(
+    wait=wait_random_exponential(multiplier=2, max=60),
+    stop=stop_after_attempt(5),
+    retry=retry_if_exception(should_retry_api_error),
+    reraise=True
+)
+def generate_message(files, diff):
+    """Generates the commit message. Network retries are handled externally by Tenacity."""
+
+    prompt = f"""
+    You are an expert sysadmin and developer. Generate a Git commit message following the
+    Conventional Commits specification (semantic commits) based on the diff below.
+
+    Files changed:
+    {files}
+
+    Diff:
+    {diff}
+
+    Guidelines:
+    - Use format: <type>(<scope>): <description>
+    - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+    - Description should be in imperative, present tense (e.g., "add" not "added").
+    - If changes are significant, include a short bulleted body, using markdown dash syntax.
+    - Output ONLY the commit message. No markdown blocks, no chat.
+    """
+
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt
+    )
+
+    return response.text.strip()
+
+
 def get_git_status():
-    """Parses git status to separate staged and unstaged/untracked files."""
     try:
         status = subprocess.check_output(
             ["git", "status", "--porcelain"],
             stderr=subprocess.STDOUT
         ).decode("utf-8")
 
-        staged = []
-        unstaged = []
+        staged, unstaged = [], []
 
         for line in status.splitlines():
-            if not line:
-                continue
-
-            # First two characters represent the status
-            state = line[:2]
-            # The file path starts at index 3. Strip quotes if git added them due to spaces.
-            file_path = line[3:].strip('"')
-
-            # Index 0 is the index (staged) state
-            if state[0] in 'MADRC':
-                staged.append(file_path)
-
-            # Index 1 is the working tree (unstaged) state, or '??' for untracked
-            if state[1] in 'MD' or state == '??':
-                unstaged.append(file_path)
+            if not line: continue
+            state, file_path = line[:2], line[3:].strip('"')
+            if state[0] in 'MADRC': staged.append(file_path)
+            if state[1] in 'MD' or state == '??': unstaged.append(file_path)
 
         return staged, unstaged
     except subprocess.CalledProcessError:
         return [], []
 
 def get_git_context():
-    """Gets the names and diff of currently staged files."""
     try:
         files = subprocess.check_output(
             ["git", "diff", "--cached", "--name-only"],
@@ -61,36 +102,9 @@ def get_git_context():
     except subprocess.CalledProcessError:
         return None, None
 
-def generate_message(files, diff):
-    prompt = f"""
-    You are an expert sysadmin and developer. Generate a Git commit message following the
-    Conventional Commits specification (semantic commits) based on the diff below.
-
-    Files changed:
-    {files}
-
-    Diff:
-    {diff}
-
-    Guidelines:
-    - Use format: <type>(<scope>): <description>
-    - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
-    - Description should be in imperative, present tense (e.g., "add" not "added").
-    - If changes are significant, include a short bulleted body.
-    - Output ONLY the commit message. No markdown blocks, no chat.
-    """
-
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt
-    )
-
-    return response.text.strip()
-
 def main():
     staged, unstaged = get_git_status()
 
-    # Trigger TUI if nothing is staged
     if not staged:
         if not unstaged:
             print("Working tree clean. Nothing to commit.")
@@ -98,35 +112,38 @@ def main():
 
         print("No files are currently staged for commit.")
         selected_files = questionary.checkbox(
-            "Select files to stage:",
+            "Select files to stage (Use Space to select, Enter to confirm):",
             choices=unstaged
         ).ask()
 
-        # If user presses Ctrl+C or selects nothing
         if not selected_files:
             print("No files selected. Aborting.")
             sys.exit(0)
 
-        # Stage the selected files
         subprocess.run(["git", "add"] + selected_files)
         print(f"✅ Staged {len(selected_files)} file(s).")
 
-    # Now that we know things are staged, grab the diff
     files, diff = get_git_context()
 
     if not diff or not diff.strip():
-        # This handles edge cases like staging an empty file
         print("No meaningful changes found in staged files.")
         sys.exit(0)
 
     print("🤖 Analyzing changes and generating message...")
-    message = generate_message(files, diff)
+
+    try:
+        message = generate_message(files, diff)
+    except errors.ClientError as e:
+        # If we get here, it means we either hit a non-429 error (like a 400 Bad Request),
+        # OR we exhausted all 5 of our retries on a 429.
+        print(f"\n❌ API Error: {e}")
+        print("Please check your network connection or API quota.")
+        sys.exit(1)
 
     print("\n--- Suggested Commit Message ---")
     print(message)
     print("--------------------------------\n")
 
-    # TUI for final confirmation
     confirm = questionary.confirm("Apply this commit message?").ask()
 
     if confirm:
