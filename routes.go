@@ -25,8 +25,8 @@ func setupRoutes(
 	withAuth := authMiddleware.MiddlewareFunc()
 
 	// no auth
-	t.GET("/estabelecimentos/:shop/produtos", product.ListByParamHandler(pool))
-	t.GET("/produtos/:id", product.ViewHandler(pool))
+	t.GET("/estabelecimentos/:shop-slug/produtos", shop.PublicListProductsHandler(pool))
+	t.GET("/produtos/:id", product.PublicViewHandler(pool))
 
 	loggedIn := t.Group("", withAuth)
 	{

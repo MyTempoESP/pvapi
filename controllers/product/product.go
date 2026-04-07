@@ -77,7 +77,7 @@ func CreateHandler(
 	}
 }
 
-func ViewHandler(
+func PublicViewHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
