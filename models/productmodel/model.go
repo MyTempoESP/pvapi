@@ -129,10 +129,23 @@ func (p ProductBlueprint) Save(
 	return
 }
 
+func PublicFind(
+	ctx context.Context,
+	base db.Queryable,
+	productID int,
+) (Product, error) {
+	return util.WithCollectExactlyOneRow[Product](
+		ctx,
+		base,
+		query.ProductPublicFindQuery,
+		productID,
+	)
+}
+
 func Find(
 	ctx context.Context,
 	base db.Queryable,
-	product any, // id
+	product int,
 ) (p Product, err error) {
 	err = base.QueryRow(ctx, query.FindProductQuery, product).Scan(&p)
 	return

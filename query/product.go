@@ -113,6 +113,33 @@ FROM product_catalog_view
 WHERE product_id = $1
 `
 
+	ProductPublicFindQuery = `
+SELECT
+	product_id,
+	product_name,
+	product_price,
+	product_stock,
+	product_discount,
+	product_featured,
+	product_moderation_status,
+	product_description,
+	product_category,
+	product_uuid,
+	product_code,
+	product_attr,
+	product_platform_cut,
+	product_platform_cut_type,
+	product_shop_id,
+	product_shop_name,
+
+	product_main_image,
+	product_spec_images,
+	product_desc_images,
+	product_pack_images
+FROM product_catalog_view
+WHERE product_id = $1 AND product_moderation_status = 'approved'
+`
+
 	// listing
 	ProductGetByShop = `
 SELECT

@@ -145,7 +145,27 @@ func PublicViewHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		productID, err := strconv.Atoi(c.Param("product"))
 
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		product, err := productmodel.PublicFind(
+			c.Request.Context(), pool,
+			productID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.Wrap(
+			c, "produto encontrado!",
+			product.ToResource(),
+		)
 	}
 }
 
