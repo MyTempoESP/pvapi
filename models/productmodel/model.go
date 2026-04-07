@@ -151,6 +151,28 @@ func Take(
 	return
 }
 
+func PublicIndexByShop(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	shopID any,
+) (products []Product, err error) {
+
+	rows, err := pool.Query(
+		ctx,
+		query.ProductPublicIndexByShopQuery,
+		shopID,
+	)
+
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	products, err = pgx.CollectRows(rows, pgx.RowToStructByName[Product])
+
+	return
+}
+
 func GetByShop(
 	ctx context.Context,
 	pool *pgxpool.Pool,
