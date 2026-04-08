@@ -140,6 +140,29 @@ type CreateProductRequest struct {
 	CustomColorSelection bool   `form:"allowCustomColorSelection"`
 }
 
+type UpdateProductRequest struct {
+	Name        *string          `form:"name"`
+	Price       *string          `form:"price"`
+	Stock       *int             `form:"stock"`
+	Discount    *decimal.Decimal `form:"discount"`
+	Description *string          `form:"description"`
+	Category    *string          `form:"category"`
+	Featured    *bool            `form:"featured"`
+
+	Image      *multipart.FileHeader   `form:"imageUrl"`
+	DescImages []*multipart.FileHeader `form:"descriptionImages"`
+	SpecImages []*multipart.FileHeader `form:"specificationImages"`
+	PackImages []*multipart.FileHeader `form:"deliveryImages"`
+
+	SpecificationsJSON *string `form:"specifications"`
+
+	// Policies
+	ColorListJSON        *string `form:"colors"`
+	CustomName           *bool   `form:"allowCustomName"`
+	CustomModality       *bool   `form:"allowCustomModality"`
+	CustomColorSelection *bool   `form:"allowCustomColorSelection"`
+}
+
 type ModerateProductRequest struct {
 	PlatformCut     decimal.Decimal `json:"platform_cut" binding:"required"`
 	PlatformCutType string          `json:"platform_cut_type" binding:"required"`

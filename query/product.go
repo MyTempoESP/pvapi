@@ -13,7 +13,7 @@ WITH product_category AS (
 	VALUES
 		(
 			@category,
-			'',
+			@category,
 			@shop_id
 		)
 	ON CONFLICT (shop_id, name) DO UPDATE SET name = EXCLUDED.name
@@ -36,23 +36,22 @@ INSERT INTO products
 		platform_cut,
 		platform_cut_type
 	)
-VALUES
-	(
-		@name,
-		@price,
-		@stock,
-		@discount,
-		@featured,
-		@shop_id,
-		'pending',
-		(SELECT id FROM product_category),
-		@description,
-		@attr,
-		@code,
-		uuidv4(),
-		5.00,
-		'percentage'
-	)
+SELECT
+	@name,
+	@price,
+	@stock,
+	@discount,
+	@featured,
+	@shop_id,
+	'pending',
+	c.id,
+	@description,
+	@attr,
+	@code,
+	uuidv4(),
+	5.00,
+	'percentage'
+FROM product_category c
 RETURNING id
 `
 
