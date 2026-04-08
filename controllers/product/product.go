@@ -173,6 +173,37 @@ func UpdateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		// TODO
+		var product productmodel.UpdateProductRequest
+
+		user := authmodel.GetUserFromContext(c)
+
+		productID, err := strconv.Atoi(c.Param("product"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = c.ShouldBind(&product)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		blueprint := product.Prepare(
+			c,
+			productID,
+			user.ActiveRoleID,
+		)
+
+		err = util.TransactionAware(c, pool, blueprint.Exec)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Produto editado com sucesso!")
 	}
 }

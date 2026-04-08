@@ -17,9 +17,64 @@ type ProductBlueprint struct {
 	Discount    decimal.Decimal
 	Category    string
 	Featured    bool
-	Code        string
 	Description string
+	Code        string
 	Attributes  []byte
+}
+
+type UpdateProductBlueprint struct {
+	ID   int
+	Shop int
+
+	ImageURL       *string
+	DescImagesURLs []string
+	SpecImagesURLs []string
+	PackImagesURLs []string
+
+	UpdateProductRequest
+}
+
+func (p *UpdateProductRequest) Prepare(
+	c *gin.Context,
+	product, shop int,
+) (pb *UpdateProductBlueprint) {
+	pb = &UpdateProductBlueprint{
+		ID:                   product,
+		Shop:                 shop,
+		UpdateProductRequest: *p,
+	}
+
+	util.LogInfo(c, "trying to handle images")
+
+	if p.Image != nil {
+		image, err := handleImage(c, p.Image)
+		if err == nil {
+			pb.ImageURL = &image
+		}
+	}
+
+	if p.DescImages != nil {
+		images, err := handleImages(c, p.DescImages)
+		if err == nil {
+			pb.DescImagesURLs = images
+		}
+	}
+
+	if p.SpecImages != nil {
+		images, err := handleImages(c, p.SpecImages)
+		if err == nil {
+			pb.SpecImagesURLs = images
+		}
+	}
+
+	if p.PackImages != nil {
+		images, err := handleImages(c, p.PackImages)
+		if err == nil {
+			pb.PackImagesURLs = images
+		}
+	}
+
+	return
 }
 
 func (p *CreateProductRequest) Prepare(
@@ -90,6 +145,7 @@ func (p *CreateProductRequest) Prepare(
 		Name:        p.Name,
 		Price:       p.Price,
 		Stock:       p.Stock,
+		Category:    p.Category,
 		Discount:    p.Discount,
 		Featured:    featured,
 		Code:        code,

@@ -2,6 +2,7 @@ package productmodel
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -9,6 +10,8 @@ import (
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 type Specification struct {
@@ -72,6 +75,144 @@ func (p ProductBlueprint) Save(
 			"attr":        p.Attributes,
 		},
 	)
+	return
+}
+
+func (p *UpdateProductBlueprint) Exec(
+	ctx context.Context,
+	base pgx.Tx,
+) (err error) {
+	q := util.SQL
+
+	fields := make(map[string]any)
+
+	/*
+	     	Name        *string          `form:"name"`
+	   	Price       *string          `form:"price"`
+	   	Stock       *int             `form:"stock"`
+	   	Discount    *decimal.Decimal `form:"discount"`
+	   	Description *string          `form:"description"`
+	   	Category    *string          `form:"category"`
+	   	Featured    *bool            `form:"featured"`
+
+	   	Image      *multipart.FileHeader   `form:"imageUrl"`
+	   	DescImages []*multipart.FileHeader `form:"descriptionImages"`
+	   	SpecImages []*multipart.FileHeader `form:"specificationImages"`
+	   	PackImages []*multipart.FileHeader `form:"deliveryImages"`
+
+	   	SpecificationsJSON *string `form:"specifications"`
+	   	ColorListJSON        *string `form:"colors"`
+
+	   	CustomName           *bool   `form:"allowCustomName"`
+	   	CustomModality       *bool   `form:"allowCustomModality"`
+	   	CustomColorSelection *bool   `form:"allowCustomColorSelection"`
+	*/
+
+	update := q.Update("products")
+
+	if p.Name != nil {
+		fields["name"] = *p.Name
+	}
+
+	if p.Price != nil {
+		fields["price"] = *p.Price
+	}
+
+	if p.Stock != nil {
+		fields["stock"] = *p.Stock
+	}
+
+	if p.Discount != nil {
+		fields["discount"] = *p.Discount
+	}
+
+	if p.Description != nil {
+		fields["description"] = *p.Description
+	}
+
+	if p.Category != nil {
+		var category string
+		err = base.QueryRow(
+			ctx,
+			"select id from categories where name = $1",
+			*p.Category,
+		).Scan(&category)
+		if err != nil {
+			return fmt.Errorf("Error finding category: %w", err)
+		}
+		fields["category_id"] = category
+	}
+
+	if p.Featured != nil {
+		fields["featured"] = *p.Featured
+	}
+
+	attrExpr := "attr"
+	var attrArgs []any
+
+	addSet := func(key string, val any) {
+		attrExpr = fmt.Sprintf(query.JSONBSetFormat, attrExpr, key)
+		attrArgs = append(attrArgs, val)
+	}
+
+	addCat := func(key string, val any) {
+		attrExpr = fmt.Sprintf(query.JSONBCatFormat, attrExpr, key)
+		attrArgs = append(attrArgs, val)
+	}
+
+	if p.ImageURL != nil {
+		addSet("main_image", *p.ImageURL)
+	}
+	if p.CustomName != nil {
+		addSet("customName", *p.CustomName)
+	}
+	if p.CustomModality != nil {
+		addSet("customModality", *p.CustomModality)
+	}
+	if p.CustomColorSelection != nil {
+		addSet("customColor", *p.CustomColorSelection)
+	}
+
+	if len(p.DescImagesURLs) > 0 {
+		addCat("desc_images", p.DescImagesURLs)
+	}
+	if len(p.SpecImagesURLs) > 0 {
+		addCat("spec_images", p.SpecImagesURLs)
+	}
+	if len(p.PackImagesURLs) > 0 {
+		addCat("pack_images", p.PackImagesURLs)
+	}
+
+	if p.SpecificationsJSON != nil {
+		addCat("specifications", *p.SpecificationsJSON)
+	}
+	if p.ColorListJSON != nil {
+		addCat("colors", *p.ColorListJSON)
+	}
+
+	if len(attrArgs) > 0 {
+		update = update.Set("attr", sq.Expr(attrExpr, attrArgs...))
+	} else if len(fields) == 0 {
+		return
+	}
+
+	update = update.
+		SetMap(fields).
+		Where(sq.Eq{"id": p.ID})
+
+	query, params, err := update.ToSql()
+
+	if err != nil {
+		return fmt.Errorf("could not build SQL query: %w", err)
+	}
+
+	_, err = base.Exec(ctx, query, params...)
+
+	if err != nil {
+		return fmt.Errorf(
+			"could not update consignment, query: %q, %w", query, err)
+	}
+
 	return
 }
 

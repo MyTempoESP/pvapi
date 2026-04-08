@@ -32,6 +32,24 @@ func NotImplemented(operation string) error {
 
 var SQL = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
+func JsonSet[T any](
+	field, jsonField string,
+	newValue T,
+) squirrel.Sqlizer {
+	return squirrel.Expr(fmt.Sprintf(`
+jsonb_set(%s, '{%s}', ?::jsonb)
+`, field, jsonField), newValue)
+}
+
+func JsonCat[T any](
+	field, jsonField string,
+	newValue T,
+) squirrel.Sqlizer {
+	return squirrel.Expr(fmt.Sprintf(`
+jsonb_set(%[1]s, '{%[2]s}', COALESCE(%[1]s->'%[2]s', '[]'::jsonb) || ?::jsonb)
+`, field, jsonField), newValue)
+}
+
 // A is a quick alias for NamedArgs
 type Args = pgx.NamedArgs
 
