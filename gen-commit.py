@@ -4,42 +4,50 @@ import os
 import sys
 import questionary
 from google import genai
-from google.genai import errors
+from openai import OpenAI
+import openai
 
-# Import the necessary tenacity modules
+# Import the necessary tenacity modules for DeepSeek
 from tenacity import retry, wait_random_exponential, stop_after_attempt, retry_if_exception
 
-if not os.getenv("GEMINI_API_KEY"):
-    print("Error: Please set the GEMINI_API_KEY environment variable.")
+# Check API Keys upfront
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
+
+if not GEMINI_KEY or not DEEPSEEK_KEY:
+    print("⚠️  Warning: For the failover system to work, please set BOTH environment variables:")
+    print("   export GEMINI_API_KEY='your_key'")
+    print("   export DEEPSEEK_API_KEY='your_key'")
     sys.exit(1)
 
-client = genai.Client()
+# Initialize DeepSeek Client
+ds_client = OpenAI(api_key=DEEPSEEK_KEY, base_url="https://api.deepseek.com")
 
-def should_retry_api_error(exception):
-    """
-    Evaluates if the exception is a recoverable HTTP error.
-    Returns True for 429 (Rate Limit) and 503 (Service Unavailable).
-    """
-    if isinstance(exception, errors.ClientError):
-        # Extract the status code from the exception arguments
-        status_code = exception.args[0] if len(exception.args) > 0 else None
-
-        if status_code in (429, 503):
-            # We print a subtle log here just so the user knows the CLI isn't hanging
-            print("⏳ Rate limit or server load detected. Backing off and retrying...")
-            return True
-
+def should_retry_deepseek_error(exception):
+    """Only retry DeepSeek if it throws a Rate Limit or Server Error."""
+    if isinstance(exception, (openai.RateLimitError, openai.InternalServerError, openai.APIConnectionError)):
+        print("⏳ DeepSeek rate limit or server load detected. Backing off and retrying...")
+        return True
     return False
 
-# The Tenacity Decorator
 @retry(
     wait=wait_random_exponential(multiplier=2, max=60),
     stop=stop_after_attempt(5),
-    retry=retry_if_exception(should_retry_api_error),
+    retry=retry_if_exception(should_retry_deepseek_error),
     reraise=True
 )
+def generate_with_deepseek(prompt):
+    """The Fallback: Uses DeepSeek with Tenacity retries."""
+    response = ds_client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=200
+    )
+    return response.choices[0].message.content.strip(), "DeepSeek V3"
+
 def generate_message(files, diff):
-    """Generates the commit message. Network retries are handled externally by Tenacity."""
+    """The Router: Tries Gemini first, fast-fails to DeepSeek."""
 
     prompt = f"""
     You are an expert sysadmin and developer. Generate a Git commit message following the
@@ -59,12 +67,25 @@ def generate_message(files, diff):
     - Output ONLY the commit message. No markdown blocks, no chat.
     """
 
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt
-    )
+    print("🤖 Attempting generation with Gemini 2.5 Flash...")
 
-    return response.text.strip()
+    try:
+        # We instantiate the client here. The SDK automatically picks up GEMINI_API_KEY.
+        gemini_client = genai.Client()
+        response = gemini_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        return response.text.strip(), "Gemini 2.5 Flash"
+
+    except Exception as e:
+        # We catch ANY error from Gemini (429, 503, Auth, etc.) and immediately failover.
+        # We extract the status code cleanly if it's an APIError, or just print the raw error.
+        error_msg = getattr(e, 'status_code', str(e).split('.')[0])
+        print(f"⚠️  Gemini failed ({error_msg}). Instantly failing over to DeepSeek...")
+
+        # Call the DeepSeek function, which has its own built-in retry logic
+        return generate_with_deepseek(prompt)
 
 
 def get_git_status():
@@ -129,20 +150,15 @@ def main():
         print("No meaningful changes found in staged files.")
         sys.exit(0)
 
-    print("🤖 Analyzing changes and generating message...")
-
     try:
-        message = generate_message(files, diff)
-    except errors.ClientError as e:
-        # If we get here, it means we either hit a non-429 error (like a 400 Bad Request),
-        # OR we exhausted all 5 of our retries on a 429.
-        print(f"\n❌ API Error: {e}")
-        print("Please check your network connection or API quota.")
+        message, model_used = generate_message(files, diff)
+    except Exception as e:
+        print(f"\n❌ CRITICAL: Both APIs failed. Last error from DeepSeek: {e}")
         sys.exit(1)
 
-    print("\n--- Suggested Commit Message ---")
+    print(f"\n--- Suggested Commit Message (Powered by {model_used}) ---")
     print(message)
-    print("--------------------------------\n")
+    print("----------------------------------------------------------\n")
 
     confirm = questionary.confirm("Apply this commit message?").ask()
 
