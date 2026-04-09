@@ -15,9 +15,12 @@ func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		user := authmodel.GetUserFromContext(c)
+
 		consignments, err := consignmentmodel.List(
 			c.Request.Context(),
 			pool,
+			user.ActiveRoleID,
 		)
 
 		if err != nil {

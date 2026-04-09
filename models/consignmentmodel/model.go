@@ -171,11 +171,13 @@ func (c ConsignmentBlueprint) Save(
 func List(
 	ctx context.Context,
 	base db.Queryable,
+	shopID int,
 ) ([]Consignment, error) {
 	return util.WithCollect[Consignment](
 		ctx,
 		base,
-		query.ListAllConsignmentsQuery,
+		query.ListConsignmentsByShopQuery,
+		shopID,
 	)
 }
 
