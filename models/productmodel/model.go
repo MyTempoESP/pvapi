@@ -155,11 +155,6 @@ func (p *UpdateProductBlueprint) Exec(
 		attrArgs = append(attrArgs, val)
 	}
 
-	addCat := func(key string, val any) {
-		attrExpr = fmt.Sprintf(query.JSONBCatFormat, attrExpr, key)
-		attrArgs = append(attrArgs, val)
-	}
-
 	if p.ImageURL != nil {
 		addSet("main_image", *p.ImageURL)
 	}
@@ -174,20 +169,20 @@ func (p *UpdateProductBlueprint) Exec(
 	}
 
 	if len(p.DescImagesURLs) > 0 {
-		addCat("desc_images", p.DescImagesURLs)
+		addSet("desc_images", p.DescImagesURLs)
 	}
 	if len(p.SpecImagesURLs) > 0 {
-		addCat("spec_images", p.SpecImagesURLs)
+		addSet("spec_images", p.SpecImagesURLs)
 	}
 	if len(p.PackImagesURLs) > 0 {
-		addCat("pack_images", p.PackImagesURLs)
+		addSet("pack_images", p.PackImagesURLs)
 	}
 
 	if p.SpecificationsJSON != nil {
-		addCat("specifications", *p.SpecificationsJSON)
+		addSet("specifications", *p.SpecificationsJSON)
 	}
 	if p.ColorListJSON != nil {
-		addCat("colors", *p.ColorListJSON)
+		addSet("colors", *p.ColorListJSON)
 	}
 
 	if len(attrArgs) > 0 {
