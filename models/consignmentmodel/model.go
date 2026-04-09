@@ -55,6 +55,49 @@ func (a AddProductAction) Exec(
 	return
 }
 
+func (p UpdateConsignmentProductBlueprint) Exec(
+	ctx context.Context,
+	base db.Queryable,
+) (err error) {
+	q := util.SQL
+
+	fields := make(map[string]any)
+
+	if p.Price != nil {
+		fields["price"] = *p.Price
+	}
+
+	if p.Quantity != nil {
+		fields["quantity"] = *p.Quantity
+	}
+
+	if len(fields) == 0 {
+		return
+	}
+
+	query, params, err := q.Update("packages").
+		SetMap(fields).
+		Where(sq.And{
+			sq.Eq{"product_id": p.ProductID},
+			sq.Eq{"consignment_id": p.ConsignmentID},
+		}).
+		ToSql()
+
+	if err != nil {
+		return fmt.Errorf("could not build SQL query: %w", err)
+	}
+
+	_, err = base.Exec(ctx, query, params...)
+
+	if err != nil {
+		return fmt.Errorf(
+			"could not update consignment, query: %q, %w",
+			query, err)
+	}
+
+	return err
+}
+
 func (c ConsignmentUpdateBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,

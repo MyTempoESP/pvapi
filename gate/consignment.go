@@ -1,8 +1,6 @@
 package gate
 
 import (
-	"strings"
-
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/consigneemodel"
@@ -51,12 +49,18 @@ func (c *ConsignmentGate) shopOwns(
 func (c *ConsignmentGate) Owns(u User, r Resource) (bool, error) {
 	id := r.Metadata["id"]
 
-	if u.Role == roles.Consignee {
-		return c.consigneeOwns(u, r, id)
-	}
-
 	if u.Role != roles.Shop {
 		return false, nil
+	}
+
+	return c.shopOwns(u, r, id)
+}
+
+func (c *ConsignmentGate) InvolvedIn(u User, r Resource) (bool, error) {
+	id := r.Metadata["id"]
+
+	if u.Role == roles.Consignee {
+		return c.consigneeOwns(u, r, id)
 	}
 
 	return c.shopOwns(u, r, id)
@@ -69,7 +73,7 @@ func (c *ConsignmentGate) Dispatch(
 	id := r.Params.ByName("consignment")
 	r.Metadata["id"] = id
 
-	if strings.HasSuffix(r.Path, "/produtos") {
+	if r.EndPoint("/produtos") {
 		if r.Method == "GET" {
 			return c.View(u, r)
 		}
@@ -77,6 +81,16 @@ func (c *ConsignmentGate) Dispatch(
 		if r.Method == "POST" {
 			return c.Modify(u, r)
 		}
+
+		return false, nil
+	}
+
+	if r.EndPoint("/produtos/:product") {
+		if r.Method == "PUT" {
+			return c.Modify(u, r)
+		}
+
+		return false, nil
 	}
 
 	if r.Method == "GET" {
@@ -106,11 +120,11 @@ func (c *ConsignmentGate) Create(u User, r Resource) (bool, error) {
 }
 
 func (c *ConsignmentGate) View(u User, r Resource) (bool, error) {
-	return c.Owns(u, r)
+	return c.InvolvedIn(u, r)
 }
 
 func (c *ConsignmentGate) List(u User, r Resource) (bool, error) {
-	return u.Role == roles.Shop, nil
+	return u.Role == roles.Shop || u.Role == roles.Consignee, nil
 }
 
 func (c *ConsignmentGate) Modify(u User, r Resource) (bool, error) {

@@ -206,6 +206,15 @@ func UpdateHandler(
 	}
 }
 
+func UpdateProductHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		util.OK(c, "Registro na remessa editado com sucesso!")
+	}
+}
+
 func DeleteHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

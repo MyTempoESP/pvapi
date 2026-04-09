@@ -93,7 +93,7 @@ func (report *ReportGate) List(u User, r Resource) (bool, error) {
 }
 
 func (report *ReportGate) Modify(u User, r Resource) (bool, error) {
-	return report.Owns(u, r)
+	return report.InvolvedIn(u, r)
 }
 
 func (report *ReportGate) Delete(u User, r Resource) (bool, error) {

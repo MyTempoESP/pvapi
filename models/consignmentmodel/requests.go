@@ -44,6 +44,21 @@ type UpdateConsignmentRequest struct {
 	Comission
 }
 
+type UpdateConsignmentProductRequest struct {
+	Price    *decimal.Decimal `json:"price"`
+	Quantity *int             `json:"quantity"`
+}
+
+func (p UpdateConsignmentProductRequest) Prepare(
+	consignmentID, productID int,
+) UpdateConsignmentProductBlueprint {
+	return UpdateConsignmentProductBlueprint{
+		ProductID:                       productID,
+		ConsignmentID:                   consignmentID,
+		UpdateConsignmentProductRequest: p,
+	}
+}
+
 func (c Comission) defineComissionType() (
 	comissionType string,
 	comissionValue decimal.Decimal,
