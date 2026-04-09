@@ -57,7 +57,7 @@ func (a AddProductAction) Exec(
 
 func (p UpdateConsignmentProductBlueprint) Exec(
 	ctx context.Context,
-	base db.Queryable,
+	base pgx.Tx,
 ) (err error) {
 	q := util.SQL
 
