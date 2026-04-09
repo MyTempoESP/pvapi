@@ -1,0 +1,1014 @@
+openapi: 3.0.0
+info:
+  title: requests
+  version: 1.0.0
+paths:
+  /remessas/1/produtos:
+    post:
+      summary: 'shouldFail: add absurd ammount of products'
+      operationId: >-
+        home_rodrigo_documentos_sample_api_collection_shouldfail-_add_absurd_ammount_of_products_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/shouldfail_add_absurd_ammount_of_products'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: list consignment products
+      operationId: >-
+        home_rodrigo_documentos_sample_api_collection_list_consignment_products_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /admin/moderacao/produtos/1/aprovar:
+    post:
+      summary: Approve product
+      operationId: home_rodrigo_documentos_sample_api_collection_approve_product_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/approve_product'
+      servers:
+        - url: http://localhost:8080
+  /ocorrencias:
+    post:
+      summary: Create report
+      operationId: home_rodrigo_documentos_sample_api_collection_create_report_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/create_report'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: List reports
+      operationId: home_rodrigo_documentos_sample_api_collection_list_reports_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /clientes:
+    get:
+      summary: List clients
+      operationId: home_rodrigo_documentos_sample_api_collection_list_clients_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /admin/moderacao/pendentes:
+    get:
+      summary: View pending products
+      operationId: home_rodrigo_documentos_sample_api_collection_view_pending_products_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /ocorrencias/1:
+    get:
+      summary: View report
+      operationId: home_rodrigo_documentos_sample_api_collection_view_report_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /produtos/estabelecimento:
+    get:
+      summary: list shop owner's products
+      operationId: >-
+        home_rodrigo_documentos_sample_api_collection_list_shop_owner_s_products_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /remessas:
+    post:
+      summary: create consignment
+      operationId: home_rodrigo_documentos_sample_api_collection_create_consignment_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/create_consignment'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: list consignments
+      operationId: home_rodrigo_documentos_sample_api_collection_list_consignments_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /monitores:
+    post:
+      summary: create monitor
+      operationId: home_rodrigo_documentos_sample_api_collection_create_monitor_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/create_monitor'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: list monitors
+      operationId: home_rodrigo_documentos_sample_api_collection_list_monitors_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /pontos:
+    post:
+      summary: create pickup location
+      operationId: home_rodrigo_documentos_sample_api_collection_create_pickup_location_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/create_pickup_location'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: list pickup locations
+      operationId: home_rodrigo_documentos_sample_api_collection_list_pickup_locations_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /produtos:
+    post:
+      summary: create product
+      operationId: home_rodrigo_documentos_sample_api_collection_create_product_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/create_product'
+      servers:
+        - url: http://localhost:8080
+  /estabelecimentos:
+    post:
+      summary: create shop
+      operationId: home_rodrigo_documentos_sample_api_collection_create_shop_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/create_shop'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: list shops
+      operationId: home_rodrigo_documentos_sample_api_collection_list_shops_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /estabelecimentos/nova-loja/produtos:
+    get:
+      summary: list shop products
+      operationId: home_rodrigo_documentos_sample_api_collection_list_shop_products_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /login:
+    post:
+      summary: login
+      operationId: home_rodrigo_documentos_sample_api_collection_login_yml
+      description: This request retrieves a list of users from the JSONPlaceholder API.
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/login'
+      servers:
+        - url: http://localhost:8080
+  /logout:
+    get:
+      summary: logout
+      operationId: home_rodrigo_documentos_sample_api_collection_logout_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      parameters:
+        - name: Authorization
+          in: header
+          description: ''
+          required: false
+          schema:
+            type: string
+          example: >-
+            Bearer
+            eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzM1MjIwNDQsImlkIjoiMSIsIm9yaWdfaWF0IjoxNzczNTIxMTQ0fQ.pYN0nJ-vLcWcxppWeUWECZxOl95HF-BpdO9hA2WJZbo
+      servers:
+        - url: http://localhost:8080
+  /remessas/1:
+    put:
+      summary: update consignment
+      operationId: home_rodrigo_documentos_sample_api_collection_update_consignment_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/update_consignment'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: view consignment
+      operationId: home_rodrigo_documentos_sample_api_collection_view_consignment_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /register:
+    post:
+      summary: register
+      operationId: home_rodrigo_documentos_sample_api_collection_register_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/register'
+      servers:
+        - url: http://localhost:8080
+  /produtos/1:
+    put:
+      summary: update product(form)
+      operationId: home_rodrigo_documentos_sample_api_collection_update_product_form_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/update_product_form'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: view public product
+      operationId: home_rodrigo_documentos_sample_api_collection_view_public_product_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /estabelecimentos/1:
+    put:
+      summary: update shop
+      operationId: home_rodrigo_documentos_sample_api_collection_update_shop_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/update_shop'
+      servers:
+        - url: http://localhost:8080
+    get:
+      summary: view shop
+      operationId: home_rodrigo_documentos_sample_api_collection_view_shop_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:8080
+  /user:
+    get:
+      summary: user (no auth test)
+      operationId: home_rodrigo_documentos_sample_api_collection_user_no_auth_test_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      parameters:
+        - name: Authorization
+          in: header
+          description: ''
+          required: false
+          schema:
+            type: string
+          example: 'Bearer: '
+      servers:
+        - url: http://localhost:8080
+  /carrinho/adicionar:
+    post:
+      summary: Add product to cart
+      operationId: home_rodrigo_documentos_sample_api_collection_add_product_to_cart_yml
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      requestBody:
+        $ref: '#/components/requestBodies/add_product_to_cart'
+      servers:
+        - url: http://localhost:8080
+servers: []
+components:
+  schemas:
+    add_product_to_consignment:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+              productName:
+                type: string
+              quantity:
+                type: integer
+              price:
+                type: integer
+              color:
+                type: string
+              description:
+                type: string
+              category:
+                type: string
+              discount:
+                type: integer
+              featured:
+                type: boolean
+      example:
+        products:
+          - productId: 1
+            productName: aosiddsa
+            quantity: 1
+            price: 1
+            color: '#000000'
+            description: dsaokdjsajdoasdjsa
+            category: Sem Categoria
+            discount: 10
+            featured: true
+    approve_product:
+      type: object
+      properties:
+        platform_cut:
+          type: integer
+        platform_cut_type:
+          type: string
+      example:
+        platform_cut: 5
+        platform_cut_type: percentage
+    create_report:
+      type: object
+      properties:
+        orderId:
+          type: integer
+        monitor:
+          type: string
+        moment:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+        occurrenceScope:
+          type: string
+      example:
+        orderId: 1
+        monitor: pedro
+        moment: exposicao
+        type: falta_peca
+        status: aberto
+        description: a
+        priority: media
+        occurrenceScope: product
+    create_consignment:
+      type: object
+      properties:
+        destinationId:
+          type: integer
+        monitorId:
+          type: integer
+        status:
+          type: string
+        monitorProfit:
+          type: integer
+      example:
+        destinationId: 1
+        monitorId: 1
+        status: RASCUNHO
+        monitorProfit: 3
+    create_monitor:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            number:
+              type: string
+            neighborhood:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            cep:
+              type: string
+      example:
+        name: pedro
+        email: pedro@gmail.com
+        phone: '27998209673'
+        address:
+          street: Rua Nova
+          number: '50'
+          neighborhood: Bairro
+          city: Campinas
+          state: SP
+          cep: '13000000'
+    create_pickup_location:
+      type: object
+      properties:
+        name:
+          type: string
+        datetime:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            number:
+              type: string
+            neighborhood:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            cep:
+              type: string
+            complement:
+              type: string
+      example:
+        name: ponto
+        datetime: '2024-03-25T14:05:43'
+        address:
+          street: Rua Nova
+          number: '50'
+          neighborhood: Bairro
+          city: Campinas
+          state: SP
+          cep: '13000000'
+          complement: Opcional
+    create_product:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: string
+        category:
+          type: string
+        stock:
+          type: string
+        featured:
+          type: string
+        discount:
+          type: string
+        allowCustomName:
+          type: string
+        allowCustomization:
+          type: string
+        allowCustomModality:
+          type: string
+        allowCustomColorSelection:
+          type: string
+        colors:
+          type: string
+        specifications:
+          type: string
+        imageUrl:
+          type: array
+          items:
+            type: string
+        descriptionImages:
+          type: array
+          items:
+            type: string
+        specificationImages:
+          type: array
+          items:
+            type: string
+        deliveryImages:
+          type: array
+          items:
+            type: string
+    create_shop:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        telephone:
+          type: string
+        status:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            number:
+              type: string
+            neighborhood:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            cep:
+              type: string
+            complement:
+              type: string
+      example:
+        name: Nova Loja
+        email: contato@shop.com
+        telephone: '11988887777'
+        status: active
+        address:
+          street: Rua Nova
+          number: '50'
+          neighborhood: Bairro
+          city: Campinas
+          state: SP
+          cep: '13000000'
+          complement: Opcional
+    login_admin_2:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: sistemas@lzero.org
+        password: TestingPassword
+    login_admin:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: sistemas@lzero.org
+        password: TestingPassword
+    login_monitor:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: pedro@gmail.com
+        password: '27998209673'
+    login_shop:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: contato@lshop.com
+        password: '11988887777'
+    login:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: a@gmail.com
+        password: abc
+    partial_update_consignment:
+      type: object
+      properties:
+        status:
+          type: string
+      example:
+        status: CONFERIDO
+    register:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        name: a
+        email: a@gmail.com
+        password: abc
+    shouldfail_add_absurd_ammount_of_products:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+              productName:
+                type: string
+              quantity:
+                type: integer
+              price:
+                type: integer
+              color:
+                type: string
+              description:
+                type: string
+              category:
+                type: string
+              discount:
+                type: integer
+              featured:
+                type: boolean
+      example:
+        products:
+          - productId: 1
+            productName: aosiddsa
+            quantity: 999
+            price: 1
+            color: '#000000'
+            description: dsaokdjsajdoasdjsa
+            category: Sem Categoria
+            discount: 10
+            featured: true
+    update_consignment:
+      type: object
+      properties:
+        destinationId:
+          type: integer
+        monitorId:
+          type: integer
+        status:
+          type: string
+        monitorProfit:
+          type: integer
+      example:
+        destinationId: 1
+        monitorId: 1
+        status: CONFERIR - DEVOLUÇÃO
+        monitorProfit: 5
+    update_product_form:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: string
+        category:
+          type: string
+        stock:
+          type: string
+        featured:
+          type: string
+        discount:
+          type: string
+        allowCustomName:
+          type: string
+        allowCustomization:
+          type: string
+        allowCustomModality:
+          type: string
+        allowCustomColorSelection:
+          type: string
+        colors:
+          type: string
+        specifications:
+          type: string
+        imageUrl:
+          type: string
+        descriptionImages:
+          type: string
+        specificationImages:
+          type: string
+        deliveryImages:
+          type: string
+    update_shop:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        telephone:
+          type: string
+        status:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            number:
+              type: string
+            neighborhood:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            cep:
+              type: string
+            complement:
+              type: string
+      example:
+        name: Nova lAbsadd
+        email: contato@lshop.com
+        telephone: '11988887777'
+        status: active
+        address:
+          street: Rua Nova
+          number: '50'
+          neighborhood: Bairro
+          city: Campinas
+          state: SP
+          cep: '13000000'
+          complement: Opcional
+    add_product_to_cart:
+      type: object
+      properties:
+        product_id:
+          type: integer
+        quantity:
+          type: integer
+        session_id:
+          type: string
+        personalization:
+          type: object
+      example:
+        product_id: 1
+        quantity: 1
+        session_id: temp_69af0ba7865c0_1773079463
+        personalization: {}
+  requestBodies:
+    add_product_to_consignment:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/add_product_to_consignment'
+      description: ''
+      required: true
+    approve_product:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/approve_product'
+      description: ''
+      required: true
+    create_report:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/create_report'
+      description: ''
+      required: true
+    create_consignment:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/create_consignment'
+      description: ''
+      required: true
+    create_monitor:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/create_monitor'
+      description: ''
+      required: true
+    create_pickup_location:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/create_pickup_location'
+      description: ''
+      required: true
+    create_product:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/create_product'
+      description: ''
+      required: true
+    create_shop:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/create_shop'
+      description: ''
+      required: true
+    login_admin_2:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/login_admin_2'
+      description: ''
+      required: true
+    login_admin:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/login_admin'
+      description: ''
+      required: true
+    login_monitor:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/login_monitor'
+      description: ''
+      required: true
+    login_shop:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/login_shop'
+      description: ''
+      required: true
+    login:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/login'
+      description: ''
+      required: true
+    partial_update_consignment:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/partial_update_consignment'
+      description: ''
+      required: true
+    register:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/register'
+      description: ''
+      required: true
+    shouldfail_add_absurd_ammount_of_products:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/shouldfail_add_absurd_ammount_of_products'
+      description: ''
+      required: true
+    update_consignment:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/update_consignment'
+      description: ''
+      required: true
+    update_product_form:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/update_product_form'
+      description: ''
+      required: true
+    update_shop:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/update_shop'
+      description: ''
+      required: true
+    add_product_to_cart:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/add_product_to_cart'
+      description: ''
+      required: true
+  securitySchemes: {}
