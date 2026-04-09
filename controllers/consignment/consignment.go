@@ -210,6 +210,40 @@ func UpdateProductHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		var request consignmentmodel.UpdateConsignmentProductRequest
+
+		err := c.ShouldBind(&request)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		consignment, err := strconv.Atoi(c.Param("consignment"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		product, err := strconv.Atoi(c.Param("product"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		prepare := request.Prepare(consignment, product)
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			prepare.Exec,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
 
 		util.OK(c, "Registro na remessa editado com sucesso!")
 	}
