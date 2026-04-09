@@ -4,6 +4,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/controllers/cart"
 	"linhazero.com/pvapi/controllers/client"
 	"linhazero.com/pvapi/controllers/consignee"
 	"linhazero.com/pvapi/controllers/consignment"
@@ -61,6 +62,11 @@ func setupRoutes(
 			product.ListByShopHandler(pool))
 		products.PUT(":product", product.UpdateHandler(pool))
 		products.POST("", product.CreateHandler(pool))
+
+		products.GET(
+			":product/destaque",
+			product.UpdateHandler(pool),
+		)
 	}
 
 	consignees := t.Group("/monitores", withAuth)
@@ -127,6 +133,11 @@ func setupRoutes(
 			"/moderacao/produtos/:product/rejeitar",
 			product.ModerationHandler(pool, "rejected"),
 		)
+	}
+
+	carts := t.Group("/carrinho")
+	{
+		carts.POST("/adicionar", cart.AddProductHandler(pool))
 	}
 
 	t.Static("/assets", "./public/uploads")
