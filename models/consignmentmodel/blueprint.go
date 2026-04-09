@@ -21,3 +21,10 @@ type ConsignmentUpdateBlueprint struct {
 	ComissionValue *decimal.Decimal
 	Status         *string
 }
+
+type UpdateConsignmentProductBlueprint struct {
+	ProductID     int
+	ConsignmentID int
+
+	UpdateConsignmentProductRequest
+}
