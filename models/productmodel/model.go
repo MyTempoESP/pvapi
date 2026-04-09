@@ -155,9 +155,19 @@ func (p *UpdateProductBlueprint) Exec(
 		attrArgs = append(attrArgs, val)
 	}
 
-	if p.ImageURL != nil {
-		addSet("main_image", *p.ImageURL)
+	// strings must be quoted twice (like "'string'") to be valid json,
+	// the outer quotes are for SQL (automatic), the inner are for JSON parsing.
+	addSetQuoted := func(key string, s any) {
+		attrExpr = fmt.Sprintf(query.JSONBSetFormat, attrExpr, key)
+		attrArgs = append(attrArgs, fmt.Sprintf("%q", s))
 	}
+
+	// Strings
+	if p.ImageURL != nil {
+		addSetQuoted("main_image", *p.ImageURL)
+	}
+
+	// Bools
 	if p.CustomName != nil {
 		addSet("customName", *p.CustomName)
 	}
@@ -168,6 +178,7 @@ func (p *UpdateProductBlueprint) Exec(
 		addSet("customColor", *p.CustomColorSelection)
 	}
 
+	// Lists
 	if len(p.DescImagesURLs) > 0 {
 		addSet("desc_images", p.DescImagesURLs)
 	}
@@ -178,6 +189,7 @@ func (p *UpdateProductBlueprint) Exec(
 		addSet("pack_images", p.PackImagesURLs)
 	}
 
+	// Objects
 	if p.SpecificationsJSON != nil {
 		addSet("specifications", *p.SpecificationsJSON)
 	}

@@ -244,15 +244,21 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 	t.Run("update_product_form", func(t *testing.T) {
 		rec := h.doMultipart(t, http.MethodPut, fmt.Sprintf("/produtos/%d", productID), &shopSession, map[string]string{
-			"name":        updatedProductName,
-			"description": "produto atualizado",
-			"price":       "3",
-			"stock":       "10",
-			"discount":    "10",
+			"name":                      updatedProductName,
+			"description":               "produto atualizado",
+			"price":                     "3",
+			"stock":                     "10",
+			"discount":                  "10",
+			"allowCustomColorSelection": "false",
 		}, []uploadFile{
 			{
 				Field:    "imageUrl",
 				Filename: "product-updated.png",
+				Data:     png1x1,
+			},
+			{
+				Field:    "descriptionImages",
+				Filename: "product-updated-desc.png",
 				Data:     png1x1,
 			},
 		})
