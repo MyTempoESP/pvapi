@@ -7,12 +7,12 @@ WITH cart AS (
 	VALUES (@session_id)
 	ON CONFLICT (session_id) DO NOTHING
 	RETURNING id
-) fetch_cart AS (
+), fetch_cart AS (
 	SELECT id FROM cart
 	UNION ALL
 	SELECT id FROM carts WHERE session_id = @session_id
 	LIMIT 1
-) inventory_check AS (
+), inventory_check AS (
 	SELECT product_decrement_inventory(@product_id, @quantity)
 )
 INSERT INTO cart_product
