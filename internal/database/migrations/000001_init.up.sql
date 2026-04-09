@@ -140,7 +140,8 @@ CREATE TABLE IF NOT EXISTS public.admins
 (
     id serial NOT NULL,
     user_id integer NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    CONSTRAINT so_pode_um_usuario_id_pqp UNIQUE (user_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.categories
@@ -157,6 +158,27 @@ CREATE TABLE IF NOT EXISTS public.clients
 (
     id serial NOT NULL,
     user_id integer NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT unique_user_id_client UNIQUE (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.carts
+(
+    id serial NOT NULL,
+    client_id integer,
+    session_id text NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT cart_user_unique UNIQUE (client_id),
+    CONSTRAINT cart_session_unique UNIQUE (session_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.cart_product
+(
+    id serial NOT NULL,
+    product_id integer NOT NULL,
+    cart_id integer NOT NULL,
+    personalizations jsonb NOT NULL,
+    quantity integer NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -322,5 +344,29 @@ ALTER TABLE IF EXISTS public.clients
     NOT VALID;
 CREATE INDEX IF NOT EXISTS fki_client_user_relation
     ON public.clients(user_id);
+
+
+ALTER TABLE IF EXISTS public.carts
+    ADD CONSTRAINT client_cart_relation FOREIGN KEY (client_id)
+    REFERENCES public.clients (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
+
+
+ALTER TABLE IF EXISTS public.cart_product
+    ADD CONSTRAINT product_cart_relation_through_cart_product FOREIGN KEY (product_id)
+    REFERENCES public.products (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
+
+
+ALTER TABLE IF EXISTS public.cart_product
+    ADD CONSTRAINT cart_product_through_cart_product FOREIGN KEY (cart_id)
+    REFERENCES public.carts (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
 
 END;
