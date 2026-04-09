@@ -27,7 +27,7 @@ VALUES
 RETURNING id
 `
 
-	ListAllConsignmentsQuery = `
+	ListConsignmentsByShopQuery = `
 SELECT
 	consignment_id,
 	consignment_comission_type,
@@ -46,6 +46,7 @@ SELECT
 	pickup_location_id,
 	pickup_location_name
 FROM consignments_listing_view
+WHERE shop_id = $1
 `
 
 	FindConsignmentQuery = `
