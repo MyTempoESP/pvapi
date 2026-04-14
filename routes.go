@@ -48,7 +48,8 @@ func setupRoutes(
 		public.GET("/estabelecimentos/:shop/produtos",
 			shop.PublicListProductsHandler(pool))
 
-		public.POST("", shop.CreateHandler(pool))
+		public.POST("/estabelecimentos", shop.CreateHandler(pool))
+
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
 	}
