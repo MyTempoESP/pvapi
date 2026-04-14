@@ -229,6 +229,11 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				Filename: "product.png",
 				Data:     png1x1,
 			},
+			{
+				Field:    "descriptionImages[]",
+				Filename: "product.png",
+				Data:     png1x1,
+			},
 		})
 		assertStatus(t, rec, http.StatusOK)
 	})
