@@ -150,9 +150,9 @@ type UpdateProductRequest struct {
 	Featured    *bool            `form:"featured"`
 
 	Image      *multipart.FileHeader   `form:"imageUrl"`
-	DescImages []*multipart.FileHeader `form:"descriptionImages"`
-	SpecImages []*multipart.FileHeader `form:"specificationImages"`
-	PackImages []*multipart.FileHeader `form:"deliveryImages"`
+	DescImages []*multipart.FileHeader `form:"descriptionImages[]"`
+	SpecImages []*multipart.FileHeader `form:"specificationImages[]"`
+	PackImages []*multipart.FileHeader `form:"deliveryImages[]"`
 
 	SpecificationsJSON *string `form:"specifications"`
 
