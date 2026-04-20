@@ -127,17 +127,17 @@ type CreateProductRequest struct {
 	Featured    *bool           `form:"featured"`
 
 	Image      *multipart.FileHeader   `form:"imageUrl" binding:"required"`
-	DescImages []*multipart.FileHeader `form:"descriptionImages"`
-	SpecImages []*multipart.FileHeader `form:"specificationImages"`
-	PackImages []*multipart.FileHeader `form:"deliveryImages"`
+	DescImages []*multipart.FileHeader `form:"descriptionImages[]"`
+	SpecImages []*multipart.FileHeader `form:"specificationImages[]"`
+	PackImages []*multipart.FileHeader `form:"deliveryImages[]"`
 
 	SpecificationsJSON string `form:"specifications" binding:"required"`
 
 	// Policies
 	ColorListJSON        string `form:"colors"`
-	CustomName           bool   `form:"allowCustomName"`
-	CustomModality       bool   `form:"allowCustomModality"`
-	CustomColorSelection bool   `form:"allowCustomColorSelection"`
+	CustomName           bool   `form:"allowCustomName[]"`
+	CustomModality       bool   `form:"allowCustomModality[]"`
+	CustomColorSelection bool   `form:"allowCustomColorSelection[]"`
 }
 
 type UpdateProductRequest struct {

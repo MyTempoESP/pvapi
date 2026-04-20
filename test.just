@@ -31,6 +31,10 @@ max-life-go := "300s"
 [group('target')]
 all: (internal::ensure 'test::worker' 'test::clean')
 
+db-attach:
+    PGPASSWORD='{{db_pass}}' psql \
+        -h '{{db_host}}' -p '{{db_port}}' '{{db_name}}' -U '{{db_user}}'
+
 [private]
 @db-ui: test-db
     printf "\n{{BOLD + BG_CYAN + GREEN}}Started PostgreSQL database.\n"
