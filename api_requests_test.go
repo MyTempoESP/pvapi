@@ -468,7 +468,9 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		body := decodeJSON(t, rec)
 		report := asMap(t, body)
 		_, ok := report["session_id"]
-		if !ok { t.Fatalf("expected body to contain 'session_id'.") }
+		if !ok {
+			t.Fatalf("expected body to contain 'session_id'.")
+		}
 	})
 
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
