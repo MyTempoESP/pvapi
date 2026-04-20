@@ -37,7 +37,7 @@ new: fetch image fresh
 
 [group('util')]
 image:
-    podman build -t linhazero/pvapi:latest .
+    podman build --no-cache -t linhazero/pvapi:latest .
 
 [group('util')]
 @migrate: (database::migrate prod_db_url)
