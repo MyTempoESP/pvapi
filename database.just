@@ -24,7 +24,7 @@ pg_poller container:
 
 [group('connection')]
 pg_poll container:
-    timeout --foreground 10s \
+    timeout 10s \
         just database::pg_poller {{container}} {{quiet-errors}} \
     || { \
         EXIT=$?; printf "\n"; \

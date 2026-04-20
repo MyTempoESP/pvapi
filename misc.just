@@ -6,6 +6,24 @@ list-header-style := BG_CYAN + BOLD + WHITE
 default:
     just --list
 
+
+[group('setup')]
+sam:
+    find . -path './vendor/*' -prune -o -name '*.go' -exec sam {} + &
+
+
+[group('setup')]
+setup-dev:
+    doas apk add \
+        postgresql \
+        podman \
+        go \
+        bash
+    echo 'rodrigo:100000:65536' | doas tee /etc/subuid /etc/subgid
+    doas modprobe tun
+    doas rc-service cgroups start
+
+
 [group('util')]
 count-lines:
     find . \
