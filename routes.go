@@ -13,6 +13,7 @@ import (
 	"linhazero.com/pvapi/controllers/report"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
+	"linhazero.com/pvapi/controllers/payment"
 	"linhazero.com/pvapi/middleware/auth"
 )
 
@@ -27,6 +28,7 @@ func setupRoutes(
 
 	// useful alias
 	public := t
+	t.POST("payments/session/create", payment.CreateTemporarySession)
 
 	loggedIn := t.Group("", withAuth)
 	{
@@ -68,6 +70,12 @@ func setupRoutes(
 			":product/destaque",
 			product.UpdateHandler(pool),
 		)
+
+//		products.DELETE(
+//			":product/img/:url",
+//  			product.DeleteImageHandler(pool),
+// 		)
+
 	}
 
 	consignees := t.Group("/monitores", withAuth)

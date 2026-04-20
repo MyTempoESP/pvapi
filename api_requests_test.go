@@ -462,6 +462,15 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 	})
 
+	t.Run("create payment session", func(t * testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		report := asMap(t, body)
+		_, ok := report["session_id"]
+		if !ok { t.Fatalf("expected body to contain 'session_id'.") }
+	})
+
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
 	_ = consigneeSession
 }
