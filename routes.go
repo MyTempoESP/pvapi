@@ -28,7 +28,7 @@ func setupRoutes(
 
 	// useful alias
 	public := t
-	t.POST("payments/session/create", payment.CreateTemporarySession)
+	t.POST("/payments/session/create", payment.CreateTemporarySession)
 
 	loggedIn := t.Group("", withAuth)
 	{
