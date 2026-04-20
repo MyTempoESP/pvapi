@@ -12,3 +12,4 @@ ensure t1 t2:
     cleanup() { just {{t2}}; }
     trap cleanup EXIT
     just {{t1}}
+

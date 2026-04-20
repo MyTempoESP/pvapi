@@ -11,3 +11,4 @@ migration name:
         --network host \
         docker.io/migrate/migrate \
         -verbose create -dir=/migrations/ -seq -ext sql "{{name}}"
+
