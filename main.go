@@ -46,6 +46,8 @@ func run(logger *slog.Logger) (err error) {
 		return
 	}
 
+	logger.Info("PVAPI: Version 0.54-alpha")
+
 	t := gin.New()
 	t.Use(logmw.LogMiddleware(logger))
 	t.Use(gin.Recovery())
