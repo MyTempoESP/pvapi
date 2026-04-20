@@ -18,7 +18,8 @@ setup-dev:
         postgresql \
         podman \
         go \
-        bash
+        bash \
+        pg_cli
     echo 'rodrigo:100000:65536' | doas tee /etc/subuid /etc/subgid
     doas modprobe tun
     doas rc-service cgroups start
