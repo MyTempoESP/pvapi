@@ -475,7 +475,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			rec := h.doRequest(
 				t,
 				http.MethodGet,
-				fmt.Sprintf("/dados?session_id=%s", report["session_id"].(string)),
+				fmt.Sprintf("/carrinho/dados?session_id=%s", report["session_id"].(string)),
 				nil, "", nil,
 			)
 			assertStatus(t, rec, http.StatusOK)
