@@ -1,0 +1,19 @@
+package productmodel // import "linhazero.com/pvapi/models/productmodel"
+
+type ProductAttr struct {
+	Colors     []string `json:"colors,omitempty"`
+	Sizes      []string `json:"sizes,omitempty"`
+	Modalities []string `json:"modalities,omitempty"`
+
+	AllowCustomColor    bool `json:"customColor,omitempty"`
+	AllowCustomModality bool `json:"customModality,omitempty"`
+	AllowCustomName     bool `json:"customName,omitempty"`
+
+	Specifications []Specification `json:"specifications"`
+
+	Image      string   `json:"main_image"`
+	SpecImages []string `json:"spec_images"`
+	DescImages []string `json:"desc_images"`
+	PackImages []string `json:"pack_images"`
+}
+

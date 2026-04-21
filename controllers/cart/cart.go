@@ -1,11 +1,48 @@
 package cart
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/cartmodel"
 	"linhazero.com/pvapi/util"
 )
+
+func ViewHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sessionID, ok := c.GetQuery("session_id")
+		if !ok {
+			util.HandleBadRequest(c, fmt.Errorf("No session_id"))
+			return
+		}
+
+		cart, err := cartmodel.FindBySession(
+			c.Request.Context(), pool,
+			sessionID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		resource := cart.ToResource(sessionID)
+
+		util.WrapMap(c, "Dados do carrinho obtidos com sucesso!",
+			gin.H{
+				"items": resource.Items,
+				"total": resource.Total,
+				"item_count": resource.Count,
+				"total_with_discount": resource.TotalWithDiscount,
+				"total_discount": resource.TotalDiscount,
+				"session_id": resource.SessionID,
+			},
+		)
+	}
+}
 
 func AddProductHandler(
 	pool *pgxpool.Pool,

@@ -7,6 +7,7 @@ mod prod
 mod test
 mod misc
 mod new
+mod ide
 
-@default: (misc::list 'database' 'prod' 'test' 'misc' 'new')
+@default: (misc::list 'database' 'prod' 'test' 'misc' 'new' 'ide')
 

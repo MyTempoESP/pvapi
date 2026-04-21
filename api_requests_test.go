@@ -452,17 +452,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
-	t.Run("add_product_to_cart", func(t *testing.T) {
-		rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-			"product_id":      productID,
-			"quantity":        1,
-			"session_id":      fmt.Sprintf("temp_%d", runID),
-			"personalization": "{}",
-		})
-		assertStatus(t, rec, http.StatusOK)
-	})
-
-	t.Run("create payment session", func(t * testing.T) {
+	t.Run("create_payment_session", func(t * testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
@@ -471,6 +461,22 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected body to contain 'session_id'.")
 		}
+
+		t.Run("add_product_to_cart", func(t *testing.T) {
+			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+				"product_id":      productID,
+				"quantity":        1,
+				"session_id":      report["session_id"],
+				"personalization": "{}",
+			})
+			assertStatus(t, rec, http.StatusOK)
+		})
+
+		t.Run("list_cart_products",  func(t * testing.T) {
+			rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/dados?session_id=%s", report["session_id"].(string)), nil,
+				map[string]any{})
+			assertStatus(t, rec, http.StatusOK)
+		})
 	})
 
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
