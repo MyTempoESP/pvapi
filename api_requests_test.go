@@ -1,5 +1,4 @@
 package main
-
 import (
 	"bytes"
 	"context"
@@ -459,7 +458,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		report := asMap(t, body)
 		_, ok := report["session_id"]
 		if !ok {
-			t.Fatalf("expected body to contain 'session_id'.")
+			t.Fatal("expected body to contain 'session_id'.")
 		}
 
 		t.Run("add_product_to_cart", func(t *testing.T) {
@@ -473,9 +472,23 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 
 		t.Run("list_cart_products",  func(t * testing.T) {
-			rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/dados?session_id=%s", report["session_id"].(string)), nil,
-				map[string]any{})
+			rec := h.doRequest(
+				t,
+				http.MethodGet,
+				fmt.Sprintf("/dados?session_id=%s", report["session_id"].(string)),
+				nil, "", nil,
+			)
 			assertStatus(t, rec, http.StatusOK)
+			body := decodeJSON(t, rec)
+			report := asMap(t, body)
+			itemsField, ok := report["items"]
+			if !ok {
+				t.Fatal("expected body to contain 'items'.")
+			}
+			items := itemsField.([]any)
+			if len(items) != 1 {
+				t.Fatal("expected 'items' to contain only a single product'.")
+			}
 		})
 	})
 
