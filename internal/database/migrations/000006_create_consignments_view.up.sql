@@ -19,5 +19,5 @@ SELECT
 FROM consignments c
 LEFT JOIN shops_info_view      s USING (shop_id)
 LEFT JOIN consignees_info_view m USING (consignee_id)
-LEFT JOIN pickup_locations     p ON p.id = c.shop_id
+LEFT JOIN pickup_locations     p ON p.id = c.pickup_location_id
 ;
