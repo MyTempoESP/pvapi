@@ -16,7 +16,7 @@ type ProductBlueprint struct {
 	Price       string
 	Stock       int
 	Discount    decimal.Decimal
-	Category    string
+	CategoryID  int
 	Featured    bool
 	Description string
 	Code        string
@@ -152,7 +152,7 @@ func (p *CreateProductRequest) Prepare(
 		return
 	}
 
-	code := slug.Make(p.Name) + slug.Make(p.Category)
+	code := slug.Make(p.Name)
 
 	// at least of the form: X, description, category
 	if len(a.Specifications) > 2 {
@@ -168,7 +168,7 @@ func (p *CreateProductRequest) Prepare(
 		Name:        p.Name,
 		Price:       p.Price,
 		Stock:       p.Stock,
-		Category:    p.Category,
+		CategoryID:  p.CategoryID,
 		Discount:    p.Discount,
 		Featured:    featured,
 		Code:        code,
