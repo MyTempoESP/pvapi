@@ -210,12 +210,19 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("create_category", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/categorias", &shopSession, map[string]any{
+			"name": "lixo-eletronico",
+		})
+		assertStatus(t, rec, http.StatusOK)
+	})
+
 	t.Run("create_product_for_deletion", func(t *testing.T) {
 		rec := h.doMultipart(t, http.MethodPost, "/produtos", &shopSession, map[string]string{
 			"name":                      productName,
-			"description":               "produto de teste",
+			"description":               "produto de teste temporario",
 			"price":                     "2",
-			"category":                  "porta-medalhas",
+			"category":                  "lixo-eletronico",
 			"stock":                     "10",
 			"featured":                  "true",
 			"discount":                  "12",

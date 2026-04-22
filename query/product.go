@@ -3,7 +3,7 @@ package query
 const (
 	// creating
 	ProductCreate = `
-WITH product_category AS (
+WITH product_category_inserted AS (
 	INSERT INTO categories
 		(
 			name,
@@ -16,8 +16,14 @@ WITH product_category AS (
 			@category,
 			@shop_id
 		)
-	ON CONFLICT (shop_id, name) DO UPDATE SET name = EXCLUDED.name
+	ON CONFLICT (shop_id, name) DO NOTHING
 	RETURNING id
+), product_category AS (
+	SELECT id FROM product_category_inserted
+	UNION ALL
+	SELECT id FROM categories
+	WHERE name = @category AND shop_id = @shop_id
+	LIMIT 1
 )
 INSERT INTO products
 	(
