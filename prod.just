@@ -24,11 +24,11 @@ prod_db_url := (
 )
 
 prod_psql := (
-	'psql' +
-		'-h' + '{{prod_db_host}}' +
-		'-p' + '{{prod_db_port}}' +
-		'-U' + '{{prod_db_user}}' +
-		'-d' + '{{prod_db_name}}'
+	'psql ' +
+		'-h ' + '{{prod_db_host}} ' +
+		'-p ' + '{{prod_db_port}} ' +
+		'-U ' + '{{prod_db_user}} ' +
+		'-d ' + '{{prod_db_name}}'
 )
 
 init := "systemctl --user"
