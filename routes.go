@@ -29,6 +29,7 @@ func setupRoutes(
 	// useful alias
 	public := t
 	t.POST("/payments/session/create", payment.CreateTemporarySession(pool))
+	t.POST("/payments/session/validate", payment.ValidateTemporarySession(pool))
 	t.GET("/carrinho/dados", cart.ViewHandler(pool))
 	t.POST("/carrinho/dados", cart.ViewHandler(pool))
 
