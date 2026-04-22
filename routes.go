@@ -74,6 +74,8 @@ func setupRoutes(
 			product.UpdateHandler(pool),
 		)
 
+		products.DELETE(":product", product.DeleteHandler(pool))
+
 		products.DELETE(
 			":product/img/:url",
   			product.DeleteImageHandler(pool),

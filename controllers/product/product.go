@@ -16,6 +16,33 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func DeleteHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		product, err := strconv.Atoi(c.Params.ByName("product"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func (ctx context.Context, tx pgx.Tx) error {
+				return productmodel.Delete(ctx, tx, product)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Produto deletado com sucesso")
+	}
+}
+
 func DeleteImageHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
