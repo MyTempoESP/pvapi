@@ -47,38 +47,53 @@ func (p *UpdateProductRequest) Prepare(
 
 	util.LogInfo(c, "trying to handle images")
 
+	logFailedUpload := func(c *gin.Context, imgType string, err error) {
+		util.LogWarn(
+			c, "tried (and failed) to upload image",
+			"shop", shop,
+			"error", err,
+			"imgType", imgType,
+			"product", product,
+		)
+	}
+
 	if p.Image != nil {
-		var image string
-		image, err = handleImage(c, p.Image)
+		image, err := handleImage(c, p.Image)
 
-		if err != nil {
-			return
+		if err == nil {
+			pb.ImageURL = &image
+		} else {
+			logFailedUpload(c, "main", err)
 		}
-
-		pb.ImageURL = &image
 	}
 
 	if p.DescImages != nil {
-		pb.DescImagesURLs, err = handleImages(c, p.DescImages)
+		images, err := handleImages(c, p.DescImages)
 
-		if err != nil {
-			return
+		if err == nil {
+			pb.DescImagesURLs = images
+		} else {
+			logFailedUpload(c, "description", err)
 		}
 	}
 
 	if p.SpecImages != nil {
-		pb.SpecImagesURLs, err = handleImages(c, p.SpecImages)
+		images, err := handleImages(c, p.SpecImages)
 
-		if err != nil {
-			return
+		if err == nil {
+			pb.SpecImagesURLs = images
+		} else {
+			logFailedUpload(c, "specifications", err)
 		}
 	}
 
 	if p.PackImages != nil {
-		pb.PackImagesURLs, err = handleImages(c, p.PackImages)
+		images, err := handleImages(c, p.PackImages)
 
-		if err != nil {
-			return
+		if err == nil {
+			pb.PackImagesURLs = images
+		} else {
+			logFailedUpload(c, "delivery", err)
 		}
 	}
 
