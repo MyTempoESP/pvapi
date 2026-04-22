@@ -1,6 +1,6 @@
 mod database
 
-set shell := ["bash", "-uc"]
+set shell := ["bash", "-c"]
 
 prod_db_user	 := "pvauto"
 prod_db_pass	 := "REDACTED_DB_PASS"
