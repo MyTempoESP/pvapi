@@ -39,9 +39,12 @@ func CreateHandler(
 			return
 		}
 
-		util.WrapLabeled(
+		util.WrapMap(
 			c, "ponto criado com sucesso",
-			"ponto", id,
+			gin.H{
+				"ponto": id,
+				"id": id,
+			},
 		)
 	}
 }
