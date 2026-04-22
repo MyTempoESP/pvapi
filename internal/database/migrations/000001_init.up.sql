@@ -126,16 +126,6 @@ CREATE TABLE IF NOT EXISTS public.packages
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.images
-(
-    id serial NOT NULL,
-    product_id integer NOT NULL,
-    filename text NOT NULL,
-    alt text DEFAULT 'img data',
-    tag text NOT NULL,
-    PRIMARY KEY (id)
-);
-
 CREATE TABLE IF NOT EXISTS public.admins
 (
     id serial NOT NULL,
@@ -308,16 +298,6 @@ ALTER TABLE IF EXISTS public.packages
     NOT VALID;
 
 
-ALTER TABLE IF EXISTS public.images
-    ADD CONSTRAINT product_images_relation FOREIGN KEY (product_id)
-    REFERENCES public.products (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE NO ACTION
-    NOT VALID;
-CREATE INDEX IF NOT EXISTS fki_product_images_relation
-    ON public.images(product_id);
-
-
 ALTER TABLE IF EXISTS public.admins
     ADD CONSTRAINT admin_user_relation FOREIGN KEY (user_id)
     REFERENCES public.users (id) MATCH SIMPLE
@@ -358,7 +338,7 @@ ALTER TABLE IF EXISTS public.cart_product
     ADD CONSTRAINT product_cart_relation_through_cart_product FOREIGN KEY (product_id)
     REFERENCES public.products (id) MATCH SIMPLE
     ON UPDATE NO ACTION
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     NOT VALID;
 
 

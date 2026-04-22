@@ -265,4 +265,9 @@ SET attr = jsonb_set(
 	)
 WHERE id = $1;
 `
+
+	DeleteProduct = `
+DELETE FROM products
+WHERE id = $1
+`
 )

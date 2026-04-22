@@ -210,6 +210,36 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("create_product_for_deletion", func(t *testing.T) {
+		rec := h.doMultipart(t, http.MethodPost, "/produtos", &shopSession, map[string]string{
+			"name":                      productName,
+			"description":               "produto de teste",
+			"price":                     "2",
+			"category":                  "porta-medalhas",
+			"stock":                     "10",
+			"featured":                  "true",
+			"discount":                  "12",
+			"allowCustomName":           "false",
+			"allowCustomModality":       "false",
+			"allowCustomColorSelection": "false",
+			"colors":                    `["#000000"]`,
+			"specifications":            `[{"name":"material","value":"metal"}]`,
+		}, []uploadFile{
+			{
+				Field:    "imageUrl",
+				Filename: "product.png",
+				Data:     png1x1,
+			},
+			{
+				Field:    "descriptionImages[]",
+				Filename: "product.png",
+				Data:     png1x1,
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+	})
+
+
 	t.Run("create_product", func(t *testing.T) {
 		rec := h.doMultipart(t, http.MethodPost, "/produtos", &shopSession, map[string]string{
 			"name":                      productName,
@@ -237,6 +267,11 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			},
 		})
 		assertStatus(t, rec, http.StatusOK)
+
+		t.Run("delete_product", func(t *testing.T) {
+			rec := h.doRequest(t, http.MethodDelete, "/produtos/1", &shopSession, "", nil)
+			assertStatus(t, rec, http.StatusOK)
+		})
 	})
 
 	t.Run("list_shop_owner_products", func(t *testing.T) {

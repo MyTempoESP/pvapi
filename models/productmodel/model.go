@@ -305,6 +305,17 @@ func PendingIndex(
 	)
 }
 
+func Delete(
+	ctx context.Context,
+	tx pgx.Tx,
+	productID int,
+) error {
+	// TODO: worker script to sweep public/uploads
+	// i'm too lazy to do cleanup here
+	_, err := tx.Exec(ctx, query.DeleteProduct, productID)
+	return err
+}
+
 func Moderate(
 	ctx context.Context,
 	base db.Queryable,
