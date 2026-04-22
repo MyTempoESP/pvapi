@@ -54,7 +54,7 @@ func CreateHandler(
 			return
 		}
 
-		err = util.Transaction(
+		id, err := util.TransactionReturn[int](
 			c.Request.Context(),
 			pool,
 			consignee.Save,
@@ -67,6 +67,13 @@ func CreateHandler(
 
 		c.JSON(200, gin.H{
 			"message": "monitor criado com sucesso",
+			"monitor": gin.H{
+				"id": id,
+				"name": consignee.Name,
+				"email": consignee.Email,
+				"phone": consignee.Phone,
+				"address": consignee.Address,
+			},
 		})
 	}
 }
