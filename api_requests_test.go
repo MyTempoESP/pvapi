@@ -396,6 +396,12 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				productID, "lixo-eletronico", category)
 		}
 
+		productCategoryID := asInt(t, product["category_id"])
+		if productCategoryID != categoryID {
+			t.Fatalf("expected product %q's category ID to be %q, got %q",
+				productID, categoryID, productCategoryID)
+		}
+
 		descImages := asSlice(t, product["descriptionImages"])
 		if len(descImages) < 1 {
 			t.Fatalf("expected product %q to have at least one description image", productID)
