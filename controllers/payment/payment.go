@@ -31,10 +31,11 @@ func ValidateTemporarySession(
 
 		sess := request.SessionID
 
-		if strings.HasPrefix(sess, "temp_") {
+		if !strings.HasPrefix(sess, "temp_") {
 			c.JSON(400, gin.H{
 				"success": false,
-				"error": "sessao invalida",
+				"error": "sessao invalida, nao possui prefixo temp_",
+				"at": sess,
 			})
 			return
 		}
@@ -44,7 +45,8 @@ func ValidateTemporarySession(
 		if len(parts) < 3 {
 			c.JSON(400, gin.H{
 				"success": false,
-				"error": "sessao invalida",
+				"error": "sessao invalida, formato nao reconhecido",
+				"at": sess,
 			})
 			return
 		}
@@ -54,7 +56,8 @@ func ValidateTemporarySession(
 		if err != nil {
 			c.JSON(400, gin.H{
 				"success": false,
-				"error": "sessao invalida",
+				"error": "sessao invalida, timestamp invalida",
+				"at": parts[1],
 			})
 			return
 		}
