@@ -233,4 +233,36 @@ SELECT p.attr
 FROM products p
 WHERE p.id = $1
 `
+
+	ProductHasImage = `
+SELECT
+	(
+		COALESCE(p.attr->'desc_images', '[]'::jsonb) ||
+		COALESCE(p.attr->'spec_images', '[]'::jsonb) ||
+		COALESCE(p.attr->'pack_images', '[]'::jsonb)
+	) @> to_jsonb($2::text) AS hasImage
+FROM products p
+WHERE p.id = $1;
+`
+
+	ProductDeleteImageQuery = `
+UPDATE products
+SET attr = jsonb_set(
+		jsonb_set(
+			jsonb_set(
+				attr,
+				'{pack_images}',
+				COALESCE(NULLIF(attr->'pack_images',
+					'null'::jsonb), '[]'::jsonb) - $2::text
+			),
+			'{spec_images}',
+			COALESCE(NULLIF(attr->'spec_images', 'null'::jsonb),
+					'[]'::jsonb) - $2::text
+		),
+		'{desc_images}',
+		COALESCE(NULLIF(attr->'desc_images', 'null'::jsonb),
+				'[]'::jsonb) - $2::text
+	)
+WHERE id = $1;
+`
 )

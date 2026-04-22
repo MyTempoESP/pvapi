@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/middleware/logmw"
+	"linhazero.com/pvapi/env"
 )
 
 var (
@@ -324,3 +325,25 @@ func Bake(
 
 	return
 }
+
+func GetImageURL(base string) (url string, err error) {
+	domain, err := env.DomainName()
+
+	if err != nil {
+		return
+	}
+
+	protocol := "http"
+
+	if env.HTTPSEnabled {
+		protocol = "https"
+	}
+
+	url = fmt.Sprintf(
+		"%s://%s/public/uploads/%s",
+		protocol, domain, base,
+	)
+
+	return
+}
+

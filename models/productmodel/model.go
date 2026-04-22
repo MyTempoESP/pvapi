@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
@@ -346,4 +347,31 @@ func GetByShop(
 	return
 }
 
-// TODO: Update product (PAIN)
+func HasImage(
+	ctx context.Context,
+	base db.Queryable,
+	productID int,
+	imageUrl string,
+) (bool, error) {
+	return model.HasResource(
+		ctx, base,
+		query.ProductHasImage,
+		productID, imageUrl,
+	)
+}
+
+func DeleteImage(
+	ctx context.Context,
+	tx pgx.Tx,
+	productID int,
+	imageUrl string,
+) error {
+	_, err := tx.Exec(
+		ctx,
+		query.ProductDeleteImageQuery,
+		productID, imageUrl,
+	)
+
+	return err
+}
+

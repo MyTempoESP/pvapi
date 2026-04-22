@@ -1,14 +1,92 @@
 package product
 
 import (
+	"errors"
+	"context"
+	"os"
+	"fmt"
 	"strconv"
 
+//~extern
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/util"
 )
+
+func DeleteImageHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		product, err := strconv.Atoi(c.Params.ByName("product"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		imageBase := c.Params.ByName("url")
+
+		if imageBase == "" {
+			util.HandleBadRequest(
+				c, errors.New("Nenhuma imagem especificada"))
+			return
+		}
+
+		imageUrl, err := util.GetImageURL(imageBase)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		dest := fmt.Sprintf("./public/uploads/%s", imageBase)
+
+		hasImage, err := productmodel.HasImage(
+			c.Request.Context(), pool,
+			product, imageUrl,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		if !hasImage {
+			util.HandleBadRequest(
+				c, errors.New("O produto nao possui a imagem"))
+			return
+		}
+
+		util.LogInfo(c, "Removing an image file", "path", dest)
+		err = os.Remove(dest)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		util.LogInfo(c, "Removing image from product")
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func (ctx context.Context, tx pgx.Tx) error {
+				return productmodel.DeleteImage(
+					ctx, tx,
+					product, imageUrl,
+				)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Imagem deletada com sucesso")
+	}
+}
 
 func ListPendingModerationHandler(
 	pool *pgxpool.Pool,
