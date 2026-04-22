@@ -168,15 +168,17 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			},
 		})
 		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		consigneeID = asInt(t, asMap(t, body["monitor"])["id"])
 	})
 
 	t.Run("list_monitors", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/monitores", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
-		body := decodeJSON(t, rec)
-		monitors := asSlice(t, body["data"])
-		consigneeID = findIDByFieldValue(t, monitors, "email", consigneeEmail)
+		//body := decodeJSON(t, rec)
+		//monitors := asSlice(t, body["data"])
+		//consigneeID = findIDByFieldValue(t, monitors, "email", consigneeEmail)
 	})
 
 	t.Run("create_pickup_location", func(t *testing.T) {

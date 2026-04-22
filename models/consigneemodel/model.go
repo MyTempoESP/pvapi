@@ -25,14 +25,14 @@ type Consignee struct {
 func (c ConsigneeBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
-) (err error) {
+) (id int, err error) {
 	userID, err := c.User.MustSave(ctx, base)
 
 	if err != nil {
 		return
 	}
 
-	_, err = model.Create(
+	id, err = model.Create(
 		ctx,
 		base,
 		query.CreateConsigneeQuery,
