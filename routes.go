@@ -74,11 +74,10 @@ func setupRoutes(
 			product.UpdateHandler(pool),
 		)
 
-//		products.DELETE(
-//			":product/img/:url",
-//  			product.DeleteImageHandler(pool),
-// 		)
-
+		products.DELETE(
+			":product/img/:url",
+  			product.DeleteImageHandler(pool),
+ 		)
 	}
 
 	consignees := t.Group("/monitores", withAuth)

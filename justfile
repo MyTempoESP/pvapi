@@ -4,7 +4,7 @@ import? 'gemini.just'
 
 mod database
 mod prod
-mod test
+mod t 'test.just'
 mod misc
 mod new
 mod ide

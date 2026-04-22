@@ -1,6 +1,8 @@
 package main
 import (
 	"bytes"
+	"path"
+	"strings"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -313,6 +315,28 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		if asInt(t, product["id"]) != productID {
 			t.Fatalf("expected product id %d, got body %s", productID, rec.Body.String())
 		}
+
+		descImages := asSlice(t, product["descriptionImages"])
+		if len(descImages) < 1 {
+			t.Fatalf("expected product %q to have at least one description image", productID)
+		}
+		img := asString(t, descImages[0])
+		noProto := strings.TrimPrefix(img, "http://")
+		base := path.Base(noProto)
+
+		t.Run("delete_image", func(t *testing.T) {
+			rec := h.doRequest(
+				t, http.MethodDelete,
+				fmt.Sprintf(
+					"/produtos/%d/img/%s",
+					productID, base,
+				),
+				&shopSession,
+				"",
+				nil,
+			)
+			assertStatus(t, rec, http.StatusOK)
+		})
 	})
 
 	t.Run("create_consignment", func(t *testing.T) {

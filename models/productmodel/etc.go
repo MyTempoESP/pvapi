@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/gosimple/slug"
-	"linhazero.com/pvapi/env"
+	"linhazero.com/pvapi/util"
 )
 
 func checkFileSanity(m *multipart.FileHeader) error {
@@ -57,25 +57,13 @@ func handleImage(
 	slug := slug.Make(head)
 	base := fmt.Sprintf("%s_%s%s", slug, uniqueid, ext)
 
+	// TODO: put that on util too
 	savePath := fmt.Sprintf("./public/uploads/%s", base)
-
-	protocol := "http"
-
-	if env.HTTPSEnabled {
-		protocol = "https"
-	}
-
-	// redundant check to be extra safe
-	domain, err := env.DomainName()
+	path, err = util.GetImageURL(base)
 
 	if err != nil {
 		return
 	}
-
-	path = fmt.Sprintf(
-		"%s://%s/public/uploads/%s",
-		protocol, domain, base,
-	)
 
 	err = c.SaveUploadedFile(m, savePath)
 
