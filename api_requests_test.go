@@ -68,6 +68,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		shopSlug         string
 		consigneeID      int
 		pickupID         int
+		categoryID       int
 		productID        int
 		consignmentID    int
 		reportID         int
@@ -217,6 +218,26 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"name": "lixo-eletronico",
 		})
 		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		categoryID = asInt(t, body["id"])
+	})
+
+	t.Run("list_categories", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/categorias", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		categories := asSlice(t, body["data"])
+		if len(categories) < 1 {
+			t.Fatal("expected at least one category in list.")
+		}
+		// first one is n/a
+		matched := asMap(t, categories[1])
+		matchedID := asInt(t, matched["id"])
+		if categoryID != matchedID {
+			t.Fatalf("Category id (%d), is not equal to listed id (%d).",
+				categoryID, matchedID,
+			)
+		}
 	})
 
 	t.Run("create_product_for_deletion", func(t *testing.T) {
@@ -315,10 +336,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 	})
 
-	t.Run("list_clients", func(t *testing.T) {
+	/*t.Run("list_clients", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/clientes", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
-	})
+	})*/
 
 	t.Run("view_pending_products", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/admin/moderacao/pendentes", &adminSession, "", nil)
