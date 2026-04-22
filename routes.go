@@ -14,6 +14,7 @@ import (
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
 	"linhazero.com/pvapi/controllers/payment"
+	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/middleware/auth"
 )
 
@@ -57,6 +58,11 @@ func setupRoutes(
 
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
+	}
+
+	categories := t.Group("/categorias", withAuth)
+	{
+		categories.POST("", category.CreateHandler(pool))
 	}
 
 	products := t.Group("/produtos", withAuth)
