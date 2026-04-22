@@ -5,3 +5,4 @@ test_databases/
 *.env
 gemini.just
 pvapi
+ide_unstable.just
