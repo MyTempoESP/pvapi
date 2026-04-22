@@ -35,6 +35,7 @@ type ProductResource struct {
 
 	// Specifications
 	Category            string                  `json:"category"`
+	CategoryID          int                     `json:"category_id"`
 	ImageURL            string                  `json:"imageUrl"`
 	Description         string                  `json:"description"`
 	SpecificationImages []string                `json:"specificationsImages"`
@@ -96,6 +97,7 @@ func (p Product) ToResource() ProductResource {
 		PlatformCut:         p.PlatformCut,
 		PlatformCutType:     p.PlatformCutType,
 		Category:            p.Category,
+		CategoryID:          p.CategoryID,
 		ImageURL:            p.Attributes.Image,
 		SpecificationImages: p.Attributes.SpecImages,
 		DescriptionImages:   p.Attributes.DescImages,
