@@ -461,6 +461,21 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatal("expected body to contain 'session_id'.")
 		}
 
+		t.Run("validate_payment_session", func(t *testing.T) {
+			rec := h.doJSON(t, http.MethodPost, "/payments/session/validate", nil, map[string]any{
+				"session_id": report["session_id"],
+			})
+			assertStatus(t, rec, http.StatusOK)
+		})
+
+		t.Run("invalidate_payment_session", func(t *testing.T) {
+			rec := h.doJSON(t, http.MethodPost, "/payments/session/validate", nil, map[string]any{
+				"session_id": "temp_0_bogus",
+			})
+			assertStatus(t, rec, 400)
+		})
+
+
 		t.Run("add_product_to_cart", func(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 				"product_id":      productID,

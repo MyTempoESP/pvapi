@@ -1,9 +1,12 @@
 package payment
 
 import (
+	"fmt"
 	"time"
 	"net/http"
 	"context"
+	"strings"
+	"strconv"
 
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/models/cartmodel"
@@ -12,6 +15,64 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func ValidateTemporarySession(
+	pool *pgxpool.Pool,
+) func (c *gin.Context) {
+	return func (c *gin.Context) {
+		var request struct{
+			SessionID string `json:"session_id"`
+		}
+		err := c.ShouldBind(&request)
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		sess := request.SessionID
+
+		if strings.HasPrefix(sess, "temp_") {
+			c.JSON(400, gin.H{
+				"success": false,
+				"error": "sessao invalida",
+			})
+			return
+		}
+
+		parts := strings.Split(sess, "_")
+
+		if len(parts) < 3 {
+			c.JSON(400, gin.H{
+				"success": false,
+				"error": "sessao invalida",
+			})
+			return
+		}
+
+		unix, err := strconv.ParseInt(parts[1], 10, 64)
+
+		if err != nil {
+			c.JSON(400, gin.H{
+				"success": false,
+				"error": "sessao invalida",
+			})
+			return
+		}
+
+		since := time.Since(time.Unix(int64(unix), 0))
+
+		if since > (time.Hour * 24 * 7) {
+			c.JSON(400, gin.H{
+				"success": false,
+				"error": "sessao expirada",
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{"success": true, "message": "sessao valida"})
+		return
+	}
+}
 
 func CreateTemporarySession(
 	pool *pgxpool.Pool,
@@ -25,7 +86,11 @@ func CreateTemporarySession(
 			return
 		}
 
-		sessionID := sessionUUID.String()
+		sessionID := fmt.Sprintf(
+			"temp_%s_%s",
+			strconv.FormatInt(time.Now().Unix(), 10),
+			sessionUUID.String(),
+		)
 		metadata := gin.H{
 			"session_type": "temporary",
 			"created_at": time.Now().Format(time.RFC3339),
