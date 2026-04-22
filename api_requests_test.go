@@ -261,7 +261,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				Data:     png1x1,
 			},
 			{
-				Field:    "descriptionImages",
+				Field:    "descriptionImages[]",
 				Filename: "product-updated-desc.png",
 				Data:     png1x1,
 			},

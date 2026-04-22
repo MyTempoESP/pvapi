@@ -1,6 +1,7 @@
 package productmodel
 
 import (
+	
 	"encoding/json"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,7 @@ type UpdateProductBlueprint struct {
 func (p *UpdateProductRequest) Prepare(
 	c *gin.Context,
 	product, shop int,
-) (pb *UpdateProductBlueprint) {
+) (pb *UpdateProductBlueprint, err error) {
 	pb = &UpdateProductBlueprint{
 		ID:                   product,
 		Shop:                 shop,
@@ -47,30 +48,37 @@ func (p *UpdateProductRequest) Prepare(
 	util.LogInfo(c, "trying to handle images")
 
 	if p.Image != nil {
-		image, err := handleImage(c, p.Image)
-		if err == nil {
-			pb.ImageURL = &image
+		var image string
+		image, err = handleImage(c, p.Image)
+
+		if err != nil {
+			return
 		}
+
+		pb.ImageURL = &image
 	}
 
 	if p.DescImages != nil {
-		images, err := handleImages(c, p.DescImages)
-		if err == nil {
-			pb.DescImagesURLs = images
+		pb.DescImagesURLs, err = handleImages(c, p.DescImages)
+
+		if err != nil {
+			return
 		}
 	}
 
 	if p.SpecImages != nil {
-		images, err := handleImages(c, p.SpecImages)
-		if err == nil {
-			pb.SpecImagesURLs = images
+		pb.SpecImagesURLs, err = handleImages(c, p.SpecImages)
+
+		if err != nil {
+			return
 		}
 	}
 
 	if p.PackImages != nil {
-		images, err := handleImages(c, p.PackImages)
-		if err == nil {
-			pb.PackImagesURLs = images
+		pb.PackImagesURLs, err = handleImages(c, p.PackImages)
+
+		if err != nil {
+			return
 		}
 	}
 

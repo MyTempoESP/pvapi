@@ -1,7 +1,9 @@
 package productmodel
 
 import (
+	"encoding/json"
 	"context"
+	"slices"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -78,10 +80,73 @@ func (p ProductBlueprint) Save(
 	return
 }
 
+func generateProductAttr(
+	ctx context.Context,
+	base pgx.Tx,
+	p *UpdateProductBlueprint,
+) (attr ProductAttr, err error) {
+	err = base.QueryRow(ctx, query.ProductGetAttrQuery, p.ID).Scan(&attr)
+
+	if err != nil {
+		return
+	}
+	
+	// Strings
+	if p.ImageURL != nil {
+		attr.Image = *p.ImageURL
+	}
+
+	// Bools
+	if p.CustomName != nil {
+		attr.AllowCustomName = *p.CustomName
+	}
+	if p.CustomModality != nil {
+		attr.AllowCustomModality = *p.CustomModality
+	}
+	if p.CustomColorSelection != nil {
+		attr.AllowCustomColor = *p.CustomColorSelection
+	}
+
+	// Lists
+	if len(p.DescImagesURLs) > 0 {
+		attr.DescImages = slices.Concat(attr.DescImages, p.DescImagesURLs)
+	}
+	if len(p.SpecImagesURLs) > 0 {
+		attr.SpecImages = slices.Concat(attr.SpecImages, p.SpecImagesURLs)
+	}
+	if len(p.PackImagesURLs) > 0 {
+		attr.PackImages = slices.Concat(attr.PackImages, p.PackImagesURLs)
+	}
+
+	// Objects
+	if p.SpecificationsJSON != nil {
+		err = json.Unmarshal([]byte(*p.SpecificationsJSON), &attr.Specifications)
+
+		if err != nil {
+			return
+		}
+	}
+	if p.ColorListJSON != nil {
+		err = json.Unmarshal([]byte(*p.ColorListJSON), &attr.Colors)
+
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 func (p *UpdateProductBlueprint) Exec(
 	ctx context.Context,
 	base pgx.Tx,
 ) (err error) {
+	attr, err := generateProductAttr(ctx, base, p)
+
+	if err != nil {
+		return
+	}
+
 	q := util.SQL
 
 	fields := make(map[string]any)
@@ -147,61 +212,7 @@ func (p *UpdateProductBlueprint) Exec(
 		fields["featured"] = *p.Featured
 	}
 
-	attrExpr := "attr"
-	var attrArgs []any
-
-	addSet := func(key string, val any) {
-		attrExpr = fmt.Sprintf(query.JSONBSetFormat, attrExpr, key)
-		attrArgs = append(attrArgs, val)
-	}
-
-	// strings must be quoted twice (like "'string'") to be valid json,
-	// the outer quotes are for SQL (automatic), the inner are for JSON parsing.
-	addSetQuoted := func(key string, s any) {
-		attrExpr = fmt.Sprintf(query.JSONBSetFormat, attrExpr, key)
-		attrArgs = append(attrArgs, fmt.Sprintf("%q", s))
-	}
-
-	// Strings
-	if p.ImageURL != nil {
-		addSetQuoted("main_image", *p.ImageURL)
-	}
-
-	// Bools
-	if p.CustomName != nil {
-		addSet("customName", *p.CustomName)
-	}
-	if p.CustomModality != nil {
-		addSet("customModality", *p.CustomModality)
-	}
-	if p.CustomColorSelection != nil {
-		addSet("customColor", *p.CustomColorSelection)
-	}
-
-	// Lists
-	if len(p.DescImagesURLs) > 0 {
-		addSet("desc_images", p.DescImagesURLs)
-	}
-	if len(p.SpecImagesURLs) > 0 {
-		addSet("spec_images", p.SpecImagesURLs)
-	}
-	if len(p.PackImagesURLs) > 0 {
-		addSet("pack_images", p.PackImagesURLs)
-	}
-
-	// Objects
-	if p.SpecificationsJSON != nil {
-		addSet("specifications", *p.SpecificationsJSON)
-	}
-	if p.ColorListJSON != nil {
-		addSet("colors", *p.ColorListJSON)
-	}
-
-	if len(attrArgs) > 0 {
-		update = update.Set("attr", sq.Expr(attrExpr, attrArgs...))
-	} else if len(fields) == 0 {
-		return
-	}
+	fields["attr"] = attr
 
 	update = update.
 		SetMap(fields).

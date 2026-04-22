@@ -135,9 +135,9 @@ type CreateProductRequest struct {
 
 	// Policies
 	ColorListJSON        string `form:"colors"`
-	CustomName           bool   `form:"allowCustomName[]"`
-	CustomModality       bool   `form:"allowCustomModality[]"`
-	CustomColorSelection bool   `form:"allowCustomColorSelection[]"`
+	CustomName           bool   `form:"allowCustomName"`
+	CustomModality       bool   `form:"allowCustomModality"`
+	CustomColorSelection bool   `form:"allowCustomColorSelection"`
 }
 
 type UpdateProductRequest struct {
