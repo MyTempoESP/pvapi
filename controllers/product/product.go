@@ -191,11 +191,16 @@ func UpdateHandler(
 			return
 		}
 
-		blueprint := product.Prepare(
+		blueprint, err := product.Prepare(
 			c,
 			productID,
 			user.ActiveRoleID,
 		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
 
 		err = util.TransactionAware(c, pool, blueprint.Exec)
 

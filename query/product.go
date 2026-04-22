@@ -227,4 +227,10 @@ FROM packages p
 LEFT JOIN product_catalog_view c ON c.product_id = p.product_id
 WHERE p.consignment_id = $1
 `
+
+	ProductGetAttrQuery = `
+SELECT p.attr
+FROM products p
+WHERE p.id = $1
+`
 )
