@@ -245,37 +245,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"name":                      productName,
 			"description":               "produto de teste temporario",
 			"price":                     "2",
-			"category":                  "lixo-eletronico",
-			"stock":                     "10",
-			"featured":                  "true",
-			"discount":                  "12",
-			"allowCustomName":           "false",
-			"allowCustomModality":       "false",
-			"allowCustomColorSelection": "false",
-			"colors":                    `["#000000"]`,
-			"specifications":            `[{"name":"material","value":"metal"}]`,
-		}, []uploadFile{
-			{
-				Field:    "imageUrl",
-				Filename: "product.png",
-				Data:     png1x1,
-			},
-			{
-				Field:    "descriptionImages[]",
-				Filename: "product.png",
-				Data:     png1x1,
-			},
-		})
-		assertStatus(t, rec, http.StatusOK)
-	})
-
-
-	t.Run("create_product", func(t *testing.T) {
-		rec := h.doMultipart(t, http.MethodPost, "/produtos", &shopSession, map[string]string{
-			"name":                      productName,
-			"description":               "produto de teste",
-			"price":                     "2",
-			"category":                  "porta-medalhas",
+			"category_id":               "2",
 			"stock":                     "10",
 			"featured":                  "true",
 			"discount":                  "12",
@@ -304,6 +274,36 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 	})
 
+
+	t.Run("create_product", func(t *testing.T) {
+		rec := h.doMultipart(t, http.MethodPost, "/produtos", &shopSession, map[string]string{
+			"name":                      productName,
+			"description":               "produto de teste",
+			"price":                     "2",
+			"category_id":               "1",
+			"stock":                     "10",
+			"featured":                  "true",
+			"discount":                  "12",
+			"allowCustomName":           "false",
+			"allowCustomModality":       "false",
+			"allowCustomColorSelection": "false",
+			"colors":                    `["#000000"]`,
+			"specifications":            `[{"name":"material","value":"metal"}]`,
+		}, []uploadFile{
+			{
+				Field:    "imageUrl",
+				Filename: "product.png",
+				Data:     png1x1,
+			},
+			{
+				Field:    "descriptionImages[]",
+				Filename: "product.png",
+				Data:     png1x1,
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+	})
+
 	t.Run("list_shop_owner_products", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/produtos/estabelecimento", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -311,6 +311,14 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		body := decodeJSON(t, rec)
 		products := asSlice(t, body["data"])
 		productID = findIDByFieldValue(t, products, "name", productName)
+		if len(products) < 1 {
+			t.Fatal("expected shop to contain at least one product")
+		}
+		product := asMap(t, products[0])
+		category := asString(t, product["category"])
+		if category != "n/a" {
+			t.Fatalf("product category is wrong, expected %q, got %q", "n/a", category)
+		}
 	})
 
 	t.Run("update_product_form", func(t *testing.T) {
@@ -318,6 +326,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"name":                      updatedProductName,
 			"description":               "produto atualizado",
 			"price":                     "3",
+			"category_id":               "2",
 			"stock":                     "10",
 			"discount":                  "10",
 			"allowCustomColorSelection": "false",
@@ -379,6 +388,12 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		product := asMap(t, body["data"])
 		if asInt(t, product["id"]) != productID {
 			t.Fatalf("expected product id %d, got body %s", productID, rec.Body.String())
+		}
+
+		category := asString(t, product["category"])
+		if category != "lixo-eletronico" {
+			t.Fatalf("expected product %q's category to be %q, got %q",
+				productID, "lixo-eletronico", category)
 		}
 
 		descImages := asSlice(t, product["descriptionImages"])

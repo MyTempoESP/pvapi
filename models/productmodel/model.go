@@ -73,7 +73,7 @@ func (p ProductBlueprint) Save(
 			"featured":    p.Featured,
 			"description": p.Description,
 			"code":        p.Code,
-			"category":    p.Category,
+			"category_id": p.CategoryID,
 			"shop_id":     p.Shop,
 			"attr":        p.Attributes,
 		},
@@ -196,17 +196,8 @@ func (p *UpdateProductBlueprint) Exec(
 		fields["description"] = *p.Description
 	}
 
-	if p.Category != nil {
-		var category string
-		err = base.QueryRow(
-			ctx,
-			"select id from categories where name = $1",
-			*p.Category,
-		).Scan(&category)
-		if err != nil {
-			return fmt.Errorf("Error finding category: %w", err)
-		}
-		fields["category_id"] = category
+	if p.CategoryID != nil {
+		fields["category_id"] = *p.CategoryID
 	}
 
 	if p.Featured != nil {

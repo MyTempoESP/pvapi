@@ -3,28 +3,6 @@ package query
 const (
 	// creating
 	ProductCreate = `
-WITH product_category_inserted AS (
-	INSERT INTO categories
-		(
-			name,
-			description,
-			shop_id
-		)
-	VALUES
-		(
-			@category,
-			@category,
-			@shop_id
-		)
-	ON CONFLICT (shop_id, name) DO NOTHING
-	RETURNING id
-), product_category AS (
-	SELECT id FROM product_category_inserted
-	UNION ALL
-	SELECT id FROM categories
-	WHERE name = @category AND shop_id = @shop_id
-	LIMIT 1
-)
 INSERT INTO products
 	(
 		name,
@@ -42,22 +20,23 @@ INSERT INTO products
 		platform_cut,
 		platform_cut_type
 	)
-SELECT
-	@name,
-	@price,
-	@stock,
-	@discount,
-	@featured,
-	@shop_id,
-	'pending',
-	c.id,
-	@description,
-	@attr,
-	@code,
-	uuidv4(),
-	5.00,
-	'percentage'
-FROM product_category c
+VALUES
+	(
+		@name,
+		@price,
+		@stock,
+		@discount,
+		@featured,
+		@shop_id,
+		'pending',
+		@category_id,
+		@description,
+		@attr,
+		@code,
+		uuidv4(),
+		5.00,
+		'percentage'
+	)
 RETURNING id
 `
 

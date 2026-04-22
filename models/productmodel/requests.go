@@ -123,7 +123,7 @@ type CreateProductRequest struct {
 	Stock       int             `form:"stock"       binding:"required"`
 	Discount    decimal.Decimal `form:"discount"    binding:"required"`
 	Description string          `form:"description" binding:"required"`
-	Category    string          `form:"category"    binding:"required"`
+	CategoryID  int             `form:"category_id" binding:"required"`
 	Featured    *bool           `form:"featured"`
 
 	Image      *multipart.FileHeader   `form:"imageUrl" binding:"required"`
@@ -146,7 +146,7 @@ type UpdateProductRequest struct {
 	Stock       *int             `form:"stock"`
 	Discount    *decimal.Decimal `form:"discount"`
 	Description *string          `form:"description"`
-	Category    *string          `form:"category"`
+	CategoryID  *int             `form:"category_id"`
 	Featured    *bool            `form:"featured"`
 
 	Image      *multipart.FileHeader   `form:"imageUrl"`
