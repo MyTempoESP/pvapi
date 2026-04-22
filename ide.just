@@ -86,9 +86,6 @@ check:
 	go vet
 
 
-
-
-
 [group('setup')]
 sam:
 	find . -path './vendor/*' -prune -o -name '*.go' -exec sam {} + &
