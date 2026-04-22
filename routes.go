@@ -63,6 +63,8 @@ func setupRoutes(
 	categories := t.Group("/categorias", withAuth)
 	{
 		categories.POST("", category.CreateHandler(pool))
+		categories.GET("", category.ListHandler(pool))
+		// TOOD: make a public version
 	}
 
 	products := t.Group("/produtos", withAuth)

@@ -11,6 +11,29 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func ListHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		user := authmodel.GetUserFromContext(c)
+
+		categories, err := categorymodel.ListByShop(
+			c.Request.Context(), pool,
+			user.ActiveRoleID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.Wrap(
+			c, "Categorias listadas com sucesso",
+			util.ResourceCollection(categories),
+		)
+	}
+}
+
 func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
@@ -28,15 +51,19 @@ func CreateHandler(
 
 		user := authmodel.GetUserFromContext(c)
 
+		var categoryID int
+
 		err = util.TransactionAware(
 			c.Request.Context(), pool,
 			func (ctx context.Context, tx pgx.Tx) error {
-				return categorymodel.CreateTx(
+				id, err := categorymodel.CreateTx(
 					ctx, tx,
 					request.Name,
 					"",
 					user.ActiveRoleID,
 				)
+				categoryID = id
+				return err
 			},
 		)
 
@@ -45,7 +72,10 @@ func CreateHandler(
 			return
 		}
 
-		util.OK(c, "Categoria criada com sucesso")
+		util.WrapLabeled(
+			c, "Categoria criada com sucesso",
+			"id", categoryID,
+		)
 	}
 }
 
