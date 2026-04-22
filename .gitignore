@@ -6,3 +6,4 @@ test_databases/
 gemini.just
 pvapi
 ide_unstable.just
+vendor/
