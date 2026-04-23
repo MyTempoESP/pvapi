@@ -6,7 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+/*
 	"linhazero.com/pvapi/models/authmodel"
+*/
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
 )
@@ -15,6 +17,7 @@ func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+/*
 		user := authmodel.GetUserFromContext(c)
 
 		clients, err := clientmodel.List(
@@ -29,11 +32,11 @@ func ListHandler(
 		}
 
 		collection := util.ResourceCollection(clients)
-
+*/
 		// CHANGEME
 		util.Wrap(
-			c, "[client]s listados com sucesso",
-			collection,
+			c, "clientes listados com sucesso",
+			[]map[string]any{},
 		)
 	}
 }
