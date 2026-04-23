@@ -4,19 +4,11 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/models/productmodel"
 )
 
 type ProductResource struct {
-	ID               int             `json:"id"`
-	UUID             string          `json:"uuid"`
-	Name             string          `json:"name"`
-	Code             string          `json:"code"`
-	Description      string          `json:"description"`
 	Image            string          `json:"image"`
-	CategoryID       int             `json:"category_id"`
-	ShopID           int             `json:"shop_id"`
-	Featured         bool            `json:"featured"`
-	Discount         decimal.Decimal `json:"discount"`
 	OriginalPrice    decimal.Decimal `json:"original_price"`
 	OriginalQuantity int             `json:"original_quantity"`
 
@@ -24,6 +16,7 @@ type ProductResource struct {
 	PackagePrice    decimal.Decimal `json:"consignment_price"`
 	PackageQuantity int             `json:"consignment_quantity"`
 
+	productmodel.ProductResource
 	Package PackageResource `json:"pivot"`
 }
 
@@ -64,21 +57,14 @@ func (c Consignment) ToResource() ConsignmentResource {
 
 func (p ConsignmentProduct) ToResource() ProductResource {
 	return ProductResource{
-		ID:               p.ID,
-		UUID:             p.UUID,
-		Name:             p.Name,
-		Code:             p.Code,
-		Description:      p.Description,
-		Image:            p.Image,
-		CategoryID:       p.CategoryID,
-		ShopID:           p.ShopID,
-		Featured:         p.Featured,
-		Discount:         p.Discount,
-		OriginalPrice:    p.OriginalPrice,
-		OriginalQuantity: p.OriginalQuantity,
+		Image:            p.Product.Attributes.Image,
+		OriginalPrice:    p.Product.Price,
+		OriginalQuantity: p.Product.Stock,
 
 		PackagePrice:    p.Package.Price,
 		PackageQuantity: p.Package.Quantity,
+
+		ProductResource: p.Product.ToResource(),
 
 		// The nested "pivot" object
 		Package: PackageResource{
