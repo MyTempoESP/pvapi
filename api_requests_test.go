@@ -561,6 +561,17 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("delete_report", func(t *testing.T) {
+		rec := h.doRequest(
+			t,
+			http.MethodDelete,
+			fmt.Sprintf("/ocorrencias/%d", reportID),
+			&shopSession,
+			"", nil,
+		)
+		assertStatus(t, rec, http.StatusOK)
+	})
+
 	t.Run("create_payment_session", func(t * testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
 		assertStatus(t, rec, http.StatusOK)
