@@ -83,14 +83,29 @@ func (r ReportBlueprint) Save(
 	)
 }
 
-func List(
+func ListByConsignee(
 	ctx context.Context,
 	base db.Queryable,
+	consignee int,
 ) ([]Report, error) {
 	return util.WithCollect[Report](
 		ctx,
 		base,
-		query.ListAllReportsQuery,
+		query.ListAllReportsByConsigneeQuery,
+		consignee,
+	)
+}
+
+func ListByShop(
+	ctx context.Context,
+	base db.Queryable,
+	shop int,
+) ([]Report, error) {
+	return util.WithCollect[Report](
+		ctx,
+		base,
+		query.ListAllReportsByShopQuery,
+		shop,
 	)
 }
 

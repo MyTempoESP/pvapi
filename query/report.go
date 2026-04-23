@@ -39,6 +39,23 @@ SELECT
 FROM reports
 `
 
+	ListAllReportsByShopQuery = `
+SELECT
+    r.*
+FROM shops s
+LEFT JOIN consignments c ON c.shop_id = s.id
+LEFT JOIN reports r ON r.consignment_id = c.id
+WHERE s.id = $1
+`
+
+	ListAllReportsByConsigneeQuery = `
+SELECT
+    r.*
+FROM consignees c
+LEFT JOIN reports r ON r.consignee_id = c.id
+WHERE c.id = $1
+`
+
 	FindReportQuery = `
 SELECT
     *
