@@ -115,3 +115,4 @@ func Delete(
 	_, err := base.Exec(ctx, query.DeleteReportQuery, id)
 	return err
 }
+
