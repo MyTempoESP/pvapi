@@ -57,7 +57,7 @@ func (a AddProductAction) Exec(
 
 func (p UpdateConsignmentProductBlueprint) Exec(
 	ctx context.Context,
-	base pgx.Tx,
+	tx pgx.Tx,
 ) (err error) {
 	q := util.SQL
 
@@ -68,6 +68,15 @@ func (p UpdateConsignmentProductBlueprint) Exec(
 	}
 
 	if p.Quantity != nil {
+		if _, err = tx.Exec(
+			ctx,
+			query.ProductTakeFromStock,
+			p.ProductID,
+			*p.Quantity,
+		); err != nil {
+			return
+		}
+
 		fields["quantity"] = *p.Quantity
 	}
 
@@ -87,7 +96,7 @@ func (p UpdateConsignmentProductBlueprint) Exec(
 		return fmt.Errorf("could not build SQL query: %w", err)
 	}
 
-	_, err = base.Exec(ctx, query, params...)
+	_, err = tx.Exec(ctx, query, params...)
 
 	if err != nil {
 		return fmt.Errorf(
