@@ -59,6 +59,38 @@ func (p UpdateConsignmentProductBlueprint) Exec(
 	ctx context.Context,
 	tx pgx.Tx,
 ) (err error) {
+	takeQuantityForUpdate := func(qty int) (err error) {
+		var currentQty int
+
+		if err = tx.QueryRow(
+			ctx,
+			query.VerifyPackageQuantity,
+			p.ProductID,
+			p.ConsignmentID,
+		).Scan(&currentQty); err != nil {
+			return
+		}
+
+		dx := qty - currentQty
+
+		// check if new quantity is actually significant
+		if dx == 0 {
+			return
+		}
+
+		// TODO: do negative qtys work?
+
+		// use the difference so we don't double-decrement
+		_, err = tx.Exec(
+			ctx,
+			query.ProductTakeFromStock,
+			p.ProductID,
+			dx,
+		)
+
+		return
+	}
+
 	q := util.SQL
 
 	fields := make(map[string]any)
@@ -68,15 +100,9 @@ func (p UpdateConsignmentProductBlueprint) Exec(
 	}
 
 	if p.Quantity != nil {
-		if _, err = tx.Exec(
-			ctx,
-			query.ProductTakeFromStock,
-			p.ProductID,
-			*p.Quantity,
-		); err != nil {
+		if err = takeQuantityForUpdate(*p.Quantity); err != nil {
 			return
 		}
-
 		fields["quantity"] = *p.Quantity
 	}
 
