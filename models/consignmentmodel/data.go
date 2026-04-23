@@ -4,23 +4,11 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/models/productmodel"
 )
 
 type ConsignmentProduct struct {
-	// Base Product Fields
-	ID               int             `db:"product_id"`
-	Name             string          `db:"product_name"`
-	OriginalPrice    decimal.Decimal `db:"product_price"`
-	OriginalQuantity int             `db:"product_stock"`
-	Discount         decimal.Decimal `db:"product_discount"`
-	Featured         bool            `db:"product_featured"`
-	Description      string          `db:"product_description"`
-	Image            string          `db:"product_main_image"`
-	CategoryID       int             `db:"product_category_id"`
-	ShopID           int             `db:"product_shop_id"`
-	Code             string          `db:"product_code"`
-	UUID             string          `db:"product_uuid"`
-
+	productmodel.Product
 	Package
 }
 
