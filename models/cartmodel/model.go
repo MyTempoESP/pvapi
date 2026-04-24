@@ -102,3 +102,17 @@ func (r AddToCartRequest) Exec(
 	)
 	return
 }
+
+func RemoveCartProduct(
+	ctx context.Context,
+	tx pgx.Tx,
+	cartProduct int,
+) error {
+	_, err := tx.Exec(
+		ctx,
+		query.RemoveCartProductQuery,
+		cartProduct,
+	)
+	return err
+}
+

@@ -1,13 +1,46 @@
 package cart
 
 import (
+	"strconv"
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 	"linhazero.com/pvapi/models/cartmodel"
 	"linhazero.com/pvapi/util"
 )
+
+func RemoveHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		item, err := strconv.Atoi(c.Params.ByName("item"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func (ctx context.Context, tx pgx.Tx) error {
+				return cartmodel.RemoveCartProduct(
+					ctx, tx,
+					item,
+				)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "produto removido do carrinho")
+	}
+}
 
 func ViewHandler(
 	pool *pgxpool.Pool,

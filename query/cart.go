@@ -85,4 +85,8 @@ LEFT JOIN shops s ON
 	s.id = p.shop_id
 WHERE cart_id = $1
 `
+
+	RemoveCartProductQuery = `
+DELETE FROM cart_product WHERE id = $1
+`
 )
