@@ -99,6 +99,75 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 	adminSession = h.login(t, adminEmail, adminPassword)
 
+
+	t.Run("create_shop_for_deactivation", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos", &adminSession, map[string]any{
+			"name":      "inactive-co",
+			"email":     "creative@ideas.com",
+			"telephone": "bigone",
+			"status":    "active",
+			"address": map[string]any{
+				"street":       "Rua Nova",
+				"number":       "51",
+				"neighborhood": "Bairro",
+				"city":         "Campinas",
+				"state":        "SP",
+				"cep":          "13000000",
+				"complement":   "Opcional",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		shop := asMap(t, body["shop"])
+		shopID := asInt(t, shop["id"])
+
+		t.Run("deactivate_shop", func(t *testing.T) {
+			rec := h.doRequest(
+				t, http.MethodDelete,
+				fmt.Sprintf("/estabelecimentos/%d", shopID),
+				&adminSession,
+				"", nil,
+			)
+			assertStatus(t, rec, http.StatusOK)
+		})
+
+		t.Run("list_admin_includes_all_shops", func(t *testing.T) {
+			rec := h.doRequest(
+				t, http.MethodGet,
+				"/estabelecimentos/all",
+				&adminSession,
+				"", nil,
+			)
+
+			assertStatus(t, rec, http.StatusOK)
+
+			body := decodeJSON(t, rec)
+			shops := asSlice(t, body["shops"])
+
+			if len(shops) == 0 {
+				t.Fatal("no shops included in admin listing")
+			}
+		})
+
+		t.Run("list_public_includes_no_shops", func(t *testing.T) {
+			rec := h.doRequest(
+				t, http.MethodGet,
+				"/estabelecimentos",
+				nil, "", nil,
+			)
+
+			assertStatus(t, rec, http.StatusOK)
+
+			body := decodeJSON(t, rec)
+			shops := asSlice(t, body["shops"])
+
+			if len(shops) != 0 {
+				t.Fatal("inactive shops included in public listing")
+			}
+		})
+	})
+
+
 	t.Run("create_shop", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos", &adminSession, map[string]any{
 			"name":      shopName,
@@ -326,7 +395,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"name":                      updatedProductName,
 			"description":               "produto atualizado",
 			"price":                     "3",
-			"category_id":               "2",
+			"category_id":               fmt.Sprintf("%d", categoryID),
 			"stock":                     "10",
 			"discount":                  "10",
 			"allowCustomColorSelection": "false",
