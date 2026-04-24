@@ -30,7 +30,12 @@ type CartProductResource struct {
 }
 
 type CartDetailsResource struct {
-	Total decimal.Decimal       `json:"total"`
+	// FIXME: bring the json back to normal
+	Total decimal.Decimal `json:"_total"`
+
+	// XXX: tmp
+	TotalF float64 `json:"total"`
+
 	Items []CartProductResource `json:"items"`
 	Count int                   `json:"item_count"`
 
@@ -102,8 +107,11 @@ func (c CartDetails) ToResource(
 	totalWithDiscountF, _  := totalWithDiscount.Float64()
 	totalDiscountF, _ := totalDiscount.Float64()
 
+	totalF, _ := total.Float64()
+
 	return CartDetailsResource{
 		Total: total,
+		TotalF: totalF,
 		Items: itemResources,
 		Count: len(c.Items),
 		TotalWithDiscount: totalWithDiscount,
