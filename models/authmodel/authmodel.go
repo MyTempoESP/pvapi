@@ -26,6 +26,20 @@ func GetUserFromClaims(c jwt.MapClaims) *AuthUser {
 	}
 }
 
+func FetchUser(c *gin.Context) (AuthUser, bool) {
+	claims := jwtg.ExtractClaims(c)
+
+	_, ok := claims[IdentityKey]
+
+	if !ok {
+		return AuthUser{}, false
+	}
+	
+	authUser := GetUserFromClaims(claims)
+
+	return *authUser, true
+}
+
 func GetUserFromContext(c *gin.Context) AuthUser {
 	var (
 		claims   = jwtg.ExtractClaims(c)
@@ -34,3 +48,4 @@ func GetUserFromContext(c *gin.Context) AuthUser {
 
 	return *authUser
 }
+

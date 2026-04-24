@@ -173,4 +173,15 @@ LEFT JOIN consignments c ON c.shop_id = s.id
 LEFT JOIN reports r ON r.consignment_id = c.id
 WHERE s.id = $1 AND r.id = $2
 `
+
+	ListAllActiveShops = `
+SELECT
+	*
+FROM shops_info_view
+WHERE status = 'active'
+`
+
+	DeactivateShopQuery = `
+UPDATE shops SET status = 'inactive' WHERE id = $1
+`
 )

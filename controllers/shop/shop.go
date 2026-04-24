@@ -1,14 +1,42 @@
 package shop
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
+
+func DeactivateHandler(
+	pool *pgxpool.Pool,
+) func (c *gin.Context) {
+	return func(c *gin.Context) {
+		shop, err := strconv.Atoi(c.Params.ByName("shop"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func (ctx context.Context, tx pgx.Tx) error {
+				return shopmodel.Deactivate(ctx, tx, shop)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "loja desativada com sucesso")
+	}
+}
 
 func PublicListProductsHandler(
 	pool *pgxpool.Pool,
@@ -78,9 +106,29 @@ func ViewHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	}
 }
 
-func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+func ListRestrictedHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		shops, err := shopmodel.List(c.Request.Context(), pool)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(shops)
+
+		// No 'data' wrapper label
+		util.WrapLabeled(
+			c,
+			"lojas listadas com sucesso",
+			"shops", collection,
+		)
+	}
+}
+
+func ListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		shops, err := shopmodel.ListActive(c.Request.Context(), pool)
 
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)

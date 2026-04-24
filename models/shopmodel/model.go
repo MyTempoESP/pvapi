@@ -183,6 +183,18 @@ func Create(
 	return
 }
 
+func ListActive(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+) ([]Shop, error) {
+	return util.WithCollect[Shop](
+		ctx,
+		pool,
+		query.ListAllActiveShops,
+	)
+}
+
+
 func List(
 	ctx context.Context,
 	pool *pgxpool.Pool,
@@ -220,6 +232,15 @@ func FindDetailed(
 		query.ShopFindDetailedQuery,
 		id,
 	)
+}
+
+func Deactivate(
+	ctx context.Context,
+	tx pgx.Tx, 
+	shop int,
+) error {
+	_, err := tx.Exec(ctx, query.DeactivateShopQuery, shop)
+	return err
 }
 
 func Resolve(
@@ -304,3 +325,4 @@ func HasReport(
 		report,
 	)
 }
+
