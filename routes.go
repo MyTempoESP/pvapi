@@ -29,10 +29,6 @@ func setupRoutes(
 
 	// useful alias
 	public := t
-	t.POST("/payments/session/create", payment.CreateTemporarySession(pool))
-	t.POST("/payments/session/validate", payment.ValidateTemporarySession(pool))
-	t.GET("/carrinho/dados", cart.ViewHandler(pool))
-	t.POST("/carrinho/dados", cart.ViewHandler(pool))
 
 	loggedIn := t.Group("", withAuth)
 	{
@@ -160,8 +156,18 @@ func setupRoutes(
 
 	carts := t.Group("/carrinho")
 	{
+		carts.GET("/dados", cart.ViewHandler(pool))
 		carts.POST("/adicionar", cart.AddProductHandler(pool))
-		carts.GET("/carrinho/dados", cart.ViewHandler(pool))
+		carts.DELETE("/remover/:item", cart.RemoveHandler(pool))
+	}
+
+	payments := t.Group("/payments")
+	{
+		payments.POST("/session/create",
+			payment.CreateTemporarySession(pool))
+
+		payments.POST("/session/validate",
+			payment.ValidateTemporarySession(pool))
 	}
 
 	t.Static("/assets", "./public/uploads")

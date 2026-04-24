@@ -666,6 +666,27 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 
 
+		t.Run("add_product_to_cart_for_deletion", func(t *testing.T) {
+			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+				"product_id":      productID,
+				"quantity":        1,
+				"session_id":      report["session_id"],
+				"personalization": map[string]any{},
+			})
+			assertStatus(t, rec, http.StatusOK)
+
+			t.Run("remove_product_from_cart", func(t *testing.T) {
+				rec := h.doRequest(
+					t,
+					http.MethodDelete,
+					"/carrinho/remover/1",
+					nil, "", nil,
+				)
+				assertStatus(t, rec, http.StatusOK)
+			})
+		})
+
+
 		t.Run("add_product_to_cart", func(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 				"product_id":      productID,
