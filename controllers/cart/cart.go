@@ -67,10 +67,10 @@ func ViewHandler(
 		util.WrapMap(c, "Dados do carrinho obtidos com sucesso!",
 			gin.H{
 				"items": resource.Items,
-				"total": resource.TotalF, // XXX: using floats temporarily for compat
+				"total": resource.TotalF,
 				"item_count": resource.Count,
-				"total_with_discount": resource.TotalWithDiscountF, // XXX: __
-				"total_discount": resource.TotalDiscountF, // XXX: __
+				"total_with_discount": resource.TotalWithDiscountF,
+				"total_discount": resource.TotalDiscountF,
 				"session_id": resource.SessionID,
 			},
 		)

@@ -287,6 +287,31 @@ func TransactionReturn[T any](
 	return t, err
 }
 
+func TransactionAwareReturn[T any](
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	f func(context.Context, pgx.Tx) (T, error),
+) (T, error) {
+	var zero T
+
+	tx, err := pool.Begin(ctx)
+
+	if err != nil {
+		return zero, err
+	}
+	defer tx.Rollback(ctx)
+
+	t, err := f(ctx, tx)
+
+	if err != nil {
+		return zero, err
+	}
+
+	err = tx.Commit(ctx)
+
+	return t, err
+}
+
 func Merge(args ...Args) (merge Args) {
 	merge = make(Args)
 	for _, a := range args {
@@ -326,7 +351,7 @@ func Bake(
 	return
 }
 
-func GetImageURL(base string) (url string, err error) {
+func GetDomainURL() (url string, err error) {
 	domain, err := env.DomainName()
 
 	if err != nil {
@@ -340,8 +365,23 @@ func GetImageURL(base string) (url string, err error) {
 	}
 
 	url = fmt.Sprintf(
-		"%s://%s/public/uploads/%s",
-		protocol, domain, base,
+		"%s://%s",
+		protocol, domain,
+	)
+
+	return
+}
+
+func GetImageURL(base string) (url string, err error) {
+	domain, err := GetDomainURL()
+
+	if err != nil {
+		return
+	}
+
+	url = fmt.Sprintf(
+		"%s/public/uploads/%s",
+		domain, base,
 	)
 
 	return

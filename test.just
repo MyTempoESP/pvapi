@@ -35,7 +35,7 @@ all: (internal::ensure 't::worker' 't::clean')
 
 [group('tool')]
 attach-db:
-	PGPASSWORD='{{db_pass}}' psql \
+	PGPASSWORD='{{db_pass}}' psql -x \
 		-h '{{db_host}}' -p '{{db_port}}' '{{db_name}}' -U '{{db_user}}'
 
 

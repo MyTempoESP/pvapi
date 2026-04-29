@@ -60,6 +60,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	updatedProductName := fmt.Sprintf("Produto Atualizado %d", runID)
 
 	var (
+		paymentSession   string
 		adminSession     apiSession
 		genericSession   apiSession
 		shopSession      apiSession
@@ -646,14 +647,11 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
 		report := asMap(t, body)
-		_, ok := report["session_id"]
-		if !ok {
-			t.Fatal("expected body to contain 'session_id'.")
-		}
+		paymentSession = asString(t, report["session_id"])
 
 		t.Run("validate_payment_session", func(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/payments/session/validate", nil, map[string]any{
-				"session_id": report["session_id"],
+				"session_id": paymentSession,
 			})
 			assertStatus(t, rec, http.StatusOK)
 		})
@@ -670,7 +668,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 				"product_id":      productID,
 				"quantity":        1,
-				"session_id":      report["session_id"],
+				"session_id":      paymentSession,
 				"personalization": map[string]any{},
 			})
 			assertStatus(t, rec, http.StatusOK)
@@ -691,7 +689,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 				"product_id":      productID,
 				"quantity":        1,
-				"session_id":      report["session_id"],
+				"session_id":      paymentSession,
 				"personalization": map[string]any{},
 			})
 			assertStatus(t, rec, http.StatusOK)
@@ -701,7 +699,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			rec := h.doRequest(
 				t,
 				http.MethodGet,
-				fmt.Sprintf("/carrinho/dados?session_id=%s", report["session_id"].(string)),
+				fmt.Sprintf("/carrinho/dados?session_id=%s", paymentSession),
 				nil, "", nil,
 			)
 			assertStatus(t, rec, http.StatusOK)
@@ -716,6 +714,32 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				t.Fatal("expected 'items' to contain only a single product'.")
 			}
 		})
+
+		/*
+		{
+			"payer_name": "Something",
+			"payer_surname": "Somewhere",
+			"payer_email":"something@somewhere.com",
+			"session_id": paymentSession
+		}
+		*/
+
+		t.Run("checkout_cart_items", func(t * testing.T) {
+			rec := h.doJSON(
+				t,
+				http.MethodPost,
+				"/api/payments/pix/cart",
+				nil,
+				map[string]any{
+					"payer_name": "APRO",
+					"payer_surname": "e",
+					"payer_email": "test_user@testuser.com",
+					"session_id": paymentSession,
+				},
+			)
+			assertStatus(t, rec, http.StatusOK)
+		})
+
 	})
 
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
@@ -737,6 +761,11 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	setDefaultEnv(t, "PV_API_ADMIN_PASS", "TestingPassword")
 	setDefaultEnv(t, "PV_API_LOG_LEVEL", "debug")
 	setDefaultEnv(t, "PV_API_DOMAIN_NAME", "localhost")
+	setDefaultEnv(
+		t,
+		"PV_API_MP_TOKEN",
+		"APP_USR-7125446321533947-042412-95d8bda1aab133686ae3798bab6e7a6b-3358217644",
+	)
 
 	if err := os.MkdirAll("public/uploads", 0o755); err != nil {
 		t.Fatalf("create uploads dir: %v", err)

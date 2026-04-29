@@ -9,5 +9,6 @@ mod misc
 mod new
 mod ide
 
-@default: (misc::list 'database' 'prod' 'test' 'misc' 'new' 'ide')
+@default:
+	just --list
 
