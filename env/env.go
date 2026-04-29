@@ -62,6 +62,9 @@ var (
 	AdminPass = wrapEnv("PV_API_ADMIN_PASS")
 	AdminMail = wrapEnv("PV_API_ADMIN_MAIL")
 
+	// Payment
+	PaymentToken = wrapEnv("PV_API_MP_TOKEN")
+
 	// Log level
 	LogLevel = toLogLevel(wrapEnv("PV_API_LOG_LEVEL"))
 )

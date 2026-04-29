@@ -4,17 +4,78 @@ import (
 	"fmt"
 	"time"
 	"net/http"
+	"errors"
 	"context"
 	"strings"
 	"strconv"
 
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/models/cartmodel"
+	"linhazero.com/pvapi/models/paymentmodel"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func CartPIXHandler(
+	pool *pgxpool.Pool,
+) func (c *gin.Context) {
+	return func (c *gin.Context) {
+		var request paymentmodel.GenericPaymentRequest
+
+		err := c.ShouldBind(&request)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		// verify if the session is still valid
+		// workaround is to create a script to manually
+		// unassociate assigned expired session_ids.
+
+		cart, err := cartmodel.FindBySession(
+			c.Request.Context(), pool,
+			request.SessionID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		if len(cart.Items) == 0 {
+			util.HandleBadRequest(c, errors.New("carrinho vazio"))
+			return
+		}
+
+		payment := request.Prepare(&cart)
+
+		details, err := util.TransactionAwareReturn(
+			c.Request.Context(), pool,
+			payment.Save,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "pagamento iniciado",
+			"amount": details.Amount,
+			"status": details.Status,
+			"qr_code": details.QRCode,
+			"qr_code_base64": details.QRCodeBase64,
+			"items": util.ResourceCollection(cart.Items),
+			"total_items": details.Quantity,
+			"cart_type": "session_id",
+			"cart_identifier": request.SessionID,
+		})
+	}
+}
 
 func ValidateTemporarySession(
 	pool *pgxpool.Pool,
@@ -127,3 +188,4 @@ func CreateTemporarySession(
 		})
 	}
 }
+

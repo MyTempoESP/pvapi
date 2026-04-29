@@ -170,6 +170,11 @@ func setupRoutes(
 			payment.ValidateTemporarySession(pool))
 	}
 
+	api := t.Group("/api")
+	{
+		api.POST("/payments/pix/cart", payment.CartPIXHandler(pool))
+	}
+
 	t.Static("/assets", "./public/uploads")
 	t.Static("/public/uploads", "./public/uploads") // alias
 }

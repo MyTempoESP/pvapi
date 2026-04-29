@@ -170,6 +170,14 @@ github.com/leodido/go-urn/scim/schema
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
+# github.com/mercadopago/sdk-go v1.8.1
+## explicit; go 1.18.0
+github.com/mercadopago/sdk-go/pkg/config
+github.com/mercadopago/sdk-go/pkg/internal/defaultrequester
+github.com/mercadopago/sdk-go/pkg/internal/httpclient
+github.com/mercadopago/sdk-go/pkg/mperror
+github.com/mercadopago/sdk-go/pkg/order
+github.com/mercadopago/sdk-go/pkg/requester
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
