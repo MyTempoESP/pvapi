@@ -65,7 +65,7 @@ func CartPIXHandler(
 		c.JSON(200, gin.H{
 			"success": true,
 			"message": "pagamento iniciado",
-			"amount": details.Amount,
+			"amount": details.Amount.Float64(), // XXX
 			"status": details.Status,
 			"qr_code": details.QRCode,
 			"qr_code_base64": details.QRCodeBase64,
