@@ -181,7 +181,13 @@ FROM shops_info_view
 WHERE status = 'active'
 `
 
+	// simple toggle
 	DeactivateShopQuery = `
-UPDATE shops SET status = 'inactive' WHERE id = $1
+UPDATE shops
+	SET status = CASE
+		WHEN status = 'active' THEN 'inactive'
+		ELSE 'active'
+	END
+WHERE id = $1
 `
 )
