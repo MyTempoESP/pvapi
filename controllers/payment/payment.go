@@ -68,6 +68,7 @@ func CartPIXHandler(
 
 		c.JSON(200, gin.H{
 			"success": true,
+			"payment_id": details.PaymentID,
 			"message": "pagamento iniciado",
 			"amount": amountF, // XXX
 			"status": details.Status,
