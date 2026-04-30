@@ -62,10 +62,14 @@ func CartPIXHandler(
 			return
 		}
 
+		// I don't give a single fuck if it's exact or not
+		// please go kill yourself
+		amountF, _ := details.Amount.Float64()
+
 		c.JSON(200, gin.H{
 			"success": true,
 			"message": "pagamento iniciado",
-			"amount": details.Amount.Float64(), // XXX
+			"amount": amountF, // XXX
 			"status": details.Status,
 			"qr_code": details.QRCode,
 			"qr_code_base64": details.QRCodeBase64,
