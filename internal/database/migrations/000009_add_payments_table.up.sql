@@ -27,5 +27,5 @@ ALTER TABLE IF EXISTS public.payments
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;
-CREATE INDEX IF NOT EXISTS fki_a
+CREATE INDEX IF NOT EXISTS fki_payments_cart
     ON public.payments(cart_id);
