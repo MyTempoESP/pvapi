@@ -76,12 +76,6 @@ func CreateForCart(
 	clientPhone string, // password
 	cartID int,
 ) (err error) {
-	err = fmt.Errorf("ERROR IS HERE")
-
-	if err != nil {
-		return
-	}
-
 	// XXX: not a good idea to generate
 	// a password inside a transaction
 	user, err := userutils.NewUser(
@@ -91,13 +85,13 @@ func CreateForCart(
 	)
 
 	if err != nil {
-		return fmt.Errorf("error creating user: %w", err)
+		return
 	}
 
 	userID, err := user.Save(ctx, tx)
 
 	if err != nil {
-		return
+		return fmt.Errorf("error creating user: %w", err)
 	}
 
 	var clientID int
