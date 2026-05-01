@@ -31,13 +31,14 @@ WITH inserted_user AS (
 		email,
 		password_hash
 	)
-	VALUES
-	(
+	SELECT
 		@name,
 		@email,
 		@password
+	WHERE NOT EXISTS (
+		SELECT 1 FROM users 
+		WHERE email = @email OR name = @name
 	)
-	ON CONFLICT (email) DO NOTHING
 	RETURNING id
 )
 SELECT id FROM inserted_user
