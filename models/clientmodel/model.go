@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
+
 	"linhazero.com/pvapi/db"
-	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/userutils"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -52,18 +54,60 @@ func (c Client) Save(
 	return
 }
 
-func (c ClientBlueprint) Save(
+func AssociateToCart(
 	ctx context.Context,
-	base db.Queryable,
-) (int, error) {
-	return model.Create(
-		ctx,
-		base,
-		query.CreateClientQuery,
-		util.Args{
-			"field": c.Field,
-		},
+	tx pgx.Tx,
+	clientID,
+	cartID int,
+) error {
+	_, err := tx.Exec(
+		ctx, query.ClientAssociateToCartQuery,
+		clientID,
+		cartID,
 	)
+	return err
+}
+
+func CreateForCart(
+	ctx context.Context,
+	tx pgx.Tx,
+	clientName,
+	clientEmail,
+	clientPhone string, // password
+	cartID int,
+) (err error) {
+	// XXX: not a good idea to generate
+	// a password inside a transaction
+	user, err := userutils.NewUser(
+		clientName,
+		clientEmail,
+		clientPhone,
+	)
+
+	if err != nil {
+		return
+	}
+
+	userID, err := user.Save(ctx, tx)
+
+	if err != nil {
+		return
+	}
+
+	var clientID int
+
+	err = tx.QueryRow(
+		ctx, query.CreateClientQuery,
+		userID,
+	).Scan(&clientID)
+
+	if err != nil {
+		return
+	}
+
+	err = AssociateToCart(ctx, tx, clientID, cartID)
+
+	return
 }
 
 func List(

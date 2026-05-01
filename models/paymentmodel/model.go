@@ -18,6 +18,7 @@ import (
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/models/cartmodel"
+	"linhazero.com/pvapi/models/clientmodel"
 )
 
 
@@ -236,6 +237,14 @@ func (p PaymentBlueprint) Save(
 	if err != nil {
 		return
 	}
+
+	err = clientmodel.CreateForCart(
+		ctx, tx,
+		p.PayerName,
+		p.PayerEmail,
+		p.PayerPhone,
+		p.Cart.ID,
+	)
 
 	return
 }

@@ -17,6 +17,9 @@ func PermsShop(c *gin.Context) {
 func PermsConsignee(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "Permitido"})
 }
+func PermsClient(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "Permitido"})
+}
 
 func UserPermissionLevelHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {

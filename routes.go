@@ -16,6 +16,7 @@ import (
 	"linhazero.com/pvapi/controllers/payment"
 	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/middleware/auth"
+	"linhazero.com/pvapi/util"
 )
 
 func setupRoutes(
@@ -29,6 +30,8 @@ func setupRoutes(
 
 	// useful alias
 	public := t
+
+	util.Sybau(public)
 
 	loggedIn := t.Group("", withAuth)
 	{
@@ -133,8 +136,8 @@ func setupRoutes(
 
 	clients := t.Group("/clientes", withAuth)
 	{
-		clients.POST("", client.CreateHandler(pool))
-		clients.GET("", client.ListHandler(pool))
+		func(_ any) { }(clients) // XXX
+		func(_ any) { }(client.List) // XXX
 	}
 
 	admin := t.Group("/admin", withAuth)
