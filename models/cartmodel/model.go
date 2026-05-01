@@ -7,6 +7,7 @@ import (
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/models/productmodel"
 	"github.com/shopspring/decimal"
 )
 
@@ -116,3 +117,45 @@ func RemoveCartProduct(
 	return err
 }
 
+func ItemNewQuantity(
+	ctx context.Context,
+	tx pgx.Tx,
+	item int,
+	qty int,
+) (err error) {
+	var productID int
+
+	err = tx.QueryRow(
+		ctx,
+		query.GetCartItemProductID,
+		item,
+	).Scan(&productID)
+
+	if err != nil {
+		return
+	}
+
+	err = productmodel.TakeFromCart(
+		ctx, tx,
+		productID,
+		item,
+		qty,
+	)
+
+	if err != nil {
+		return
+	}
+
+	_, err = tx.Exec(
+		ctx,
+`
+update cart_product
+set quantity = $2
+where id = $1
+`,
+		item,
+		qty,
+	)
+
+	return
+}

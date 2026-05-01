@@ -12,11 +12,61 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func getItem(c *gin.Context) (int, error) {
+	return strconv.Atoi(c.Params.ByName("item"))
+}
+
+func QuantityHandler(
+	pool *pgxpool.Pool,
+) func (c *gin.Context) {
+	return func (c *gin.Context) {
+		item, err := getItem(c)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		var request struct{
+			Quantity int `json:"quantity" binding:"required"`
+
+			//TODO: validate session
+			//SessionID string `json:"session_id" binding:"required"`
+		}
+
+		err = c.ShouldBind(&request)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func (ctx context.Context, tx pgx.Tx) error {
+				return cartmodel.ItemNewQuantity(
+					ctx, tx,
+					item,
+					request.Quantity,
+					//request.SessionID,
+				)
+			},
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "quantidade alterada com sucesso")
+	}
+}
+
 func RemoveHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		item, err := strconv.Atoi(c.Params.ByName("item"))
+		item, err := getItem(c)
 
 		if err != nil {
 			util.HandleBadRequest(c, err)
