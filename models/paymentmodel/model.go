@@ -284,9 +284,14 @@ func CheckStatus(
 
 	status.PaymentID = paymentID
 	status.ExternalRef = payment.ExternalReference
-	status.Status = payment.Status
 	status.Amount = amount
 	status.AmountF = amountf
+
+	if payment.Status == "processed" {
+		status.Status = "approved"
+	} else {
+		status.Status = payment.Status
+	}
 
 	return
 }
