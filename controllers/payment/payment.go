@@ -90,6 +90,7 @@ func CartPIXHandler(
 		)
 
 		if err != nil {
+			util.LogWarn(c, "could not find cart")
 			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
