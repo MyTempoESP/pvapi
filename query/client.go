@@ -2,15 +2,16 @@ package query
 
 const (
 	CreateClientQuery = `
-INSERT INTO clients
-    (
-        user_id
-    )
-VALUES
-    (
-        $1
-    )
-RETURNING id
+WITH client AS (
+	INSERT INTO clients (user_id)
+	VALUES ($1)
+	ON CONFLICT (user_id) DO NOTHING
+	RETURNING id
+)
+SELECT id FROM client
+UNION ALL
+SELECT id FROM clients WHERE user_id = $1
+LIMIT 1
 `
 
 	ClientAssociateToCartQuery = `
