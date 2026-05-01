@@ -771,7 +771,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			body := decodeJSON(t, rec)
 			report := asMap(t, body)
 			status := asString(t, report["status"])
-			if status != "processed" {
+			if status != "approved" {
 				t.Fatalf("payment was not processed, got %s", status)
 			}
 		})

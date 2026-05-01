@@ -385,7 +385,7 @@ func Take(
 	productID int,
 	newQty, oldQty int,
 ) (err error) {
-	dx := oldQty - newQty
+	dx := newQty - oldQty
 
 	// check if new quantity is actually significant
 	if dx == 0 {
