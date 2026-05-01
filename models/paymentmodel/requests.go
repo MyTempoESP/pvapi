@@ -13,6 +13,6 @@ type GenericPaymentRequest struct {
 	PayerName    string `json:"payer_name" binding:"required"`
 	PayerSurname string `json:"payer_surname" binding:"required"`
 	PayerEmail   string `json:"payer_email" binding:"required"`
-	PayerPhone   string `json:"payer_phone" binding:"required"`
+	PayerPhone   string `json:"payer_phone"`
 	SessionID    string `json:"session_id" binding:"required"`
 }

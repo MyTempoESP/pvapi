@@ -249,7 +249,7 @@ func Find(
 	return
 }
 
-func Take(
+/*func Take(
 	ctx context.Context,
 	base db.Queryable,
 	product,
@@ -262,7 +262,7 @@ func Take(
 		ammount,
 	)
 	return
-}
+}*/
 
 func PublicIndexByShop(
 	ctx context.Context,
@@ -378,3 +378,75 @@ func DeleteImage(
 	return err
 }
 
+
+func Take(
+	ctx context.Context,
+	tx pgx.Tx,
+	productID int,
+	newQty, oldQty int,
+) (err error) {
+	dx := oldQty - newQty
+
+	// check if new quantity is actually significant
+	if dx == 0 {
+		return
+	}
+
+	// TODO: do negative qtys work?
+
+	// use the difference so we don't double-decrement
+	_, err = tx.Exec(
+		ctx,
+		query.ProductTakeFromStock,
+		productID,
+		dx,
+	)
+
+	return
+}
+
+
+func TakeFromCart(
+	ctx context.Context,
+	tx pgx.Tx,
+	productID int,
+	cartItemID int,
+	qty int,
+) (err error) {
+	var currentQty int
+
+	if err = tx.QueryRow(
+		ctx,
+		query.VerifyCartItemQuantity,
+		productID,
+		cartItemID,
+	).Scan(&currentQty); err != nil {
+		return
+	}
+
+	return Take(ctx, tx, productID, qty, currentQty)
+}
+
+
+func TakeFromPackage(
+	ctx context.Context,
+	tx pgx.Tx,
+	productID int,
+	consignmentID int,
+	qty int,
+) (err error) {
+	var currentQty int
+
+	// TODO: there can be multiple packages with
+	// the same product, beware
+	if err = tx.QueryRow(
+		ctx,
+		query.VerifyPackageQuantity,
+		productID,
+		consignmentID,
+	).Scan(&currentQty); err != nil {
+		return
+	}
+
+	return Take(ctx, tx, productID, qty, currentQty)
+}

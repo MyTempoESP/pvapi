@@ -36,6 +36,12 @@ FROM fetch_cart c
 CROSS JOIN inventory_check
 `
 
+	VerifyCartItemQuantity = `
+SELECT quantity
+FROM cart_product
+WHERE product_id = $1 AND id = $2
+`
+
 	ListAllCartsQuery = `
 SELECT
     *
@@ -88,5 +94,9 @@ WHERE cart_id = $1
 
 	RemoveCartProductQuery = `
 DELETE FROM cart_product WHERE id = $1
+`
+
+	GetCartItemProductID = `
+SELECT product_id FROM cart_product WHERE id=$1
 `
 )

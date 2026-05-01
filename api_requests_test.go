@@ -697,6 +697,14 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			assertStatus(t, rec, http.StatusOK)
 		})
 
+		t.Run("update_cart_product_quantity", func(t *testing.T) {
+			// TODO: stop using magic numbers
+			rec := h.doJSON(t, http.MethodPut, "/carrinho/atualizar/2", nil, map[string]any{
+				"quantity": 4,
+			})
+			assertStatus(t, rec, http.StatusOK)
+		})
+
 		t.Run("list_cart_products",  func(t * testing.T) {
 			rec := h.doRequest(
 				t,

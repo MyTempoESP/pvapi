@@ -75,6 +75,11 @@ func CartPIXHandler(
 			return
 		}
 
+		// XXX
+		if request.PayerPhone == "" {
+			request.PayerPhone = "27998909682"
+		}
+
 		// verify if the session is still valid
 		// workaround is to create a script to manually
 		// unassociate assigned expired session_ids.
