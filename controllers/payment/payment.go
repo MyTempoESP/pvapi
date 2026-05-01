@@ -90,7 +90,6 @@ func CartPIXHandler(
 		)
 
 		if err != nil {
-			util.LogWarn(c, "could not find cart")
 			util.Handle404(c, err)
 			return
 		}
