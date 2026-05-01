@@ -170,6 +170,18 @@ func (p PaymentBlueprint) Save(
 	ctx context.Context,
 	tx pgx.Tx,
 ) (prepared PIXPayment, err error) {
+	err = clientmodel.CreateForCart(
+		ctx, tx,
+		p.PayerName,
+		p.PayerEmail,
+		p.PayerPhone,
+		p.Cart.ID,
+	)
+
+	if err != nil {
+		return
+	}
+
 	paymentClient, err := newMercadoPago()
 
 	if err != nil {
@@ -233,18 +245,6 @@ func (p PaymentBlueprint) Save(
 	}
 
 	err = Create(ctx, tx, prepared)
-
-	if err != nil {
-		return
-	}
-
-	err = clientmodel.CreateForCart(
-		ctx, tx,
-		p.PayerName,
-		p.PayerEmail,
-		p.PayerPhone,
-		p.Cart.ID,
-	)
 
 	return
 }
