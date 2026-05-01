@@ -73,6 +73,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		productID        int
 		consignmentID    int
 		reportID         int
+		paymentID        string
 	)
 
 	t.Run("user_no_auth_test", func(t *testing.T) {
@@ -732,18 +733,39 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				nil,
 				map[string]any{
 					"payer_name": "APRO",
-					"payer_surname": "e",
-					"payer_email": "test_user@testuser.com",
+					"payer_surname": "",
+					"payer_email": "test@testuser.com",
 					"session_id": paymentSession,
 				},
 			)
 			assertStatus(t, rec, http.StatusOK)
+			body := decodeJSON(t, rec)
+			report := asMap(t, body)
+			paymentID = asString(t, report["payment_id"])
 		})
 
+		time.Sleep(4 * time.Second)
+
+		t.Run("check_payment_status", func(t * testing.T) {
+			rec := h.doRequest(
+				t,
+				http.MethodGet,
+				fmt.Sprintf("/pagamento/status/%s", paymentID),
+				nil, "", nil,
+			)
+			assertStatus(t, rec, http.StatusOK)
+			body := decodeJSON(t, rec)
+			report := asMap(t, body)
+			status := asString(t, report["status"])
+			if status != "processed" {
+				t.Fatalf("payment was not processed, got %s", status)
+			}
+		})
 	})
 
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
 	_ = consigneeSession
+
 }
 
 func newAPIHarness(t *testing.T) *apiHarness {

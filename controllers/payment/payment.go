@@ -18,6 +18,50 @@ import (
 	"github.com/google/uuid"
 )
 
+func HandleStatusCheck(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func (c *gin.Context) {
+		paymentID := c.Params.ByName("payment")
+
+		if paymentID == "" {
+			util.HandleBadRequest(c, errors.New("no paymentID provided"))
+			return
+		}
+
+		paymentDetails, err := paymentmodel.CheckStatus(
+			c.Request.Context(), paymentID,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		if paymentDetails.Status == "processed" {
+			err = util.TransactionAware(
+				c.Request.Context(), pool,
+				func (ctx context.Context, tx pgx.Tx) error {
+					return paymentmodel.Confirm(ctx, tx, paymentID)
+				},
+			)
+
+			if err != nil {
+				util.Handle500(c, err)
+				return
+			}
+		}
+
+		c.JSON(200, gin.H{
+			"payment_id": paymentDetails.PaymentID,
+			"external_referece": paymentDetails.ExternalRef,
+			"status": paymentDetails.Status,
+			"amount": paymentDetails.AmountF,
+			"_amount": paymentDetails.Amount,
+		})
+	}
+}
+
 func CartPIXHandler(
 	pool *pgxpool.Pool,
 ) func (c *gin.Context) {

@@ -168,6 +168,10 @@ func setupRoutes(
 
 		payments.POST("/session/validate",
 			payment.ValidateTemporarySession(pool))
+
+		// what the fuck
+		public.GET("/pagamento/status/:payment",
+			payment.HandleStatusCheck(pool))
 	}
 
 	api := t.Group("/api")

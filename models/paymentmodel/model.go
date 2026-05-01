@@ -240,3 +240,63 @@ func (p PaymentBlueprint) Save(
 	return
 }
 
+
+type PaymentStatus struct {
+	PaymentID   string
+	ExternalRef string
+	Status      string
+	AmountF     float64
+	Amount      decimal.Decimal
+}
+
+func CheckStatus(
+	ctx context.Context,
+	paymentID string,
+) (status PaymentStatus, err error) {
+	paymentClient, err := newMercadoPago()
+
+	if err != nil {
+		return
+	}
+
+	payment, err := paymentClient.Get(ctx, paymentID)
+
+	if err != nil {
+		return
+	}
+
+	amount, err := decimal.NewFromString(payment.TotalAmount)
+
+	if err != nil {
+		return
+	}
+
+	amountf, _ := amount.Float64()
+
+	status.PaymentID = paymentID
+	status.ExternalRef = payment.ExternalReference
+	status.Status = payment.Status
+	status.Amount = amount
+	status.AmountF = amountf
+
+	return
+}
+
+
+func Confirm(
+	ctx context.Context,
+	tx pgx.Tx,
+	paymentID string,
+) (err error) {
+	_, err = tx.Exec(
+		ctx,
+`
+update payments
+set status = 'processed'
+where payment_id = $1
+`,
+		paymentID,
+	)
+
+	return
+}
