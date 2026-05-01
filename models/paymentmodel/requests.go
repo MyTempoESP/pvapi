@@ -10,9 +10,9 @@ package paymentmodel
 */
 
 type GenericPaymentRequest struct {
-	PayerName    string `json:"payer_name"`
-	PayerSurname string `json:"payer_surname"`
-	PayerEmail   string `json:"payer_email"`
-	SessionID    string `json:"session_id"`
+	PayerName    string `json:"payer_name" binding:"required"`
+	PayerSurname string `json:"payer_surname" binding:"required"`
+	PayerEmail   string `json:"payer_email" binding:"required"`
+	PayerPhone   string `json:"payer_phone" binding:"required"`
+	SessionID    string `json:"session_id" binding:"required"`
 }
-

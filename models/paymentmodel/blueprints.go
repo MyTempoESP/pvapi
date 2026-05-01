@@ -10,6 +10,7 @@ type PaymentBlueprint struct {
 	PayerName    string
 	PayerSurname string
 	PayerEmail   string
+	PayerPhone   string
 
 	Cart *cartmodel.CartDetails
 }
@@ -21,6 +22,7 @@ func (p GenericPaymentRequest) Prepare(
 		PayerName: p.PayerName,
 		PayerSurname: p.PayerSurname,
 		PayerEmail: p.PayerEmail,
+		PayerPhone: p.PayerPhone,
 		Cart: cart,
 	}
 }

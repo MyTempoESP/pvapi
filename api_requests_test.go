@@ -65,6 +65,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		genericSession   apiSession
 		shopSession      apiSession
 		consigneeSession apiSession
+		clientSession    apiSession
 		shopID           int
 		shopSlug         string
 		consigneeID      int
@@ -725,6 +726,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 		*/
 
+		clientName := "APRO"
+		clientEmail := "test@testuser.com"
+		clientPhone := "27998909682"
+
 		t.Run("checkout_cart_items", func(t * testing.T) {
 			rec := h.doJSON(
 				t,
@@ -732,9 +737,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				"/api/payments/pix/cart",
 				nil,
 				map[string]any{
-					"payer_name": "APRO",
-					"payer_surname": "",
-					"payer_email": "test@testuser.com",
+					"payer_name": clientName,
+					"payer_surname": "test",
+					"payer_email": clientEmail,
+					"payer_phone": clientPhone,
 					"session_id": paymentSession,
 				},
 			)
@@ -761,6 +767,9 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				t.Fatalf("payment was not processed, got %s", status)
 			}
 		})
+
+		clientSession = h.login(t, clientEmail, clientPhone)
+		func(_ any) { }(clientSession) // XXX
 	})
 
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)

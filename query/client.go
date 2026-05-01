@@ -8,9 +8,13 @@ INSERT INTO clients
     )
 VALUES
     (
-        @user
+        $1
     )
 RETURNING id
+`
+
+	ClientAssociateToCartQuery = `
+UPDATE carts SET client_id = $1 WHERE id = $2
 `
 
 	ListShopClientsQuery = `
