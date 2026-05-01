@@ -85,7 +85,7 @@ func CreateForCart(
 	)
 
 	if err != nil {
-		return
+		return fmt.Errorf("error creating user: %w", err)
 	}
 
 	userID, err := user.Save(ctx, tx)
@@ -102,7 +102,7 @@ func CreateForCart(
 	).Scan(&clientID)
 
 	if err != nil {
-		return
+		return fmt.Errorf("error creating client: %w", err)
 	}
 
 	err = AssociateToCart(ctx, tx, clientID, cartID)
