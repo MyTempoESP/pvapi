@@ -452,6 +452,17 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("list_all_public_products", func(t *testing.T) {
+		rec := h.doRequest(
+			t,
+			http.MethodGet,
+			"/produtos",
+			nil, "", nil,
+		)
+
+		assertStatus(t, rec, http.StatusOK)
+	})
+
 	t.Run("view_public_product", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/produtos/%d", productID), nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)

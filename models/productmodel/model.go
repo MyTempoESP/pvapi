@@ -59,6 +59,16 @@ type Product struct {
 	PlatformCut      decimal.Decimal `db:"product_platform_cut"`
 }
 
+func PublicIndex(
+	ctx context.Context,
+	base db.Queryable,
+) ([]Product, error) {
+	return util.WithCollect[Product](
+		ctx, base,
+		query.GetAllPublicProducts,
+	)
+}
+
 func (p ProductBlueprint) Save(
 	ctx context.Context,
 	base pgx.Tx,
