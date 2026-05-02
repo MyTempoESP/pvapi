@@ -54,6 +54,22 @@ func Create(
 	return err
 }
 
+func CheckSessionCart(
+	ctx context.Context,
+	base db.Queryable,
+	sessionID string,
+) (hasCart bool, err error) {
+	err = base.QueryRow(
+		ctx,
+`
+SELECT COUNT(*) > 0 FROM carts WHERE session_id = $1
+`,
+		sessionID,
+	).Scan(&hasCart)
+
+	return
+}
+
 func FindBySession(
 	ctx context.Context,
 	base db.Queryable,
