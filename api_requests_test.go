@@ -758,7 +758,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			paymentID = asString(t, report["payment_id"])
 		})
 
-		time.Sleep(4 * time.Second)
+		time.Sleep(8 * time.Second)
 
 		t.Run("check_payment_status", func(t * testing.T) {
 			rec := h.doRequest(

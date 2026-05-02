@@ -187,6 +187,24 @@ func ValidateTemporarySession(
 			return
 		}
 
+		hasCart, err := cartmodel.CheckSessionCart(
+			c.Request.Context(), pool,
+			request.SessionID,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		if !hasCart {
+			c.JSON(400, gin.H{
+				"success": false,
+				"error": "carrinho nao encontrado",
+			})
+			return
+		}
+
 		c.JSON(200, gin.H{"success": true, "message": "sessao valida"})
 		return
 	}
