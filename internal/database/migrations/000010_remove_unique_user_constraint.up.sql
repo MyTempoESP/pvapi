@@ -1,0 +1,1 @@
+ALTER TABLE public.users DROP CONSTRAINT unique_user_name_constraint;
