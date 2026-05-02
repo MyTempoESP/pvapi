@@ -32,7 +32,7 @@ func PublicListingHandler(
 		util.WrapMap(
 			c, "Produtos listados com sucesso!",
 			gin.H{
-				"produtos": products,
+				"produtos": util.ResourceCollection(products),
 			},
 		)
 	}
