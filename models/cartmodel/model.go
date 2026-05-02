@@ -7,7 +7,7 @@ import (
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/db"
-	"linhazero.com/pvapi/models/productmodel"
+	//"linhazero.com/pvapi/models/productmodel"
 	"github.com/shopspring/decimal"
 )
 
@@ -87,6 +87,35 @@ func FindBySession(
 	return
 }
 
+func (c CartDetails) HoldStock(
+	ctx context.Context,
+	tx pgx.Tx,
+) (err error) {
+	batch := &pgx.Batch{}
+
+	for _, item := range c.Items {
+		batch.Queue(
+			query.ProductTakeFromStock,
+			item.ProductID,
+			item.Quantity,
+		)
+	}
+
+	results := tx.SendBatch(ctx, batch)
+
+	defer results.Close()
+
+	for range batch.Len() {
+		if _, err = results.Exec(); err != nil {
+			return
+		}
+	}
+
+	err = results.Close()
+
+	return
+}
+
 func (r AddToCartRequest) Exec(
 	ctx context.Context,
 	base pgx.Tx,
@@ -135,6 +164,8 @@ func ItemNewQuantity(
 		return
 	}
 
+// Le security (tm) # actual deduction moved to HoldStock
+/*
 	err = productmodel.TakeFromCart(
 		ctx, tx,
 		productID,
@@ -145,6 +176,7 @@ func ItemNewQuantity(
 	if err != nil {
 		return
 	}
+*/
 
 	_, err = tx.Exec(
 		ctx,

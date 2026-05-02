@@ -9,7 +9,10 @@ RETURNING id
 `
 
 	ClientAssociateToCartQuery = `
-UPDATE carts SET client_id = $1 WHERE id = $2
+UPDATE carts SET
+	client_id = $1,
+	session_id = 'FINISHED_' || uuidv4()::text
+WHERE id = $2
 `
 
 	ListShopClientsQuery = `
