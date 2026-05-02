@@ -73,6 +73,9 @@ func setupRoutes(
 		public.GET("/produtos/:product",
 			product.PublicViewHandler(pool))
 
+		public.GET("/produtos",
+			product.PublicListingHandler(pool))
+
 		products.GET("/estabelecimento",
 			product.ListByShopHandler(pool))
 		products.PUT(":product", product.UpdateHandler(pool))

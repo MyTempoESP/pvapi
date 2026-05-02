@@ -16,6 +16,28 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func PublicListingHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		products, err := productmodel.PublicIndex(
+			c.Request.Context(), pool,
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		util.WrapMap(
+			c, "Produtos listados com sucesso!",
+			gin.H{
+				"produtos": products,
+			},
+		)
+	}
+}
+
 func DeleteHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
