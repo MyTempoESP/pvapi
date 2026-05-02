@@ -135,7 +135,8 @@ func CreateTx(
 	user userutils.User,
 ) (shopID int, err error) {
 
-	userID, err := user.MustSave(ctx, tx)
+	// Find or create
+	userID, err := user.Save(ctx, tx)
 
 	if err != nil {
 		return

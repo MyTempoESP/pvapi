@@ -54,6 +54,30 @@ func Create(
 	return err
 }
 
+func ClearSession(
+	ctx context.Context,	
+	tx pgx.Tx,
+	sessionID string,
+) (err error) {
+	var cartID int
+
+	if err = tx.QueryRow(
+		ctx,
+		`select id from carts where session_id = $1`,
+		sessionID,
+	).Scan(&cartID); err != nil {
+		return
+	}
+
+	_, err = tx.Exec(
+		ctx,
+		`delete from cart_product where cart_id = $1`,
+		cartID,
+	)
+
+	return err
+}
+
 func CheckSessionCart(
 	ctx context.Context,
 	base db.Queryable,
