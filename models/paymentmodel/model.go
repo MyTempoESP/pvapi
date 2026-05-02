@@ -182,6 +182,12 @@ func (p PaymentBlueprint) Save(
 		return
 	}
 
+	err = p.Cart.HoldStock(ctx, tx)
+
+	if err != nil {
+		return
+	}
+
 	paymentClient, err := newMercadoPago()
 
 	if err != nil {

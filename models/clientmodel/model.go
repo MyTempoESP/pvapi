@@ -107,6 +107,10 @@ func CreateForCart(
 
 	err = AssociateToCart(ctx, tx, clientID, cartID)
 
+	if err != nil {
+		return
+	}
+
 	return
 }
 
