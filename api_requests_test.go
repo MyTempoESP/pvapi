@@ -692,7 +692,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				"product_id":      productID,
 				"quantity":        1,
 				"session_id":      paymentSession,
-				"personalization": map[string]any{},
+				"personalization": map[string]any{"random_shit": "bs"},
 			})
 			assertStatus(t, rec, http.StatusOK)
 		})

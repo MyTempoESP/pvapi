@@ -14,11 +14,10 @@ VALUES
 	)
 `
 
+	// this should not take from stock you dumass
 	AddProductToCartQuery = `
 WITH fetch_cart AS (
 	SELECT id FROM carts WHERE session_id = @session_id
-), inventory_check AS (
-	SELECT product_decrement_inventory(@product_id, @quantity)
 )
 INSERT INTO cart_product
 	(
@@ -33,7 +32,6 @@ SELECT
 	@quantity,
 	c.id
 FROM fetch_cart c
-CROSS JOIN inventory_check
 `
 
 	VerifyCartItemQuantity = `
