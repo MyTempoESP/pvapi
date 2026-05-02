@@ -166,6 +166,7 @@ func setupRoutes(
 		carts.POST("/adicionar", cart.AddProductHandler(pool))
 		carts.DELETE("/remover/:item", cart.RemoveHandler(pool))
 		carts.PUT("/atualizar/:item", cart.QuantityHandler(pool))
+		carts.DELETE("/limpar", cart.ClearHandler(pool))
 	}
 
 	payments := t.Group("/payments")

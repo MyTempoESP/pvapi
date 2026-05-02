@@ -677,7 +677,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 
 
-		t.Run("add_product_to_cart_for_deletion", func(t *testing.T) {
+		t.Run("add_products_to_cart_for_deletion", func(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 				"product_id":      productID,
 				"quantity":        1,
@@ -695,6 +695,23 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				)
 				assertStatus(t, rec, http.StatusOK)
 			})
+
+			rec = h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+				"product_id":      productID,
+				"quantity":        1,
+				"session_id":      paymentSession,
+				"personalization": map[string]any{},
+			})
+			assertStatus(t, rec, http.StatusOK)
+
+			t.Run("clear_cart", func(t *testing.T) {
+				rec := h.doJSON(
+					t, http.MethodDelete, "/carrinho/limpar", nil,
+					map[string]any{
+						"session_id": paymentSession,
+				})
+				assertStatus(t, rec, http.StatusOK)
+			})
 		})
 
 
@@ -710,7 +727,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		t.Run("update_cart_product_quantity", func(t *testing.T) {
 			// TODO: stop using magic numbers
-			rec := h.doJSON(t, http.MethodPut, "/carrinho/atualizar/2", nil, map[string]any{
+			rec := h.doJSON(t, http.MethodPut, "/carrinho/atualizar/3", nil, map[string]any{
 				"quantity": 4,
 			})
 			assertStatus(t, rec, http.StatusOK)
