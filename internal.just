@@ -5,6 +5,7 @@ set quiet
 default:
     echo "'internal' has no public targets."
 
+
 [private]
 [script]
 [no-exit-message]
