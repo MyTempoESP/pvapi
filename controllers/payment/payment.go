@@ -38,7 +38,7 @@ func HandleStatusCheck(
 			return
 		}
 
-		if paymentDetails.Status == "processed" {
+		if paymentDetails.Status == "approved" {
 			err = util.TransactionAware(
 				c.Request.Context(), pool,
 				func (ctx context.Context, tx pgx.Tx) error {

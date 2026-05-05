@@ -6,21 +6,20 @@ INSERT INTO shipments
 (
 	payment_id,
 	address_id,
-	client_id,
 	cart_id,
 	status,
 	shop_id
 )
 SELECT DISTINCT
-	p.id,
-	p.address_id,
-	p.client_id,
-	p.cart_id,
+	py.id,
+	py.address_id,
+	py.cart_id,
 	'pending',
-	c.shop_id
-FROM payments p
-JOIN cart_products c ON c.cart_id = p.cart_id
-WHERE p.id = $1
+	p.shop_id
+FROM payments py
+JOIN cart_product cp ON cp.cart_id = py.cart_id
+JOIN products p ON p.id = cp.product_id
+WHERE py.payment_id = $1
 RETURNING id
 `
 )
