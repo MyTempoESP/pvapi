@@ -76,6 +76,12 @@ DELETE FROM consignments
 WHERE id = $1
 `
 
+	FindFromViewQuery = `
+		SELECT *
+		FROM consignment_shipment_view
+		WHERE consignment_id = $1
+	`
+
 	VerifyPackageQuantity = `
 SELECT quantity FROM packages
 WHERE product_id = $1 AND consignment_id = $2

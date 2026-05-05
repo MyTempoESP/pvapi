@@ -238,3 +238,16 @@ func ListAll(
 		shopID,
 	)
 }
+
+func FindFromView(
+	ctx context.Context,
+	base db.Queryable,
+	id any,
+) (ConsignmentWithShipment, error) {
+	return util.WithCollectExactlyOneRow[ConsignmentWithShipment](
+		ctx,
+		base,
+		query.FindFromViewQuery,
+		id,
+	)
+}
