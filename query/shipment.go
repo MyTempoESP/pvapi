@@ -22,4 +22,13 @@ JOIN products p ON p.id = cp.product_id
 WHERE py.payment_id = $1
 RETURNING id
 `
+
+	// ListConsignmentsWithShipmentsQuery uses the unified view.
+	// $1 is shop_id
+	ListConsignmentsWithShipmentsQuery = `
+		SELECT *
+		FROM consignment_shipment_view
+		WHERE shop_id = $1
+		ORDER BY consignment_created_at DESC
+	`
 )

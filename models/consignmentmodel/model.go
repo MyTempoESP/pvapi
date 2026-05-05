@@ -223,3 +223,18 @@ func Delete(
 	_, err := base.Exec(ctx, query.DeleteConsignmentQuery, id)
 	return err
 }
+
+// ListAll returns both consignments and shipments for a given shop,
+// using the unified view.
+func ListAll(
+	ctx context.Context,
+	base db.Queryable,
+	shopID int,
+) ([]ConsignmentWithShipment, error) {
+	return util.WithCollect[ConsignmentWithShipment](
+		ctx,
+		base,
+		query.ListConsignmentsWithShipmentsQuery,
+		shopID,
+	)
+}
