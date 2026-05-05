@@ -37,16 +37,17 @@ SELECT
     sh.code::text AS consignment_code,
 
     NULL AS consignee_id,
-    NULL AS consignee_name,
+    'sistema' AS consignee_name,
 
-    sh.shop_id,
+    sh.shop_id AS shop_id,
     s.name AS shop_name,
 
     NULL AS pickup_location_id,
-    COALESCE(a.street || ', ' || a.number, a.street, a.number, 'Endereço de entrega') AS pickup_location_name,
+    py.payer_name || ' ' || py.payer_surname AS pickup_location_name,
 
     'shipment' AS record_type
 
 FROM shipments sh
 JOIN shops s ON s.id = sh.shop_id
+JOIN payments py ON py.id = sh.payment_id
 LEFT JOIN addresses a ON a.id = sh.address_id;
