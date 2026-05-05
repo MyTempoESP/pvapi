@@ -45,11 +45,12 @@ WHERE v.consignee_shop_id = $1
 `
 
 	ConsigneeHasConsignment = `
-SELECT (p.id IS NOT NULL) AS hasConsignment
+SELECT (p.consignment_id IS NOT NULL) AS hasConsignment
 FROM consignees c
-LEFT JOIN consignments p ON p.consignee_id = c.id
-WHERE c.id = $1 AND p.id = $2
+LEFT JOIN consignment_shipment_view p ON p.shop_id = c.shop_id
+WHERE c.id = $1 AND p.consignment_id = $2 AND p.record_type = $3
 `
+
 
 	ConsigneeHasReportQuery = `
 SELECT (r.id IS NOT NULL) AS hasReport

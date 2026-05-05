@@ -153,10 +153,10 @@ WHERE s.id = $1 AND p.id = $2
 `
 
 	ShopHasConsignmentQuery = `
-SELECT (p.id IS NOT NULL) AS hasConsignment
+SELECT (p.consignment_id IS NOT NULL) AS hasConsignment
 FROM shops s
-LEFT JOIN consignments p ON p.shop_id = s.id
-WHERE s.id = $1 AND p.id = $2
+LEFT JOIN consignment_shipment_view p ON p.shop_id = s.id
+WHERE s.id = $1 AND p.consignment_id = $2 AND p.record_type = $3
 `
 
 	ShopHasConsigneeQuery = `

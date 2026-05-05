@@ -1,6 +1,8 @@
 package gate
 
 import (
+	"errors"
+
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/consigneemodel"
@@ -17,9 +19,15 @@ func (c *ConsignmentGate) consigneeOwns(
 	r Resource,
 	id any,
 ) (bool, error) {
+	searchQuery, ok := id.(string)
+
+	if !ok {
+		return false, errors.New("search query is not a string")
+	}
+
 	hasConsignment, err := consigneemodel.HasConsignment(
 		r.Context, c.Base,
-		u.ActiveRoleID, id,
+		u.ActiveRoleID, searchQuery,
 	)
 
 	if err != nil {
@@ -34,9 +42,15 @@ func (c *ConsignmentGate) shopOwns(
 	r Resource,
 	id any,
 ) (bool, error) {
+	searchQuery, ok := id.(string)
+
+	if !ok {
+		return false, errors.New("search query is not a string")
+	}
+
 	hasConsignment, err := shopmodel.HasConsignment(
 		r.Context, c.Base,
-		u.ActiveRoleID, id,
+		u.ActiveRoleID, searchQuery,
 	)
 
 	if err != nil {
