@@ -288,14 +288,15 @@ func HasPickup(
 func HasConsignment(
 	ctx context.Context,
 	base db.Queryable,
-	shop, consignment any,
+	shop int, consignment string,
 ) (bool, error) {
+	id, recordType := util.CutShipmentPrefix(consignment)
+
 	return model.HasResource(
 		ctx,
 		base,
 		query.ShopHasConsignmentQuery,
-		shop,
-		consignment,
+		shop, id, recordType,
 	)
 }
 
