@@ -8,3 +8,4 @@ pvapi
 ide_unstable.just
 vendor/
 tmux.just
+.aider*
