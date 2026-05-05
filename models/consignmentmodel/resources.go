@@ -33,7 +33,7 @@ type ConsignmentWithShipmentResource struct {
 	ShopID   int    `json:"shop_id"`
 
 	// present for consignments
-	ConsigneeName string `json:"consigneeName",omitempty`
+	ConsigneeName string `json:"responsibleMonitor",omitempty`
 
 	// consignment: pickup location name; shipment: delivery address text
 	Destination string `json:"destination,omitempty"`
@@ -71,6 +71,9 @@ func (c ConsignmentWithShipment) ToResource() (
 	}
 
 	// Shipment
+
+	// generic name for consignee since shipments are based
+	r.ConsigneeName = "sistema"
 
 	// PickupName as the delivery address
 	r.Destination = *c.PickupName
