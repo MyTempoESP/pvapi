@@ -1,5 +1,6 @@
 package main
 import (
+	"strconv"
 	"bytes"
 	"path"
 	"strings"
@@ -539,7 +540,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		body := decodeJSON(t, rec)
 		consignment := asMap(t, body["data"])
-		if asInt(t, consignment["id"]) != consignmentID {
+		if asString(t, consignment["id"]) != strconv.Itoa(consignmentID) {
 			t.Fatalf("expected consignment id %d, got body %s", consignmentID, rec.Body.String())
 		}
 	})
@@ -1140,6 +1141,10 @@ func containsID(items []any, want int) bool {
 			}
 		case float64:
 			if int(v) == want {
+				return true
+			}
+		case string:
+			if string(v) == strconv.Itoa(want) {
 				return true
 			}
 		}

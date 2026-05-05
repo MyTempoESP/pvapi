@@ -1,6 +1,7 @@
 package query
 
 const (
+
 	CreateShipmentQuery = `
 INSERT INTO shipments
 (
@@ -14,7 +15,7 @@ SELECT DISTINCT
 	py.id,
 	py.address_id,
 	py.cart_id,
-	'pending',
+	'PENDENTE SEPARAÇÃO',
 	p.shop_id
 FROM payments py
 JOIN cart_product cp ON cp.cart_id = py.cart_id
@@ -26,9 +27,9 @@ RETURNING id
 	// ListConsignmentsWithShipmentsQuery uses the unified view.
 	// $1 is shop_id
 	ListConsignmentsWithShipmentsQuery = `
-		SELECT *
-		FROM consignment_shipment_view
-		WHERE shop_id = $1
-		ORDER BY consignment_created_at DESC
-	`
+SELECT *
+FROM consignment_shipment_view
+WHERE shop_id = $1
+ORDER BY consignment_created_at DESC
+`
 )
