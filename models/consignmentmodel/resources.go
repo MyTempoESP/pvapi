@@ -1,6 +1,8 @@
 package consignmentmodel
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -21,7 +23,7 @@ type ProductResource struct {
 }
 
 type ConsignmentWithShipmentResource struct {
-	ID             int              `json:"id"`
+	ID             string           `json:"id"`
 	ComissionType  *string          `json:"commission_type,omitempty"`
 	ComissionValue *decimal.Decimal `json:"commission_value,omitempty"`
 	Status         string           `json:"status"`
@@ -45,7 +47,6 @@ func (c ConsignmentWithShipment) ToResource() (
 	r ConsignmentWithShipmentResource,
 ) {
 	r = ConsignmentWithShipmentResource{
-		ID:             c.ID,
 		Status:         c.Status,
 		Code:           c.Code,
 		Slug:           c.Slug,
@@ -56,6 +57,8 @@ func (c ConsignmentWithShipment) ToResource() (
 	}
 
 	if c.RecordType == "consignment" {
+		r.ID = strconv.Itoa(c.ID)
+
 		r.ComissionType = c.ComissionType
 		r.ComissionValue = c.ComissionValue
 
@@ -71,6 +74,7 @@ func (c ConsignmentWithShipment) ToResource() (
 	}
 
 	// Shipment
+	r.ID = fmt.Sprintf("V-%d", c.ID)
 
 	// generic name for consignee since shipments are based
 	r.ConsigneeName = "sistema"
