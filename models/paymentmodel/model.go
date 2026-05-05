@@ -318,5 +318,27 @@ where payment_id = $1
 		paymentID,
 	)
 
+	if err != nil {
+		return
+	}
+
+	err = Ship(ctx, tx, paymentID)
+
 	return
 }
+
+func Ship(
+	ctx context.Context,
+	tx pgx.Tx,
+	paymentID string,
+) (err error) {
+	_, err = tx.Exec(
+		ctx,
+		query.CreateShipmentQuery,
+		util.Args{
+			
+		},
+	)
+	return
+}
+
