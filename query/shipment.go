@@ -61,3 +61,4 @@ JOIN product_catalog_view c ON c.product_id = cp.product_id
 WHERE sh.id = $1 AND sh.shop_id = c.product_shop_id
 `
 )
+
