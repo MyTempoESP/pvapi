@@ -773,11 +773,30 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				"/api/payments/pix/cart",
 				nil,
 				map[string]any{
-					"payer_name": clientName,
+					"payer_name":    clientName,
 					"payer_surname": "test",
-					"payer_email": clientEmail,
-					"payer_phone": clientPhone,
-					"session_id": paymentSession,
+					"payer_email":   clientEmail,
+					"payer_phone":   clientPhone,
+					"session_id":    paymentSession,
+					"shipping_info": map[string]any{
+						"type": "standard",
+						"cost": 10.0,
+						"customer": map[string]any{
+							"name":  clientName,
+							"email": clientEmail,
+							"phone": clientPhone,
+							"cpf":   "12345678901",
+						},
+						"address": map[string]any{
+							"street":       "Rua Exemplo",
+							"number":       "123",
+							"neighborhood": "Centro",
+							"city":         "Cidade",
+							"state":        "SP",
+							"cep":          "01001001",
+							"complement":   "Apto 1",
+						},
+					},
 				},
 			)
 			assertStatus(t, rec, http.StatusOK)
