@@ -20,7 +20,6 @@ type ProductResource struct {
 	Package PackageResource `json:"pivot"`
 }
 
-// ConsignmentWithShipmentResource is the JSON representation for both consignments and shipments.
 type ConsignmentWithShipmentResource struct {
 	ID             int              `json:"id"`
 	ComissionType  *string          `json:"commission_type,omitempty"`
@@ -33,24 +32,20 @@ type ConsignmentWithShipmentResource struct {
 	ShopName string `json:"shop_name"`
 	ShopID   int    `json:"shop_id"`
 
-	// Only present for consignments
-	Consignee   *ConsigneeResource `json:"consignee,omitempty"`
-	// For consignments: pickup location name; for shipments: delivery address text
-	Destination *string `json:"destination,omitempty"`
+	// present for consignments
+	ConsigneeName string `json:"consigneeName",omitempty`
+
+	// consignment: pickup location name; shipment: delivery address text
+	Destination string `json:"destination,omitempty"`
 
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type ConsigneeResource struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-func (c ConsignmentWithShipment) ToResource() ConsignmentWithShipmentResource {
-	res := ConsignmentWithShipmentResource{
+func (c ConsignmentWithShipment) ToResource() (
+	r ConsignmentWithShipmentResource,
+) {
+	r = ConsignmentWithShipmentResource{
 		ID:             c.ID,
-		ComissionType:  c.ComissionType,
-		ComissionValue: c.ComissionValue,
 		Status:         c.Status,
 		Code:           c.Code,
 		Slug:           c.Slug,
@@ -61,24 +56,26 @@ func (c ConsignmentWithShipment) ToResource() ConsignmentWithShipmentResource {
 	}
 
 	if c.RecordType == "consignment" {
+		r.ComissionType = c.ComissionType
+		r.ComissionValue = c.ComissionValue
+
 		if c.ConsigneeID != nil && c.ConsigneeName != nil {
-			res.Consignee = &ConsigneeResource{
-				ID:   *c.ConsigneeID,
-				Name: *c.ConsigneeName,
-			}
+			r.ConsigneeName = *c.ConsigneeName
 		}
+
 		if c.PickupName != nil {
-			res.Destination = c.PickupName
+			r.Destination = *c.PickupName
 		}
-	} else { // shipment
-		// Use PickupName as the delivery address
-		res.Destination = c.PickupName
-		// No comission or consignee for shipments
-		res.ComissionType = nil
-		res.ComissionValue = nil
+
+		return
 	}
 
-	return res
+	// Shipment
+
+	// PickupName as the delivery address
+	r.Destination = *c.PickupName
+
+	return
 }
 
 type PackageResource struct {
