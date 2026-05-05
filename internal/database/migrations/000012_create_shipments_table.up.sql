@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS public.shipments
     address_id INTEGER,
     payment_id INTEGER NOT NULL,
     client_id INTEGER NOT NULL,
-    total_amount NUMERIC(12, 2) NOT NULL,
+    cart_id INTEGER NOT NULL,
     code UUID NOT NULL DEFAULT uuidv4(),
     status TEXT NOT NULL,
     shop_id INTEGER NOT NULL,
@@ -21,6 +21,12 @@ ALTER TABLE IF EXISTS public.shipments
 ALTER TABLE IF EXISTS public.shipments
     ADD CONSTRAINT shipment_payment_relation FOREIGN KEY (payment_id)
     REFERENCES public.payments (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION;
+
+ALTER TABLE IF EXISTS public.shipments
+    ADD CONSTRAINT shipment_cart_relation FOREIGN KEY (cart_id)
+    REFERENCES public.carts (id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE NO ACTION;
 

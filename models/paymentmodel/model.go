@@ -14,6 +14,7 @@ import (
 	"github.com/mercadopago/sdk-go/pkg/config"
 	"github.com/mercadopago/sdk-go/pkg/order"
 	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/address"
 	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/query"
@@ -36,6 +37,7 @@ type Payment struct {
 	PayerName    string
 	PayerSurname string
 	Status       string
+	Address      address.Address
 	Method       string
 	TAmount      decimal.Decimal
 	Currency     string
@@ -143,24 +145,27 @@ func Create(
 	_, err := tx.Exec(
 		ctx,
 		query.PaymentCreateQuery,
-		util.Args{
-			"cart_id": payment.CartID,
-			"transaction_amount": payment.TAmount,
-			"quantity": payment.Quantity,
-			"amount": payment.Amount,
-			"status": payment.Status,
-			"description": payment.Description,
-			"title": payment.Title,
-			"payment_id": payment.PaymentID,
-			"payer_name": payment.PayerName,
-			"payer_email": payment.PayerEmail,
-			"payer_surname": payment.PayerSurname,
-			"payment_method": payment.Method,
-			"currency": payment.Currency,
-			"external_reference": payment.ExternalRef,
-			"method": payment.Method,
-			"metadata": payment.PIXMetadata,
-		},
+		util.Merge(
+			util.Args{
+				"cart_id": payment.CartID,
+				"transaction_amount": payment.TAmount,
+				"quantity": payment.Quantity,
+				"amount": payment.Amount,
+				"status": payment.Status,
+				"description": payment.Description,
+				"title": payment.Title,
+				"payment_id": payment.PaymentID,
+				"payer_name": payment.PayerName,
+				"payer_email": payment.PayerEmail,
+				"payer_surname": payment.PayerSurname,
+				"payment_method": payment.Method,
+				"currency": payment.Currency,
+				"external_reference": payment.ExternalRef,
+				"method": payment.Method,
+				"metadata": payment.PIXMetadata,
+			},
+			payment.Address.Params(),
+		),
 	)
 
 	return err
@@ -238,6 +243,7 @@ func (p PaymentBlueprint) Save(
 			PayerName: p.PayerName,
 			PayerEmail: p.PayerEmail,
 			PayerSurname: p.PayerSurname,
+			Address: p.ShippingAddress, // TODO: shipping cost
 			Status: payment.Status,
 			Method: "pix",
 			TAmount: paymentAmount,
@@ -335,9 +341,7 @@ func Ship(
 	_, err = tx.Exec(
 		ctx,
 		query.CreateShipmentQuery,
-		util.Args{
-			
-		},
+		paymentID,
 	)
 	return
 }
