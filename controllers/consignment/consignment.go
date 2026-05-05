@@ -17,7 +17,7 @@ func ListHandler(
 	return func(c *gin.Context) {
 		user := authmodel.GetUserFromContext(c)
 
-		consignments, err := consignmentmodel.List(
+		consignments, err := consignmentmodel.ListAll(
 			c.Request.Context(),
 			pool,
 			user.ActiveRoleID,

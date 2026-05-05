@@ -24,6 +24,7 @@ import (
 	"linhazero.com/pvapi/seed"
 )
 
+
 type apiSession struct {
 	cookies []*http.Cookie
 }
