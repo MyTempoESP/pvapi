@@ -1,7 +1,6 @@
 package consignmentmodel
 
 import (
-	"strings"
 	"context"
 	"fmt"
 
@@ -247,18 +246,13 @@ func FindAny(
 	base db.Queryable,
 	searchQuery string,
 ) (ConsignmentWithShipment, error) {
-	recordType := "consignment"
-	search, isShipment := strings.CutPrefix(searchQuery, "V-")
-
-	if isShipment {
-		recordType = "shipment"
-	}
+	id, recordType := util.CutShipmentPrefix(searchQuery)
 
 	return util.WithCollectExactlyOneRow[ConsignmentWithShipment](
 		ctx,
 		base,
 		query.FindFromViewQuery,
-		search,
+		id,
 		recordType,
 	)
 }
