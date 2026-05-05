@@ -77,10 +77,10 @@ WHERE id = $1
 `
 
 	FindFromViewQuery = `
-		SELECT *
-		FROM consignment_shipment_view
-		WHERE consignment_id = $1
-	`
+SELECT *
+FROM consignment_shipment_view
+WHERE consignment_id = $1 AND record_type = $2
+`
 
 	VerifyPackageQuantity = `
 SELECT quantity FROM packages

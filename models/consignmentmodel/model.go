@@ -239,15 +239,25 @@ func ListAll(
 	)
 }
 
-func FindFromView(
+// FindAny can return both consignments and shipments from a given query,
+// using the unified view. Parses queries of the form /(V-)?\d/
+func FindAny(
 	ctx context.Context,
 	base db.Queryable,
-	id any,
+	query string,
 ) (ConsignmentWithShipment, error) {
+	recordType := "consignment"
+	search, isShipment := strings.CutPrefix(query, "V-")
+
+	if isShipment {
+		recordType = "shipment"
+	}
+
 	return util.WithCollectExactlyOneRow[ConsignmentWithShipment](
 		ctx,
 		base,
 		query.FindFromViewQuery,
-		id,
+		search,
+		recordType,
 	)
 }
