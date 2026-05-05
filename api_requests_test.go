@@ -920,7 +920,8 @@ func newAPIHarness(t *testing.T) *apiHarness {
 		t.Skipf("test database is not reachable; start it with test.just first: %v", err)
 	}
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	out := os.Stdout; _=io.Discard
+	logger := slog.New(slog.NewTextHandler(out, nil))
 
 	if err := seed.Plant(logger, context.Background(), pool); err != nil {
 		pool.Close()
