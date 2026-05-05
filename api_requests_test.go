@@ -764,7 +764,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		clientName := "APRO"
 		clientEmail := "test@testuser.com"
-		clientPhone := "27998909682"
+		clientPhone := "27998181999"
 
 		t.Run("checkout_cart_items", func(t * testing.T) {
 			rec := h.doJSON(
