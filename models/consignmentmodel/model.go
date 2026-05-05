@@ -1,6 +1,7 @@
 package consignmentmodel
 
 import (
+	"strings"
 	"context"
 	"fmt"
 
@@ -244,10 +245,10 @@ func ListAll(
 func FindAny(
 	ctx context.Context,
 	base db.Queryable,
-	query string,
+	searchQuery string,
 ) (ConsignmentWithShipment, error) {
 	recordType := "consignment"
-	search, isShipment := strings.CutPrefix(query, "V-")
+	search, isShipment := strings.CutPrefix(searchQuery, "V-")
 
 	if isShipment {
 		recordType = "shipment"

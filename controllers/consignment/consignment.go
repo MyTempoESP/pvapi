@@ -156,7 +156,7 @@ func ViewHandler(
 	return func(c *gin.Context) {
 		consignmentID := c.Param("consignment")
 
-		consignment, err := consignmentmodel.Find(
+		consignment, err := consignmentmodel.FindAny(
 			c.Request.Context(),
 			pool,
 			consignmentID,
