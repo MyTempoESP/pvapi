@@ -3,6 +3,7 @@ package consignmentmodel
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -222,6 +223,34 @@ func Delete(
 ) error {
 	_, err := base.Exec(ctx, query.DeleteConsignmentQuery, id)
 	return err
+}
+
+// ListProductsAny returns products from either a consignment or a shipment.
+// The searchQuery can be a plain ID ("1") or prefixed as "V-1" for shipments.
+func ListProductsAny(
+	ctx context.Context,
+	base db.Queryable,
+	searchQuery string,
+) ([]ConsignmentProduct, error) {
+	idStr, recordType := util.CutShipmentPrefix(searchQuery)
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %s", idStr)
+	}
+
+	switch recordType {
+	case "consignment":
+		return ListProducts(ctx, base, id)
+	case "shipment":
+		return util.WithCollect[ConsignmentProduct](
+			ctx, base,
+			query.ListShipmentProductsQuery,
+			id,
+		)
+	default:
+		return nil, fmt.Errorf("unknown record type: %s", recordType)
+	}
 }
 
 // ListAll returns both consignments and shipments for a given shop,
