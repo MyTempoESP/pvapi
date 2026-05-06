@@ -47,6 +47,7 @@ SELECT
 	pickup_location_name
 FROM consignments_listing_view
 WHERE shop_id = $1
+  AND consignment_status != 'ARQUIVADO'
 `
 
 	FindConsignmentQuery = `
@@ -72,7 +73,8 @@ WHERE consignment_id = $1
 `
 
 	DeleteConsignmentQuery = `
-DELETE FROM consignments
+UPDATE consignments
+SET status = 'ARQUIVADO'
 WHERE id = $1
 `
 
