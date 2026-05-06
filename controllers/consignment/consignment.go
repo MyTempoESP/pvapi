@@ -256,7 +256,7 @@ func DeleteHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		err := consignmentmodel.Delete(
+		err := consignmentmodel.DeleteAny(
 			c.Request.Context(), pool,
 			c.Param("consignment"),
 		)
