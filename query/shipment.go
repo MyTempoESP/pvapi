@@ -30,6 +30,7 @@ RETURNING id
 SELECT *
 FROM consignment_shipment_view
 WHERE shop_id = $1
+  AND consignment_status != 'ARQUIVADO'
 ORDER BY consignment_created_at DESC
 `
 
