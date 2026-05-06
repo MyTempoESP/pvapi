@@ -895,6 +895,7 @@ func newAPIHarness(t *testing.T) *apiHarness {
 		"PV_API_MP_TOKEN",
 		"APP_USR-7125446321533947-042412-95d8bda1aab133686ae3798bab6e7a6b-3358217644",
 	)
+	setDefaultEnv(t, "PV_API_TEST_MODE", "yes")
 
 	if err := os.MkdirAll("public/uploads", 0o755); err != nil {
 		t.Fatalf("create uploads dir: %v", err)
