@@ -78,6 +78,12 @@ SET status = 'ARQUIVADO'
 WHERE id = $1
 `
 
+	DeleteShipment = `
+UPDATE shipment
+SET status = 'ARQUIVADO'
+WHERE id = $1
+`
+
 	FindFromViewQuery = `
 SELECT *
 FROM consignment_shipment_view
