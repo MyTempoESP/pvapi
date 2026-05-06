@@ -79,7 +79,7 @@ WHERE id = $1
 `
 
 	DeleteShipment = `
-UPDATE shipment
+UPDATE shipments
 SET status = 'ARQUIVADO'
 WHERE id = $1
 `
