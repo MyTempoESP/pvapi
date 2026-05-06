@@ -832,6 +832,48 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
 	_ = consigneeSession
 
+	t.Run("shipments", func(t *testing.T) {
+		t.Run("list_shipments", func(t *testing.T) {
+			rec := h.doRequest(t, http.MethodGet, "/remessas", &shopSession, "", nil)
+			assertStatus(t, rec, http.StatusOK)
+			body := decodeJSON(t, rec)
+			data := asSlice(t, body["data"])
+
+			var shipmentCode string
+			for _, item := range data {
+				obj := asMap(t, item)
+				codeVal, ok := obj["code"]
+				if !ok {
+					continue
+				}
+				codeStr, ok := codeVal.(string)
+				if !ok || !strings.HasPrefix(codeStr, "V-") {
+					continue
+				}
+				shipmentCode = codeStr
+				break
+			}
+			if shipmentCode == "" {
+				t.Fatal("expected a shipment (code starting with V-) after payment")
+			}
+
+			t.Run("view_shipment", func(t *testing.T) {
+				rec := h.doRequest(t, http.MethodGet, "/remessas/"+shipmentCode, &shopSession, "", nil)
+				assertStatus(t, rec, http.StatusOK)
+				body := decodeJSON(t, rec)
+				data := asMap(t, body["data"])
+				gotCode := asString(t, data["code"])
+				if gotCode != shipmentCode {
+					t.Fatalf("expected shipment code %q, got %q", shipmentCode, gotCode)
+				}
+			})
+
+			t.Run("view_nonexistent_shipment", func(t *testing.T) {
+				rec := h.doRequest(t, http.MethodGet, "/remessas/V-99999", &shopSession, "", nil)
+				assertStatus(t, rec, http.StatusNotFound)
+			})
+		})
+	})
 }
 
 func newAPIHarness(t *testing.T) *apiHarness {
