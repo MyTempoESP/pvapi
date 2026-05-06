@@ -225,6 +225,30 @@ func Delete(
 	return err
 }
 
+func DeleteAny(
+	ctx context.Context,
+	base db.Queryable,
+	searchQuery string,
+) (err error) {
+	idStr, recordType := util.CutShipmentPrefix(searchQuery)
+
+	switch recordType {
+	case "consignment":
+		return Delete(ctx, base, idStr)
+	case "shipment":
+		_, err = base.Exec(
+			ctx,
+			query.DeleteShipment,
+			idStr,
+		)
+		return
+	default:
+		return fmt.Errorf("unknown record type: %s", recordType)
+	}
+
+	return err
+}
+
 // ListProductsAny returns products from either a consignment or a shipment.
 // The searchQuery can be a plain ID ("1") or prefixed as "V-1" for shipments.
 func ListProductsAny(
