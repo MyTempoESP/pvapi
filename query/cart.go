@@ -97,4 +97,18 @@ DELETE FROM cart_product WHERE id = $1
 	GetCartItemProductID = `
 SELECT product_id FROM cart_product WHERE id=$1
 `
+
+	// freeze prices & hold stock
+	CartHoldStock = `
+WITH update_cart_products AS (
+	UPDATE cart_product i
+	SET price = p.price * i.quantity
+	FROM products p
+	WHERE i.cart_id = $1
+	  AND i.product_id = p.id
+)
+SELECT product_decrement_inventory(product_id, quantity)
+FROM cart_product
+WHERE cart_id = $1
+`
 )
