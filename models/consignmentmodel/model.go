@@ -1,7 +1,6 @@
 package consignmentmodel
 
 import (
-	"strings"
 	"context"
 	"fmt"
 	"strconv"
