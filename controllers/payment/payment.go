@@ -1,3 +1,5 @@
+// +build !dev
+
 package payment
 
 import (
@@ -26,7 +28,8 @@ func HandleStatusCheck(
 		paymentID := c.Params.ByName("payment")
 
 		if paymentID == "" {
-			util.HandleBadRequest(c, errors.New("no paymentID provided"))
+			util.HandleBadRequest(c,
+				errors.New("no paymentID provided"))
 			return
 		}
 
@@ -39,16 +42,16 @@ func HandleStatusCheck(
 			return
 		}
 
-		shouldConfirm := paymentDetails.Status == "approved"
-		if testMode, envErr := env.TestMode(); envErr == nil && testMode == "yes" {
-			shouldConfirm = true
-		}
+		confirmed := paymentDetails.Status == "approved"
 
-		if shouldConfirm {
+		if confirmed {
 			err = util.TransactionAware(
 				c.Request.Context(), pool,
 				func (ctx context.Context, tx pgx.Tx) error {
-					return paymentmodel.Confirm(ctx, tx, paymentID)
+					return paymentmodel.Confirm(
+						ctx, tx,
+						paymentID,
+					)
 				},
 			)
 
