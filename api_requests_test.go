@@ -896,6 +896,7 @@ func newAPIHarness(t *testing.T) *apiHarness {
 		"PV_API_MP_TOKEN",
 		"TEST-placeholder-mercadopago-token",
 	)
+	setDefaultEnv(t, "PV_API_TEST_MODE", "yes")
 
 	if err := os.MkdirAll("public/uploads", 0o755); err != nil {
 		t.Fatalf("create uploads dir: %v", err)

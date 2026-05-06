@@ -67,4 +67,7 @@ var (
 
 	// Log level
 	LogLevel = toLogLevel(wrapEnv("PV_API_LOG_LEVEL"))
+
+	// Test mode
+	TestMode = wrapEnv("PV_API_TEST_MODE")
 )
