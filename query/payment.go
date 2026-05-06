@@ -50,5 +50,11 @@ SELECT
 	@metadata
 RETURNING id
 `
+
+	ConfirmPaymentStatus = `
+UPDATE payments
+SET status = 'processed'
+WHERE payment_id = $1
+`
 )
 

@@ -316,11 +316,7 @@ func Confirm(
 ) (err error) {
 	_, err = tx.Exec(
 		ctx,
-`
-update payments
-set status = 'processed'
-where payment_id = $1
-`,
+		query.ConfirmPaymentStatus,
 		paymentID,
 	)
 

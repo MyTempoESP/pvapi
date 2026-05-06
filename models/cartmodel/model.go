@@ -131,28 +131,11 @@ func (c CartDetails) HoldStock(
 	ctx context.Context,
 	tx pgx.Tx,
 ) (err error) {
-	batch := &pgx.Batch{}
-
-	for _, item := range c.Items {
-		batch.Queue(
-			query.ProductTakeFromStock,
-			item.ProductID,
-			item.Quantity,
-		)
-	}
-
-	results := tx.SendBatch(ctx, batch)
-
-	defer results.Close()
-
-	for range batch.Len() {
-		if _, err = results.Exec(); err != nil {
-			return
-		}
-	}
-
-	err = results.Close()
-
+	_, err = tx.Exec(
+		ctx,
+		query.CartHoldStock,
+		c.ID,
+	)
 	return
 }
 
