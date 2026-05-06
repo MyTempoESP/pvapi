@@ -41,12 +41,12 @@ func ListProductsHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		consignmentID := c.Param("consignment")
+		rawID := c.Param("consignment")
 
-		products, err := consignmentmodel.ListProducts(
+		products, err := consignmentmodel.ListProductsAny(
 			c.Request.Context(),
 			pool,
-			consignmentID,
+			rawID,
 		)
 
 		if err != nil {
@@ -61,7 +61,7 @@ func ListProductsHandler(
 			gin.H{
 				"products":       collection,
 				"total_products": len(collection),
-				"consignment_id": consignmentID,
+				"consignment_id": rawID,
 			},
 		)
 	}
