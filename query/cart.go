@@ -102,7 +102,7 @@ SELECT product_id FROM cart_product WHERE id=$1
 	CartHoldStock = `
 WITH update_cart_products AS (
 	UPDATE cart_product i
-	SET price = p.price * i.quantity
+	SET price = p.price * (1 - p.discount / 100) * i.quantity
 	FROM products p
 	WHERE i.cart_id = $1
 	  AND i.product_id = p.id
@@ -112,3 +112,4 @@ FROM cart_product
 WHERE cart_id = $1
 `
 )
+
