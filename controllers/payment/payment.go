@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/models/cartmodel"
 	"linhazero.com/pvapi/models/paymentmodel"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,7 +39,12 @@ func HandleStatusCheck(
 			return
 		}
 
-		if paymentDetails.Status == "approved" {
+		shouldConfirm := paymentDetails.Status == "approved"
+		if testMode, envErr := env.TestMode(); envErr == nil && testMode == "yes" {
+			shouldConfirm = true
+		}
+
+		if shouldConfirm {
 			err = util.TransactionAware(
 				c.Request.Context(), pool,
 				func (ctx context.Context, tx pgx.Tx) error {
