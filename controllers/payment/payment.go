@@ -12,7 +12,6 @@ import (
 	"strconv"
 
 	"linhazero.com/pvapi/util"
-	"linhazero.com/pvapi/env"
 	"linhazero.com/pvapi/models/cartmodel"
 	"linhazero.com/pvapi/models/paymentmodel"
 	"github.com/jackc/pgx/v5/pgxpool"
