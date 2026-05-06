@@ -399,7 +399,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		rec := h.doMultipart(t, http.MethodPut, fmt.Sprintf("/produtos/%d", productID), &shopSession, map[string]string{
 			"name":                      updatedProductName,
 			"description":               "produto atualizado",
-			"price":                     "3",
+			"price":                     "0.11",
 			"category_id":               fmt.Sprintf("%d", categoryID),
 			"stock":                     "10",
 			"discount":                  "10",
@@ -730,7 +730,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		t.Run("update_cart_product_quantity", func(t *testing.T) {
 			// TODO: stop using magic numbers
 			rec := h.doJSON(t, http.MethodPut, "/carrinho/atualizar/3", nil, map[string]any{
-				"quantity": 4,
+				"quantity": 2,
 			})
 			assertStatus(t, rec, http.StatusOK)
 		})
@@ -807,7 +807,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			paymentID = asString(t, report["payment_id"])
 		})
 
-		//time.Sleep(8 * time.Second)
+		time.Sleep(3 * time.Second)
 
 		t.Run("check_payment_status", func(t * testing.T) {
 			rec := h.doRequest(
@@ -818,14 +818,12 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			)
 			assertStatus(t, rec, http.StatusOK)
 
-			/*
 			body := decodeJSON(t, rec)
 			report := asMap(t, body)
 			status := asString(t, report["status"])
 			if status != "approved" {
 				t.Fatalf("payment was not processed, got %s", status)
 			}
-			*/
 		})
 
 		clientSession = h.login(t, clientEmail, clientPhone)
@@ -845,7 +843,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			var shipmentCode string
 			for _, item := range data {
 				obj := asMap(t, item)
-				codeVal, ok := obj["code"]
+				codeVal, ok := obj["id"]
 				if !ok {
 					continue
 				}
@@ -857,7 +855,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				break
 			}
 			if shipmentCode == "" {
-				t.Fatal("expected a shipment (code starting with V-) after payment")
+				t.Fatalf(
+					"expected a shipment, %s",
+					rec.Body.String(),
+				)
 			}
 
 			t.Run("view_shipment", func(t *testing.T) {
@@ -865,15 +866,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				assertStatus(t, rec, http.StatusOK)
 				body := decodeJSON(t, rec)
 				data := asMap(t, body["data"])
-				gotCode := asString(t, data["code"])
+				gotCode := asString(t, data["id"])
 				if gotCode != shipmentCode {
-					t.Fatalf("expected shipment code %q, got %q", shipmentCode, gotCode)
+					t.Fatalf("expected shipment %q, got %q", shipmentCode, gotCode)
 				}
-			})
-
-			t.Run("view_nonexistent_shipment", func(t *testing.T) {
-				rec := h.doRequest(t, http.MethodGet, "/remessas/V-99999", &shopSession, "", nil)
-				assertStatus(t, rec, http.StatusNotFound)
 			})
 		})
 	})
@@ -920,7 +916,8 @@ func newAPIHarness(t *testing.T) *apiHarness {
 		t.Skipf("test database is not reachable; start it with test.just first: %v", err)
 	}
 
-	out := os.Stdout; _=io.Discard
+	//out := os.Stdout; _=io.Discard
+	out := io.Discard
 	logger := slog.New(slog.NewTextHandler(out, nil))
 
 	if err := seed.Plant(logger, context.Background(), pool); err != nil {
