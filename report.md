@@ -109,8 +109,9 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 | 14. Estados de entrega | 13 |
 | 15. Listar pagamentos do cliente | 7 |
 | 16. Resumo de compras | 7 |
-| **Subtotal** | **27 h** |
-| **Total disponível** | **160 h** → **133 h** de respiro. |
+| 17. Geração e verificação de QR Code | 21 |
+| **Subtotal** | **48 h** |
+| **Total disponível** | **160 h** → **112 h** de respiro. |
 
 ---
 
@@ -120,8 +121,8 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 |---------|---------------------------|----------------------|-----------------|
 | Sprint 1 | 44 | 160 | 116 |
 | Sprint 2 | 38 | 160 | 122 |
-| Sprint 3 | 27 | 160 | 133 |
-| **Total** | **109 h** | **320 h** | **211 h** |
+| Sprint 3 | 48 | 160 | 112 |
+| **Total** | **130 h** | **320 h** | **190 h** |
 
 **Conclusão:**  
 O MVP cabe confortavelmente nas 3 sprints (30 dias úteis), com grande margem para respiro, reuniões, suporte ao front‑end e imprevistos.
