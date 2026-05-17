@@ -61,7 +61,7 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 | 14 | [$medium] Estados de entrega (PENDENTE/RETIRADO/DEVOLVIDO) | $medium | 10 | 13 |
 | 15 | [$average] Listar pagamentos do cliente | $average | 5 | 7 |
 | 16 | [$average] Resumo de compras | $average | 5 | 7 |
-|     | **Total** | | **−** | **~108 h** |
+|     | **Total** | | **~81 h** | **~108 h** |
 
 *Nota: Folga de 30% inclui lidar com dúvidas, refatorações pequenas e comunicação em paralelo.*
 
