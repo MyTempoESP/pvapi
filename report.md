@@ -61,7 +61,8 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 | 14 | [$medium] Estados de entrega (PENDENTE/RETIRADO/DEVOLVIDO) | $medium | 10 | 13 |
 | 15 | [$average] Listar pagamentos do cliente | $average | 5 | 7 |
 | 16 | [$average] Resumo de compras | $average | 5 | 7 |
-|     | **Total** | | **~81 h** | **~108 h** |
+| 17 | [$hard] Geração e verificação de código QR | $hard | 16 | 21 |
+|     | **Total** | | **~97 h** | **~129 h** |
 
 *Nota: Folga de 30% inclui lidar com dúvidas, refatorações pequenas e comunicação em paralelo.*
 
@@ -138,11 +139,10 @@ O MVP cabe confortavelmente nas 3 sprints (30 dias úteis), com grande margem pa
 ## Recomendações pós‑MVP (Nice – postergado)
 
 - Financeiro (saques, totais) – ~30 h  
-- QR Code + verificação – ~20 h  
 - Entrega direta (código rastreio) – ~12 h  
 - Filtros avançados – ~18 h  
 
-Total ~80 h. Com a capacidade disponível após MVP (211 h de respiro), parte dessas tarefas pode ser absorvida **dentro do mesmo prazo de 30 dias**, caso o time opte.
+Total ~60 h. Com a capacidade disponível após MVP (211 h de respiro), parte dessas tarefas pode ser absorvida **dentro do mesmo prazo de 30 dias**, caso o time opte.
 
 ---
 
