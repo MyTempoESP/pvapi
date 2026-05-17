@@ -7,6 +7,13 @@
 
 ---
 
+Baseado no mapa:
+
+<img width="2311" height="2715" alt="pvauto" src="https://github.com/user-attachments/assets/5565bccd-7037-4534-9d10-e9f0c8f84c68" />
+
+
+---
+
 ## Premissas para estimativa de dias‑homem (dh)
 
 | Classificação | Dias‑homem por tarefa |
