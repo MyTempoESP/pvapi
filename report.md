@@ -62,7 +62,12 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 | 15 | [$average] Listar pagamentos do cliente | $average | 5 | 7 |
 | 16 | [$average] Resumo de compras | $average | 5 | 7 |
 | 17 | [$hard] Geração e verificação de código QR | $hard | 16 | 21 |
-|     | **Total** | | **~97 h** | **~129 h** |
+| 18 | [$medium] Criar modelo de saque (tabela, queries, modelo) | $medium | 8 | 10 |
+| 19 | [$medium] Endpoint solicitar saque (criação, validação de saldo) | $medium | 8 | 10 |
+| 20 | [$average] Listar saques do usuário (histórico) | $average | 5 | 7 |
+| 21 | [$average] Painel financeiro: totais (receita líquida, comissões, saldo disponível) | $average | 6 | 8 |
+| 22 | [$easy] Endpoint de aprovação/rejeição de saque (admin) | $easy | 3 | 4 |
+|     | **Total** | | **~127 h** | **~168 h** |
 
 *Nota: Folga de 30% inclui lidar com dúvidas, refatorações pequenas e comunicação em paralelo.*
 
@@ -132,20 +137,6 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 **Conclusão:**  
 O MVP cabe confortavelmente nas 3 sprints (30 dias úteis), com grande margem para respiro, reuniões, suporte ao front‑end e imprevistos.
 
----
-
-## Tarefas financeiras sugeridas
-
-| ID | Tarefa | Categoria | h base | h c/ 30% folga |
-|----|--------|-----------|--------|----------------|
-| 18 | [$medium] Criar modelo de saque (tabela, queries, modelo) | medium | 8 | 10 |
-| 19 | [$medium] Endpoint solicitar saque (criação, validação de saldo) | medium | 8 | 10 |
-| 20 | [$average] Listar saques do usuário (histórico) | average | 5 | 7 |
-| 21 | [$average] Painel financeiro: totais (receita líquida, comissões, saldo disponível) | average | 6 | 8 |
-| 22 | [$easy] Endpoint de aprovação/rejeição de saque (admin) | easy | 3 | 4 |
-|     | **Total** | | **30 h** | **39 h** |
-
----
 
 ## Dependências críticas
 
