@@ -121,8 +121,8 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 |---------|---------------------------|----------------------|-----------------|
 | Sprint 1 | 44 | 160 | 116 |
 | Sprint 2 | 38 | 160 | 122 |
-| Sprint 3 | 48 | 160 | 112 |
-| **Total** | **130 h** | **320 h** | **190 h** |
+| Sprint 3 | 87 | 160 | 73 |
+| **Total** | **169 h** | **320 h** | **151 h** |
 
 **Conclusão:**  
 O MVP cabe confortavelmente nas 3 sprints (30 dias úteis), com grande margem para respiro, reuniões, suporte ao front‑end e imprevistos.
@@ -139,11 +139,10 @@ O MVP cabe confortavelmente nas 3 sprints (30 dias úteis), com grande margem pa
 
 ## Recomendações pós‑MVP (Nice – postergado)
 
-- Financeiro (saques, totais) – ~30 h  
 - Entrega direta (código rastreio) – ~12 h  
 - Filtros avançados – ~18 h  
 
-Total ~60 h. Com a capacidade disponível após MVP (211 h de respiro), parte dessas tarefas pode ser absorvida **dentro do mesmo prazo de 30 dias**, caso o time opte.
+Total ~30 h. Com a capacidade disponível após MVP (151 h de respiro), parte dessas tarefas pode ser absorvida **dentro do mesmo prazo de 30 dias**, caso o time opte.
 
 ---
 
