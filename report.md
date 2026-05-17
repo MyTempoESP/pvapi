@@ -102,7 +102,7 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 
 *Obs: O checkout é o maior risco. Caso o dev Rodrigo se dedique integralmente (11 h/dia) por 2 dias (22h), o restante da sprint fica para Kerlon (5 h/dia) concluir frete e modal.*
 
-### Sprint 3 (dias 21‑30) – Estados, pagamentos, resumo
+### Sprint 3 (dias 21‑30) – Estados, pagamentos, resumo + Financeiro
 
 | Tarefa | h c/ folga |
 |--------|------------|
@@ -110,8 +110,13 @@ A folga é aplicada no total de cada sprint, não por tarefa.
 | 15. Listar pagamentos do cliente | 7 |
 | 16. Resumo de compras | 7 |
 | 17. Geração e verificação de QR Code | 21 |
-| **Subtotal** | **48 h** |
-| **Total disponível** | **160 h** → **112 h** de respiro. |
+| 18. Modelo de saque | 10 |
+| 19. Solicitar saque | 10 |
+| 20. Listar saques | 7 |
+| 21. Painel financeiro | 8 |
+| 22. Aprovar saque | 4 |
+| **Subtotal** | **87 h** |
+| **Total disponível** | **160 h** → **73 h** de respiro. |
 
 ---
 
@@ -129,11 +134,25 @@ O MVP cabe confortavelmente nas 3 sprints (30 dias úteis), com grande margem pa
 
 ---
 
+## Tarefas financeiras sugeridas
+
+| ID | Tarefa | Categoria | h base | h c/ 30% folga |
+|----|--------|-----------|--------|----------------|
+| 18 | [$medium] Criar modelo de saque (tabela, queries, modelo) | medium | 8 | 10 |
+| 19 | [$medium] Endpoint solicitar saque (criação, validação de saldo) | medium | 8 | 10 |
+| 20 | [$average] Listar saques do usuário (histórico) | average | 5 | 7 |
+| 21 | [$average] Painel financeiro: totais (receita líquida, comissões, saldo disponível) | average | 6 | 8 |
+| 22 | [$easy] Endpoint de aprovação/rejeição de saque (admin) | easy | 3 | 4 |
+|     | **Total** | | **30 h** | **39 h** |
+
+---
+
 ## Dependências críticas
 
 - **Checkout (tarefa 11)** deve ser iniciado no início da Sprint 2, pois impacta diretamente o fluxo de pagamento e criação de remessa.  
 - **POSRequest (tarefa 9)** deve estar pronto antes do checkout (pode ser concluído na Sprint 1).  
-- **Estados de entrega (tarefa 14)** pode ser iniciado em paralelo com checkout, mas não impacta o MVP se entregue até o final da Sprint 3.
+- **Estados de entrega (tarefa 14)** pode ser iniciado em paralelo com checkout, mas não impacta o MVP se entregue até o final da Sprint 3.  
+- **Painel financeiro** precisa consultar totais das vendas concluídas e dos saques realizados – pode ser desenvolvido em paralelo com os endpoints de saque.
 
 ---
 
