@@ -1,6 +1,6 @@
 ### 1. [Bug] Logar como monitor  
 ---  
-**Tempo médio:** 2 dh  
+**Tempo médio:** 3 h  
 **Descrição:**  
 Corrigir bug que impede o login de usuários com perfil "monitor" (consignee). Ajustar o modelo `authmodel` para incluir as claims corretas no JWT e modificar a rota de autorização em `controllers/policy/policy.go` para permitir o acesso.
 
@@ -15,7 +15,7 @@ Corrigir bug que impede o login de usuários com perfil "monitor" (consignee). A
 
 ### 2. [Bug] Criar ocorrência (formato que vem do front)  
 ---  
-**Tempo médio:** 1 dh  
+**Tempo médio:** 2 h  
 **Descrição:**  
 O endpoint de criação de ocorrências (`/ocorrencias`) não está parseando corretamente o JSON enviado pelo front‑end. Ajustar o handler `controllers/report/report.go` para aceitar o formato real (ex.: `occurrenceScope`, `orderId` etc.) e mapear para a estrutura `CreateReportRequest`.
 
@@ -29,7 +29,7 @@ O endpoint de criação de ocorrências (`/ocorrencias`) não está parseando co
 
 ### 3. [$easy] Listar clientes  
 ---  
-**Tempo médio:** 1 dh  
+**Tempo médio:** 3 h  
 **Descrição:**  
 Criar endpoint `GET /clientes` para listar os clientes de uma loja. Já existe a query `ListShopClientsQuery` em `query/client.go` e o método `List` em `models/clientmodel/model.go`. Basta expor um handler em `controllers/client/client.go`.
 
@@ -44,7 +44,7 @@ Criar endpoint `GET /clientes` para listar os clientes de uma loja. Já existe a
 
 ### 4. [$easy] Unificar cadastro com `FindOrCreate`  
 ---  
-**Tempo médio:** 2 dh  
+**Tempo médio:** 4 h  
 **Descrição:**  
 Substituir as chamadas diretas a `user.Save` nos métodos de criação de loja, monitor e cliente por uma função `FindOrCreate` (já existente em `models/usermodel/model.go`). Isso evita duplicatas de usuário quando o mesmo e‑mail é usado.
 
@@ -60,7 +60,7 @@ Substituir as chamadas diretas a `user.Save` nos métodos de criação de loja, 
 
 ### 5. [$easy] Alterar queries de inserção para upsert  
 ---  
-**Tempo médio:** 1 dh  
+**Tempo médio:** 3 h  
 **Descrição:**  
 Adicionar cláusulas `ON CONFLICT` nas queries de inserção de lojas, monitores e clientes para evitar erros de duplicidade. As queries atuais lançam erro se já existir um registro com a mesma chave única.
 
@@ -77,7 +77,7 @@ Adicionar cláusulas `ON CONFLICT` nas queries de inserção de lojas, monitores
 
 ### 6. [$easy] Criar tabela `package_sale`  
 ---  
-**Tempo médio:** 2 dh  
+**Tempo médio:** 3 h  
 **Descrição:**  
 Criar uma nova tabela `package_sale` no banco de dados para registrar a venda de pacotes (itens de remessa). Isso envolve escrever um script SQL de migração e definir o struct correspondente em Go.
 
@@ -92,7 +92,7 @@ Criar uma nova tabela `package_sale` no banco de dados para registrar a venda de
 
 ### 7. [$easy] Filtragem por data (pickup)  
 ---  
-**Tempo médio:** 1 dh  
+**Tempo médio:** 2 h  
 **Descrição:**  
 Modificar a query de listagem de pontos de retirada (`pickup_locations`) para retornar apenas aqueles com data futura (agendados para depois de agora). Isso evita exibir pickups vencidos.
 
@@ -105,7 +105,7 @@ Modificar a query de listagem de pontos de retirada (`pickup_locations`) para re
 
 ### 8. [$easy] Listagem simples de pickup (dropdown)  
 ---  
-**Tempo médio:** 1 dh  
+**Tempo médio:** 2 h  
 **Descrição:**  
 Criar um endpoint ou reutilizar o existente `GET /pontos` para retornar apenas os campos necessários (id, name, datetime) para preenchimento de dropdown no front‑end. Já existe a função `List` em `models/pickupmodel/model.go`.
 
@@ -119,7 +119,7 @@ Criar um endpoint ou reutilizar o existente `GET /pontos` para retornar apenas o
 
 ### 9. [$average] Criar struct `POSRequest{}`  
 ---  
-**Tempo médio:** 3 dh  
+**Tempo médio:** 5 h  
 **Descrição:**  
 Criar uma nova estrutura `POSRequest` para representar uma requisição de ponto de venda (Point of Sale – pickup no ato da compra). Adicionar o campo `PickupLocationID` no pacote de criação de remessa.
 
@@ -132,7 +132,7 @@ Criar uma nova estrutura `POSRequest` para representar uma requisição de ponto
 
 ### 10. [$average] Modificar controller para aceitar POS  
 ---  
-**Tempo médio:** 3 dh  
+**Tempo médio:** 5 h  
 **Descrição:**  
 Atualizar os controllers de carrinho e remessa para aceitar o novo campo `POSRequest` durante o checkout e criação de remessa. Ajustar os handlers `controllers/cart/cart.go` e `controllers/consignment/consignment.go` para parsear e utilizar o ID do ponto de retirada.
 
@@ -146,7 +146,7 @@ Atualizar os controllers de carrinho e remessa para aceitar o novo campo `POSReq
 
 ### 11. [$hard] Modificar funções de checkout para usar referência a pickup  
 ---  
-**Tempo médio:** 10 dh  
+**Tempo médio:** 16 h  
 **Descrição:**  
 Reestruturar o fluxo de checkout para que a remessa gerada após o pagamento referencie o ponto de retirada (pickup) escolhido pelo cliente. Isso exige alterações no `cartmodel`, nas queries de finalização, no controller de carrinho e no modelo de remessa.
 
@@ -163,7 +163,7 @@ Reestruturar o fluxo de checkout para que a remessa gerada após o pagamento ref
 
 ### 12. [$medium] Frete (API de cálculo) – versão simplificada  
 ---  
-**Tempo médio:** 5 dh  
+**Tempo médio:** 8 h  
 **Descrição:**  
 Implementar cálculo de frete simplificado para MVP (ex.: valor fixo de R$15). Adicionar uma função em `util/util.go` e incluir o campo `freightCost` na requisição de pagamento.
 
@@ -177,7 +177,7 @@ Implementar cálculo de frete simplificado para MVP (ex.: valor fixo de R$15). A
 
 ### 13. [$average] Modal de endereço da remessa  
 ---  
-**Tempo médio:** 3 dh  
+**Tempo médio:** 5 h  
 **Descrição:**  
 Criar um endpoint `GET /remessas/:id/endereco` que retorna os dados de endereço associados à remessa (se for shipment, o endereço do cliente; se for consignment, o endereço do ponto de retirada). O struct já possui endereço, falta serializá‑lo.
 
@@ -191,7 +191,7 @@ Criar um endpoint `GET /remessas/:id/endereco` que retorna os dados de endereço
 
 ### 14. [$medium] Estados de entrega (PENDENTE/RETIRADO/DEVOLVIDO)  
 ---  
-**Tempo médio:** 8 dh  
+**Tempo médio:** 10 h  
 **Descrição:**  
 Implementar máquina de estados para as remessas, permitindo alterar o status entre `PENDENTE SEPARAÇÃO`, `RETIRADO` e `DEVOLVIDO`. Criar enum, métodos de atualização, queries e verificar permissões no gate.
 
@@ -208,7 +208,7 @@ Implementar máquina de estados para as remessas, permitindo alterar o status en
 
 ### 15. [$average] Listar pagamentos do cliente  
 ---  
-**Tempo médio:** 4 dh  
+**Tempo médio:** 5 h  
 **Descrição:**  
 Criar endpoint `GET /clientes/:id/pagamentos` que retorna os pagamentos realizados por um determinado cliente. Criar nova query `ListByClient`, struct `PaymentResource` e handler.
 
@@ -223,7 +223,7 @@ Criar endpoint `GET /clientes/:id/pagamentos` que retorna os pagamentos realizad
 
 ### 16. [$average] Resumo de compras  
 ---  
-**Tempo médio:** 4 dh  
+**Tempo médio:** 5 h  
 **Descrição:**  
 Criar endpoint que retorna o histórico de compras (carrinhos finalizados) de um cliente. Aproveitar as queries existentes em `query/cart.go` e criar método no `models/cartmodel`.
 
@@ -238,7 +238,7 @@ Criar endpoint que retorna o histórico de compras (carrinhos finalizados) de um
 
 ### 17. [Nice] Financeiro (saques, totais)  
 ---  
-**Tempo médio:** ~20 dh  
+**Tempo médio:** ~30 h  
 **Descrição:**  
 Implementar funcionalidades financeiras como cálculo de total de vendas, comissões, e solicitação de saque para lojistas. (Postergado – não incluso nas sprints 1‑3.)
 
@@ -247,7 +247,7 @@ Implementar funcionalidades financeiras como cálculo de total de vendas, comiss
 
 ### 18. [Nice] QR Code + verificação  
 ---  
-**Tempo médio:** ~15 dh  
+**Tempo médio:** ~20 h  
 **Descrição:**  
 Gerar QR Code para cada remessa permitindo verificação de status via leitura. (Postergado.)
 
@@ -256,7 +256,7 @@ Gerar QR Code para cada remessa permitindo verificação de status via leitura. 
 
 ### 19. [Nice] Entrega direta (código rastreio)  
 ---  
-**Tempo médio:** ~8 dh  
+**Tempo médio:** ~12 h  
 **Descrição:**  
 Permitir que remessas do tipo “entrega direta” possuam código de rastreio (tracking number). (Postergado.)
 
@@ -265,7 +265,7 @@ Permitir que remessas do tipo “entrega direta” possuam código de rastreio (
 
 ### 20. [Nice] Filtros avançados, melhorias  
 ---  
-**Tempo médio:** ~12 dh  
+**Tempo médio:** ~18 h  
 **Descrição:**  
 Adicionar filtros por data, status, loja, etc. nas listagens de remessas, pagamentos e produtos. (Postergado.)
 
