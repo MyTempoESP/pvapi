@@ -358,5 +358,112 @@ Criar endpoint `PUT /saques/:id` para administrador aprovar ou rejeitar um saque
 
 ---
 
+## Sprint Extra – Rotas Públicas / Globais / Consolidação
+
+### 23. [$easy] Middleware de autenticação por token para grupo `/global`
+**Tempo médio:** 4 h (c/ folga)  
+**Descrição:**  
+Criar um middleware de autenticação para o grupo de rotas `/global`. Esse middleware valida um token de API (ex.: chave fixa compartilhada via variável de ambiente ou tabela `api_keys`). Diferente da autenticação JWT de usuários, será um token global que identifica o sistema consumidor externo.
+
+**Arquivos tocados:**  
+- `middleware/globalauth/globalauth.go` (novo middleware)  
+- `routes.go` (adicionar grupo `r.Group("/global", middleware.GlobalAuth)`)  
+- `config/config.go` (carregar chave/token do ambiente)
+
+**Detalhes:**  
+- O token é enviado no header `Authorization: Bearer <token>` ou header customizado `X-API-Key`.  
+- O middleware compara com o valor armazenado e retorna 401 se inválido.  
+- Registrar as rotas subsequentes dentro desse grupo.  
+
+---
+
+### 24. [$medium] Rota `GET /global/produtos` com filtros (loja, nome, ponto)
+**Tempo médio:** 10 h (c/ folga)  
+**Descrição:**  
+Criar endpoint público para listar produtos com filtros opcionais:  
+- `?loja=<slug ou id>` (filtrar por loja)  
+- `?nome=<termo>` (busca por nome, ILIKE)  
+- `?ponto=<id_pickup>` (produtos disponíveis naquele ponto de retirada)  
+- Combinações dos anteriores.  
+Retornar todas as informações do produto (campos de `Product` em `models/productmodel/model.go`).
+
+**Arquivos tocados:**  
+- `query/product.go` (criar nova query `ProductGlobalSearchQuery` com filtros dinâmicos usando `squirrel`)  
+- `models/productmodel/model.go` (método `SearchGlobal(ctx, base, filters)`)  
+- `controllers/global/product.go` (novo handler)  
+- `routes.go` (registrar `GET /global/produtos`)
+
+**Detalhes:**  
+- Usar `sq.Select` para montar WHERE condicionalmente, evitando SQL injection.  
+- Para o filtro `ponto`, fazer JOIN com `pickup_locations` → `consignments` → `packages` → `products`, filtrando por `pickup_location_id` e status de consignment/shipment ativa.  
+- Reutilizar a view `product_catalog_view` para obter todos os campos do produto.  
+
+---
+
+### 25. [$easy] Rota `POST /global/pontos` – criar ponto de retirada
+**Tempo médio:** 4 h (c/ folga)  
+**Descrição:**  
+Criar endpoint para cadastrar um ponto de retirada (pickup location) via API global. O corpo da requisição deve conter nome, endereço, data/hora da retirada e `shop_id` (loja associada). Reutilizar o modelo existente `PickupLocationBlueprint.Save`.
+
+**Arquivos tocados:**  
+- `controllers/global/pickup.go` (novo handler `CreatePickupHandler`)  
+- `models/pickupmodel/requests.go` (struct `CreatePickupLocationRequest` já existe, apenas ajustar tags)  
+- `models/pickupmodel/model.go` (método `Save` já pronto)  
+- `routes.go` (registrar `POST /global/pontos`)
+
+**Detalhes:**  
+- Validar campos obrigatórios (nome, endereço, shop_id).  
+- Chamar `PickupLocationBlueprint.Prepare` (já existe) e depois `Save`.  
+- Retornar o ID e os dados criados.  
+
+---
+
+### 26. [$medium] Rota `GET /global/produtos?ponto=<ID>` – produtos em um ponto específico
+**Tempo médio:** 10 h (c/ folga)  
+**Descrição:**  
+Implementar a funcionalidade de listar apenas os produtos disponíveis em um determinado ponto de retirada. Essa rota será uma extensão da história 24, tratando o parâmetro `ponto`. A query deve consultar as consignações/shipments associadas ao pickup e extrair os produtos.
+
+**Arquivos tocados:**  
+- `query/product.go` (adicionar cláusula JOIN com `pickup_locations` e `consignments` ou `shipments`)  
+- `models/productmodel/model.go` (método `ListByPickup` ou estender `SearchGlobal`)  
+- `controllers/global/product.go` (reutilizar handler, adicionar suporte ao parâmetro `ponto`)  
+- `routes.go` (já registrado)
+
+**Detalhes:**  
+- Query deve filtrar por `pickup_location_id = $1` e status da consignment/shipment não arquivado.  
+- Retornar os mesmos campos completos de produto (via `product_catalog_view`).  
+- Opcional: incluir informação da quantidade disponível naquele ponto.  
+
+---
+
+### 27. [$hard] Rota `POST /global/checkout/<productID>` – confirmar posse de produto
+**Tempo médio:** 21 h (c/ folga)  
+**Descrição:**  
+Criar endpoint que confirma a retirada de um produto específico em um ponto de retirada. O fluxo deve:  
+1. Validar que o produto existe e está associado a um pickup/locação ativa.  
+2. Decrementar o estoque via `product_decrement_inventory`.  
+3. Criar um registro em `package_sale` (tabela definida na histórica 6) com `price_sold`, `quantity_sold`, referência ao produto e ao ponto.  
+4. Criar um **pagamento simbólico** (ex.: valor R$0,01) apenas para registrar a transação, **sem afetar os cálculos do painel financeiro**.  
+   - Para não contaminar, adicionar uma coluna `payment_type` com valores `'real'` (default) e `'symbolic'`. As queries do painel devem filtrar por `payment_type = 'real'`.  
+5. Criar um `shipment` associado ao produto/pickup, com status `RETIRADO`.
+
+**Arquivos tocados:**  
+- `controllers/global/checkout.go` (novo handler)  
+- `query/product.go` (buscar produto e vinculação com pickup)  
+- `query/shipment.go` (criar `CreateSymbolicShipmentQuery` que insere shipment com status `RETIRADO`)  
+- `query/payment.go` (criar query de inserção de pagamento simbólico)  
+- `models/consignmentmodel/model.go` (métodos para `AddProductAction` adaptados para `package_sale`)  
+- `models/consignmentmodel/data.go` (adicionar struct `PackageSale` conforme histórica 6)  
+- `models/paymentmodel/requests.go` (adicionar campo `payment_type` ou criar `Payment` struct separada)  
+- `routes.go` (registrar `POST /global/checkout/:productId`)
+
+**Detalhes:**  
+- O payload pode conter `pickup_location_id`, `quantity` (default 1), `consignment_id` (opcional).  
+- A transação deve ser atômica: tudo ou nada, usando `pgx.Tx`.  
+- Para não interferir no painel, o pagamento simbólico deve ser ignorado nas agregações financeiras. Sugestão: ajustar as consultas do painel (histórias 21-22) para `WHERE payment_type = 'real'`.  
+- Após confirmar posse, atualizar estoque do produto e marcar como retirado (não reutilizável).  
+
+---
+
 **Nota:** Todos os tempos incluem 30% de folga (conforme report.md).  
 **Dependências críticas** e alocação por sprint permanecem conforme planejamento original.
