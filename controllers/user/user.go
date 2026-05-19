@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
@@ -49,5 +50,19 @@ func UserDataHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			"email":   userMail,
 			"message": "succesfully fetched user",
 		})
+	}
+}
+
+func UserPermissionsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := authmodel.GetUserFromContext(c)
+
+		perms, err := usermodel.GetUserPermissions(c.Request.Context(), pool, user.UserID)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		c.JSON(200, perms)
 	}
 }
