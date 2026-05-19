@@ -33,6 +33,8 @@ func setupRoutes(
 
 	util.Sybau(public)
 
+	public.GET("/permissions", user.PermissionsByEmailHandler(pool))
+
 	loggedIn := t.Group("", withAuth)
 	{
 		loggedIn.GET("/logout", authMiddleware.LogoutHandler)
