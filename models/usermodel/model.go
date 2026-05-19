@@ -16,8 +16,9 @@ type User struct {
 }
 
 type Permissions struct {
-	Highest      string
-	ActiveRoleID int
+	Highest      string   `json:"highest"`
+	ActiveRoleID int      `json:"active_role_id"`
+	AllRoles     []string `json:"all_roles"`
 }
 
 type permissionOutput struct {
@@ -118,36 +119,43 @@ func GetUserPermissions(
 		return zero, err
 	}
 
+	var roles []string
+
 	if levels.Admin != nil {
-		return Permissions{
-			Highest:      "admin",
-			ActiveRoleID: *levels.Admin,
-		}, nil
+		roles = append(roles, "admin")
 	}
-
 	if levels.Shop != nil {
-		return Permissions{
-			Highest:      "shop",
-			ActiveRoleID: *levels.Shop,
-		}, nil
+		roles = append(roles, "shop")
 	}
-
 	if levels.Consignee != nil {
-		return Permissions{
-			Highest:      "consignee",
-			ActiveRoleID: *levels.Consignee,
-		}, nil
+		roles = append(roles, "consignee")
 	}
-
 	if levels.Client != nil {
-		return Permissions{
-			Highest:      "client",
-			ActiveRoleID: *levels.Client,
-		}, nil
+		roles = append(roles, "client")
+	}
+	if len(roles) == 0 {
+		roles = append(roles, "user")
 	}
 
-	return Permissions{
-		Highest:      "user",
-		ActiveRoleID: user,
-	}, nil
+	var p Permissions
+	p.AllRoles = roles
+
+	if levels.Admin != nil {
+		p.Highest = "admin"
+		p.ActiveRoleID = *levels.Admin
+	} else if levels.Shop != nil {
+		p.Highest = "shop"
+		p.ActiveRoleID = *levels.Shop
+	} else if levels.Consignee != nil {
+		p.Highest = "consignee"
+		p.ActiveRoleID = *levels.Consignee
+	} else if levels.Client != nil {
+		p.Highest = "client"
+		p.ActiveRoleID = *levels.Client
+	} else {
+		p.Highest = "user"
+		p.ActiveRoleID = user
+	}
+
+	return p, nil
 }
