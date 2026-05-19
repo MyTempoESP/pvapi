@@ -66,3 +66,27 @@ func UserPermissionsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		c.JSON(200, perms)
 	}
 }
+
+func PermissionsByEmailHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		email := c.Query("email")
+		if email == "" {
+			c.JSON(400, gin.H{"error": "email query parameter required"})
+			return
+		}
+
+		userID, err := usermodel.FindByEmail(c.Request.Context(), pool, email)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		perms, err := usermodel.GetUserPermissions(c.Request.Context(), pool, userID)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		c.JSON(200, perms)
+	}
+}
