@@ -20,7 +20,7 @@ RETURNING id
 SELECT name, email FROM users WHERE id = $1
 `
 	UserFindByEmailQuery = `
-SELECT id, email FROM users WHERE email = $1
+SELECT id FROM users WHERE email = $1
 `
 
 	UserFindOrCreateQuery = `

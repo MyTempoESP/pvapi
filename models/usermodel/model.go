@@ -16,16 +16,13 @@ type User struct {
 }
 
 type Permissions struct {
-	Highest      string   `json:"highest"`
-	ActiveRoleID int      `json:"active_role_id"`
-	AllRoles     []string `json:"all_roles"`
-}
+	Highest      string `db:"-" json:"highest"`
+	ActiveRoleID int    `db:"-" json:"active_role_id"`
 
-type permissionOutput struct {
-	Admin     *int `db:"admin"`
-	Shop      *int `db:"shop"`
-	Consignee *int `db:"consignee"`
-	Client    *int `db:"client"`
+	Admin     *int `db:"admin"     json:"admin,omitempty"`
+	Shop      *int `db:"shop"      json:"shop,omitempty"`
+	Consignee *int `db:"consignee" json:"monitor,omitempty"`
+	Client    *int `db:"client"    json:"cliente,omitempty"`
 }
 
 // FindOrCreate is a utility function, not a controller resource
@@ -108,7 +105,7 @@ func GetUserPermissions(
 ) (Permissions, error) {
 	var zero Permissions
 
-	levels, err := util.WithCollectExactlyOneRow[permissionOutput](
+	p, err := util.WithCollectExactlyOneRow[Permissions](
 		ctx,
 		pool,
 		query.UserPermissionsQuery,
@@ -119,39 +116,18 @@ func GetUserPermissions(
 		return zero, err
 	}
 
-	var roles []string
-
-	if levels.Admin != nil {
-		roles = append(roles, "admin")
-	}
-	if levels.Shop != nil {
-		roles = append(roles, "shop")
-	}
-	if levels.Consignee != nil {
-		roles = append(roles, "consignee")
-	}
-	if levels.Client != nil {
-		roles = append(roles, "client")
-	}
-	if len(roles) == 0 {
-		roles = append(roles, "user")
-	}
-
-	var p Permissions
-	p.AllRoles = roles
-
-	if levels.Admin != nil {
+	if p.Admin != nil {
 		p.Highest = "admin"
-		p.ActiveRoleID = *levels.Admin
-	} else if levels.Shop != nil {
+		p.ActiveRoleID = *p.Admin
+	} else if p.Shop != nil {
 		p.Highest = "shop"
-		p.ActiveRoleID = *levels.Shop
-	} else if levels.Consignee != nil {
+		p.ActiveRoleID = *p.Shop
+	} else if p.Consignee != nil {
 		p.Highest = "consignee"
-		p.ActiveRoleID = *levels.Consignee
-	} else if levels.Client != nil {
+		p.ActiveRoleID = *p.Consignee
+	} else if p.Client != nil {
 		p.Highest = "client"
-		p.ActiveRoleID = *levels.Client
+		p.ActiveRoleID = *p.Client
 	} else {
 		p.Highest = "user"
 		p.ActiveRoleID = user
