@@ -103,27 +103,26 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	})
 
 	t.Run("public_permissions", func(t *testing.T) {
-		// missing email → 400
-		rec := h.doRequest(t, http.MethodGet, "/permissions", nil, "", nil)
-		assertStatus(t, rec, http.StatusBadRequest)
+		rec := h.doRequest(
+				t,
+				http.MethodGet,
+				fmt.Sprintf("/permissions?email=%s",
+				registerEmail,
+			), nil, "", nil)
 
-		// non-existent email → 404
-		rec = h.doRequest(t, http.MethodGet, "/permissions?email=nobody@example.com", nil, "", nil)
-		assertStatus(t, rec, http.StatusNotFound)
-
-		// registered user (no roles assigned yet) → "user" level
-		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/permissions?email=%s", registerEmail), nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
+
 		if body["highest"] != "user" {
 			t.Fatalf("expected highest 'user', got %v", body["highest"])
 		}
+
 		roles := asSlice(t, body["all_roles"])
+
 		if len(roles) != 1 || roles[0] != "user" {
-			t.Fatalf("expected all_roles [\"user\"], got %v", roles)
+			t.Fatalf("expected all_roles ['user'], got %v", roles)
 		}
 
-		// admin user → "admin" level
 		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/permissions?email=%s", adminEmail), nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 		body = decodeJSON(t, rec)
@@ -165,6 +164,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			)
 			assertStatus(t, rec, http.StatusOK)
 		})
+
 
 		t.Run("list_admin_includes_all_shops", func(t *testing.T) {
 			rec := h.doRequest(

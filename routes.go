@@ -40,7 +40,6 @@ func setupRoutes(
 		loggedIn.GET("/logout", authMiddleware.LogoutHandler)
 		loggedIn.GET("/user", user.UserDataHandler(pool))
 		loggedIn.GET("/level", user.UserPermissionLevelHandler(pool))
-		loggedIn.GET("/permissions", user.UserPermissionsHandler(pool))
 	}
 
 	perms := t.Group("/perms", withAuth)
