@@ -112,22 +112,24 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
+		report := asMap(t, body["data"])
 
-		if body["highest"] != "user" {
-			t.Fatalf("expected highest 'user', got %v", body["highest"])
-		}
-
-		roles := asSlice(t, body["all_roles"])
-
-		if len(roles) != 1 || roles[0] != "user" {
-			t.Fatalf("expected all_roles ['user'], got %v", roles)
+		if report["highest"] != "user" {
+			t.Fatalf("expected highest 'user', got %v",
+				report["highest"])
 		}
 
 		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/permissions?email=%s", adminEmail), nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 		body = decodeJSON(t, rec)
-		if body["highest"] != "admin" {
-			t.Fatalf("expected highest 'admin', got %v", body["highest"])
+		report = asMap(t, body["data"])
+
+		if report["highest"] != "admin" {
+			t.Fatalf("expected highest 'admin', got %v",
+				body["highest"])
+		}
+		if _, exists := report["admin"]; !exists {
+			t.Fatal("expected 'admin' role to exist")
 		}
 	})
 

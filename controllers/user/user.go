@@ -63,7 +63,7 @@ func UserPermissionsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, perms)
+		util.Wrap(c, "permissoes obtidas", perms)
 	}
 }
 
@@ -87,6 +87,6 @@ func PermissionsByEmailHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, perms)
+		util.Wrap(c, "permissoes obtidas", perms)
 	}
 }
