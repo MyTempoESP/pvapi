@@ -1,1014 +1,2140 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: requests
+  title: PV API implemented requests
   version: 1.0.0
+  description: Current implemented HTTP requests from routes.go and api_requests_test.go.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: auth
+  - name: users
+  - name: permissions
+  - name: shops
+  - name: categories
+  - name: products
+  - name: consignees
+  - name: consignments
+  - name: pickups
+  - name: reports
+  - name: cart
+  - name: payments
+  - name: admin
 paths:
-  /remessas/1/produtos:
-    post:
-      summary: 'shouldFail: add absurd ammount of products'
-      operationId: >-
-        home_rodrigo_documentos_sample_api_collection_shouldfail-_add_absurd_ammount_of_products_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/shouldfail_add_absurd_ammount_of_products'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: list consignment products
-      operationId: >-
-        home_rodrigo_documentos_sample_api_collection_list_consignment_products_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /admin/moderacao/produtos/1/aprovar:
-    post:
-      summary: Approve product
-      operationId: home_rodrigo_documentos_sample_api_collection_approve_product_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/approve_product'
-      servers:
-        - url: http://localhost:8080
-  /ocorrencias:
-    post:
-      summary: Create report
-      operationId: home_rodrigo_documentos_sample_api_collection_create_report_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/create_report'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: List reports
-      operationId: home_rodrigo_documentos_sample_api_collection_list_reports_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /clientes:
-    get:
-      summary: List clients
-      operationId: home_rodrigo_documentos_sample_api_collection_list_clients_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /admin/moderacao/pendentes:
-    get:
-      summary: View pending products
-      operationId: home_rodrigo_documentos_sample_api_collection_view_pending_products_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /ocorrencias/1:
-    get:
-      summary: View report
-      operationId: home_rodrigo_documentos_sample_api_collection_view_report_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /produtos/estabelecimento:
-    get:
-      summary: list shop owner's products
-      operationId: >-
-        home_rodrigo_documentos_sample_api_collection_list_shop_owner_s_products_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /remessas:
-    post:
-      summary: create consignment
-      operationId: home_rodrigo_documentos_sample_api_collection_create_consignment_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/create_consignment'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: list consignments
-      operationId: home_rodrigo_documentos_sample_api_collection_list_consignments_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /monitores:
-    post:
-      summary: create monitor
-      operationId: home_rodrigo_documentos_sample_api_collection_create_monitor_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/create_monitor'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: list monitors
-      operationId: home_rodrigo_documentos_sample_api_collection_list_monitors_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /pontos:
-    post:
-      summary: create pickup location
-      operationId: home_rodrigo_documentos_sample_api_collection_create_pickup_location_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/create_pickup_location'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: list pickup locations
-      operationId: home_rodrigo_documentos_sample_api_collection_list_pickup_locations_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /produtos:
-    post:
-      summary: create product
-      operationId: home_rodrigo_documentos_sample_api_collection_create_product_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/create_product'
-      servers:
-        - url: http://localhost:8080
-  /estabelecimentos:
-    post:
-      summary: create shop
-      operationId: home_rodrigo_documentos_sample_api_collection_create_shop_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/create_shop'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: list shops
-      operationId: home_rodrigo_documentos_sample_api_collection_list_shops_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /estabelecimentos/nova-loja/produtos:
-    get:
-      summary: list shop products
-      operationId: home_rodrigo_documentos_sample_api_collection_list_shop_products_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
   /login:
     post:
-      summary: login
-      operationId: home_rodrigo_documentos_sample_api_collection_login_yml
-      description: This request retrieves a list of users from the JSONPlaceholder API.
-      tags:
-        - ''
+      tags: [auth]
+      summary: Login
+      operationId: login
       responses:
         '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/login'
-      servers:
-        - url: http://localhost:8080
-  /logout:
-    get:
-      summary: logout
-      operationId: home_rodrigo_documentos_sample_api_collection_logout_yml
-      description: ''
-      tags:
-        - ''
+          $ref: '#/components/responses/Login200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /refresh:
+    post:
+      tags: [auth]
+      summary: Refresh JWT
+      operationId: refreshJwt
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       responses:
         '200':
-          description: ''
-      parameters:
-        - name: Authorization
-          in: header
-          description: ''
-          required: false
-          schema:
-            type: string
-          example: >-
-            Bearer
-            eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzM1MjIwNDQsImlkIjoiMSIsIm9yaWdfaWF0IjoxNzczNTIxMTQ0fQ.pYN0nJ-vLcWcxppWeUWECZxOl95HF-BpdO9hA2WJZbo
-      servers:
-        - url: http://localhost:8080
-  /remessas/1:
-    put:
-      summary: update consignment
-      operationId: home_rodrigo_documentos_sample_api_collection_update_consignment_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/update_consignment'
-      servers:
-        - url: http://localhost:8080
-    get:
-      summary: view consignment
-      operationId: home_rodrigo_documentos_sample_api_collection_view_consignment_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
+          $ref: '#/components/responses/Refreshjwt200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /register:
     post:
-      summary: register
-      operationId: home_rodrigo_documentos_sample_api_collection_register_yml
-      description: ''
-      tags:
-        - ''
+      tags: [auth]
+      summary: Register user
+      operationId: registerUser
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterUser'
       responses:
         '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/register'
-      servers:
-        - url: http://localhost:8080
-  /produtos/1:
-    put:
-      summary: update product(form)
-      operationId: home_rodrigo_documentos_sample_api_collection_update_product_form_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/update_product_form'
-      servers:
-        - url: http://localhost:8080
+          $ref: '#/components/responses/Registeruser200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /logout:
     get:
-      summary: view public product
-      operationId: home_rodrigo_documentos_sample_api_collection_view_public_product_yml
-      description: ''
-      tags:
-        - ''
+      tags: [auth]
+      summary: Logout
+      operationId: logout
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       responses:
         '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
-  /estabelecimentos/1:
-    put:
-      summary: update shop
-      operationId: home_rodrigo_documentos_sample_api_collection_update_shop_yml
-      description: ''
-      tags:
-        - ''
-      responses:
-        '200':
-          description: ''
-      requestBody:
-        $ref: '#/components/requestBodies/update_shop'
-      servers:
-        - url: http://localhost:8080
+          $ref: '#/components/responses/Logout200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /permissions:
+    parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
     get:
-      summary: view shop
-      operationId: home_rodrigo_documentos_sample_api_collection_view_shop_yml
-      description: ''
-      tags:
-        - ''
+      tags: [permissions]
+      summary: Get permissions by email
+      operationId: getPermissionsByEmail
       responses:
         '200':
-          description: ''
-      servers:
-        - url: http://localhost:8080
+          $ref: '#/components/responses/Getpermissionsbyemail200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /user:
     get:
-      summary: user (no auth test)
-      operationId: home_rodrigo_documentos_sample_api_collection_user_no_auth_test_yml
-      description: ''
-      tags:
-        - ''
+      tags: [users]
+      summary: Get authenticated user data
+      operationId: getUserData
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       responses:
         '200':
-          description: ''
-      parameters:
-        - name: Authorization
-          in: header
-          description: ''
-          required: false
+          $ref: '#/components/responses/Getuserdata200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /level:
+    get:
+      tags: [users]
+      summary: Get authenticated user permission level
+      operationId: getUserPermissionLevel
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Getuserpermissionlevel200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /perms/admin:
+    get:
+      tags: [permissions]
+      summary: Check admin permission
+      operationId: checkAdminPermission
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Checkadminpermission200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /perms/shop:
+    get:
+      tags: [permissions]
+      summary: Check shop permission
+      operationId: checkShopPermission
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Checkshoppermission200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /perms/monitor:
+    get:
+      tags: [permissions]
+      summary: Check monitor permission
+      operationId: checkMonitorPermission
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Checkmonitorpermission200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /estabelecimentos:
+    get:
+      tags: [shops]
+      summary: List public active shops
+      operationId: listShops
+      responses:
+        '200':
+          $ref: '#/components/responses/Listshops200'
+    post:
+      tags: [shops]
+      summary: Create shop
+      operationId: createShop
+      requestBody:
+        $ref: '#/components/requestBodies/CreateShop'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createshop200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /estabelecimentos/all:
+    get:
+      tags: [shops]
+      summary: List all shops for restricted users
+      operationId: listRestrictedShops
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listrestrictedshops200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /estabelecimentos/{shop}:
+    parameters:
+        - name: shop
+          in: path
+          required: true
           schema:
             type: string
-          example: 'Bearer: '
-      servers:
-        - url: http://localhost:8080
+    get:
+      tags: [shops]
+      summary: View shop
+      operationId: viewShop
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Viewshop200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [shops]
+      summary: Update shop
+      operationId: updateShop
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateShop'
+      responses:
+        '200':
+          $ref: '#/components/responses/Updateshop200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [shops]
+      summary: Deactivate shop
+      operationId: deactivateShop
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Deactivateshop200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /estabelecimentos/{shop}/produtos:
+    parameters:
+        - name: shop
+          in: path
+          required: true
+          schema:
+            type: string
+    get:
+      tags: [shops, products]
+      summary: List public products for a shop
+      operationId: listShopProducts
+      responses:
+        '200':
+          $ref: '#/components/responses/Listshopproducts200'
+  /categorias:
+    get:
+      tags: [categories]
+      summary: List categories
+      operationId: listCategories
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listcategories200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [categories]
+      summary: Create category
+      operationId: createCategory
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateCategory'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createcategory200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /produtos:
+    get:
+      tags: [products]
+      summary: List public products
+      operationId: listPublicProducts
+      responses:
+        '200':
+          $ref: '#/components/responses/Listpublicproducts200'
+    post:
+      tags: [products]
+      summary: Create product
+      operationId: createProduct
+      requestBody:
+        $ref: '#/components/requestBodies/CreateProduct'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createproduct200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /produtos/estabelecimento:
+    get:
+      tags: [products]
+      summary: List products owned by authenticated shop
+      operationId: listShopOwnerProducts
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listshopownerproducts200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /produtos/{product}:
+    parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+    get:
+      tags: [products]
+      summary: View public product
+      operationId: viewPublicProduct
+      responses:
+        '200':
+          $ref: '#/components/responses/Viewpublicproduct200'
+    put:
+      tags: [products]
+      summary: Update product
+      operationId: updateProduct
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateProduct'
+      responses:
+        '200':
+          $ref: '#/components/responses/Updateproduct200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [products]
+      summary: Delete product
+      operationId: deleteProduct
+      responses:
+        '200':
+          $ref: '#/components/responses/Deleteproduct200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /produtos/{product}/destaque:
+    parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+    get:
+      tags: [products]
+      summary: Update product highlight state
+      operationId: updateProductHighlight
+      responses:
+        '200':
+          $ref: '#/components/responses/Updateproducthighlight200'
+  /produtos/{product}/img/{url}:
+    parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: url
+          in: path
+          required: true
+          schema:
+            type: string
+    delete:
+      tags: [products]
+      summary: Delete product image
+      operationId: deleteProductImage
+      responses:
+        '200':
+          $ref: '#/components/responses/Deleteproductimage200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /monitores:
+    get:
+      tags: [consignees]
+      summary: List monitors
+      operationId: listMonitors
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listmonitors200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [consignees]
+      summary: Create monitor
+      operationId: createMonitor
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateMonitor'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createmonitor200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /pontos:
+    get:
+      tags: [pickups]
+      summary: List pickup locations
+      operationId: listPickupLocations
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listpickuplocations200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [pickups]
+      summary: Create pickup location
+      operationId: createPickupLocation
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreatePickupLocation'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createpickuplocation200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /remessas:
+    get:
+      tags: [consignments]
+      summary: List consignments and shipments
+      operationId: listConsignments
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listconsignments200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [consignments]
+      summary: Create consignment
+      operationId: createConsignment
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateConsignment'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createconsignment200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /remessas/{consignment}:
+    parameters:
+        - name: consignment
+          in: path
+          required: true
+          schema:
+            type: string
+    get:
+      tags: [consignments]
+      summary: View consignment or shipment
+      operationId: viewConsignment
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Viewconsignment200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [consignments]
+      summary: Update consignment
+      operationId: updateConsignment
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateConsignment'
+      responses:
+        '200':
+          $ref: '#/components/responses/Updateconsignment200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [consignments]
+      summary: Delete consignment
+      operationId: deleteConsignment
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Deleteconsignment200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /remessas/{consignment}/produtos:
+    parameters:
+        - name: consignment
+          in: path
+          required: true
+          schema:
+            type: string
+    get:
+      tags: [consignments]
+      summary: List consignment products
+      operationId: listConsignmentProducts
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listconsignmentproducts200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [consignments]
+      summary: Add products to consignment
+      operationId: addProductsToConsignment
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/AddProductsToConsignment'
+      responses:
+        '200':
+          $ref: '#/components/responses/Addproductstoconsignment200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /remessas/{consignment}/produtos/{product}:
+    parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: consignment
+          in: path
+          required: true
+          schema:
+            type: string
+    put:
+      tags: [consignments]
+      summary: Update consignment product
+      operationId: updateConsignmentProduct
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateConsignmentProduct'
+      responses:
+        '200':
+          $ref: '#/components/responses/Updateconsignmentproduct200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /ocorrencias:
+    get:
+      tags: [reports]
+      summary: List reports
+      operationId: listReports
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listreports200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [reports]
+      summary: Create report
+      operationId: createReport
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateReport'
+      responses:
+        '200':
+          $ref: '#/components/responses/Createreport200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /ocorrencias/{report}:
+    parameters:
+        - name: report
+          in: path
+          required: true
+          schema:
+            type: integer
+    get:
+      tags: [reports]
+      summary: View report
+      operationId: viewReport
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Viewreport200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [reports]
+      summary: Update report
+      operationId: updateReport
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateReport'
+      responses:
+        '200':
+          $ref: '#/components/responses/Updatereport200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [reports]
+      summary: Delete report
+      operationId: deleteReport
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Deletereport200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /carrinho/dados:
+    parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+    get:
+      tags: [cart]
+      summary: List cart products
+      operationId: listCartProducts
+      responses:
+        '200':
+          $ref: '#/components/responses/Listcartproducts200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /carrinho/adicionar:
     post:
+      tags: [cart]
       summary: Add product to cart
-      operationId: home_rodrigo_documentos_sample_api_collection_add_product_to_cart_yml
-      description: ''
-      tags:
-        - ''
+      operationId: addProductToCart
+      requestBody:
+        $ref: '#/components/requestBodies/AddProductToCart'
       responses:
         '200':
-          description: ''
+          $ref: '#/components/responses/Addproducttocart200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /carrinho/remover/{item}:
+    parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+    delete:
+      tags: [cart]
+      summary: Remove product from cart
+      operationId: removeProductFromCart
+      responses:
+        '200':
+          $ref: '#/components/responses/Removeproductfromcart200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /carrinho/atualizar/{item}:
+    parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+    put:
+      tags: [cart]
+      summary: Update cart product quantity
+      operationId: updateCartProductQuantity
       requestBody:
-        $ref: '#/components/requestBodies/add_product_to_cart'
-      servers:
-        - url: http://localhost:8080
-servers: []
+        $ref: '#/components/requestBodies/UpdateCartQuantity'
+      responses:
+        '200':
+          $ref: '#/components/responses/Updatecartproductquantity200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /carrinho/limpar:
+    delete:
+      tags: [cart]
+      summary: Clear cart
+      operationId: clearCart
+      requestBody:
+        $ref: '#/components/requestBodies/SessionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Clearcart200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /payments/session/create:
+    post:
+      tags: [payments]
+      summary: Create temporary payment session
+      operationId: createPaymentSession
+      responses:
+        '200':
+          $ref: '#/components/responses/Createpaymentsession200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /payments/session/validate:
+    post:
+      tags: [payments]
+      summary: Validate temporary payment session
+      operationId: validatePaymentSession
+      requestBody:
+        $ref: '#/components/requestBodies/SessionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Validatepaymentsession200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/payments/pix/cart:
+    post:
+      tags: [payments]
+      summary: Checkout cart with PIX
+      operationId: checkoutCartPix
+      requestBody:
+        $ref: '#/components/requestBodies/CartPixPayment'
+      responses:
+        '200':
+          $ref: '#/components/responses/Checkoutcartpix200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /pagamento/status/{payment}:
+    parameters:
+        - name: payment
+          in: path
+          required: true
+          schema:
+            type: string
+    get:
+      tags: [payments]
+      summary: Check payment status
+      operationId: checkPaymentStatus
+      responses:
+        '200':
+          $ref: '#/components/responses/Checkpaymentstatus200'
+  /admin/moderacao/pendentes:
+    get:
+      tags: [admin, products]
+      summary: List products pending moderation
+      operationId: listPendingModerationProducts
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Listpendingmoderationproducts200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /admin/moderacao/produtos/{product}/aprovar:
+    parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+    post:
+      tags: [admin, products]
+      summary: Approve product
+      operationId: approveProduct
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/ModerateProduct'
+      responses:
+        '200':
+          $ref: '#/components/responses/Approveproduct200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /admin/moderacao/produtos/{product}/rejeitar:
+    parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+    post:
+      tags: [admin, products]
+      summary: Reject product
+      operationId: rejectProduct
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/ModerateProduct'
+      responses:
+        '200':
+          $ref: '#/components/responses/Rejectproduct200'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: jwt
+  responses:
+    BadRequest:
+      description: Malformed request response from util.HandleBadRequest.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BadRequestResponse'
+    Unauthorized:
+      description: Unauthorized response from auth middleware.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedResponse'
+    Login200:
+      description: LoginResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LoginResponse'
+    Refreshjwt200:
+      description: RefreshJwtResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RefreshJwtResponse'
+    Registeruser200:
+      description: RegisterUserResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RegisterUserResponse'
+    Logout200:
+      description: AuthLogoutResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuthLogoutResponse'
+    Getpermissionsbyemail200:
+      description: UserPermissionsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserPermissionsResponse'
+    Getuserdata200:
+      description: UserDataResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserDataResponse'
+    Getuserpermissionlevel200:
+      description: UserLevelResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserLevelResponse'
+    Checkadminpermission200:
+      description: PermissionCheckResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PermissionCheckResponse'
+    Checkshoppermission200:
+      description: PermissionCheckResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PermissionCheckResponse'
+    Checkmonitorpermission200:
+      description: PermissionCheckResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PermissionCheckResponse'
+    Listshops200:
+      description: ListShopsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListShopsResponse'
+    Createshop200:
+      description: CreateShopResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateShopResponse'
+    Listrestrictedshops200:
+      description: ListRestrictedShopsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListRestrictedShopsResponse'
+    Viewshop200:
+      description: ViewShopResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ViewShopResponse'
+    Updateshop200:
+      description: UpdateShopResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateShopResponse'
+    Deactivateshop200:
+      description: DeactivateShopResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeactivateShopResponse'
+    Listshopproducts200:
+      description: ListShopProductsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListShopProductsResponse'
+    Listcategories200:
+      description: ListCategoriesResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListCategoriesResponse'
+    Createcategory200:
+      description: CreateCategoryResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateCategoryResponse'
+    Listpublicproducts200:
+      description: ListPublicProductsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListPublicProductsResponse'
+    Createproduct200:
+      description: CreateProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateProductResponse'
+    Listshopownerproducts200:
+      description: ListShopOwnerProductsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListShopOwnerProductsResponse'
+    Viewpublicproduct200:
+      description: ViewPublicProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ViewPublicProductResponse'
+    Updateproduct200:
+      description: UpdateProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateProductResponse'
+    Deleteproduct200:
+      description: DeleteProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeleteProductResponse'
+    Updateproducthighlight200:
+      description: UpdateProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateProductResponse'
+    Deleteproductimage200:
+      description: DeleteProductImageResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeleteProductImageResponse'
+    Listmonitors200:
+      description: ListMonitorsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListMonitorsResponse'
+    Createmonitor200:
+      description: CreateMonitorResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateMonitorResponse'
+    Listpickuplocations200:
+      description: ListPickupLocationsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListPickupLocationsResponse'
+    Createpickuplocation200:
+      description: CreatePickupLocationResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreatePickupLocationResponse'
+    Listconsignments200:
+      description: ListConsignmentsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListConsignmentsResponse'
+    Createconsignment200:
+      description: CreateConsignmentResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateConsignmentResponse'
+    Viewconsignment200:
+      description: ViewConsignmentResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ViewConsignmentResponse'
+    Updateconsignment200:
+      description: UpdateConsignmentResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateConsignmentResponse'
+    Deleteconsignment200:
+      description: DeleteConsignmentResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeleteConsignmentResponse'
+    Listconsignmentproducts200:
+      description: ListConsignmentProductsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListConsignmentProductsResponse'
+    Addproductstoconsignment200:
+      description: AddProductsToConsignmentResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AddProductsToConsignmentResponse'
+    Updateconsignmentproduct200:
+      description: UpdateConsignmentProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateConsignmentProductResponse'
+    Listreports200:
+      description: ListReportsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListReportsResponse'
+    Createreport200:
+      description: CreateReportResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateReportResponse'
+    Viewreport200:
+      description: ViewReportResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ViewReportResponse'
+    Updatereport200:
+      description: UpdateReportResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateReportResponse'
+    Deletereport200:
+      description: DeleteReportResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeleteReportResponse'
+    Listcartproducts200:
+      description: ListCartProductsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListCartProductsResponse'
+    Addproducttocart200:
+      description: AddProductToCartResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AddProductToCartResponse'
+    Removeproductfromcart200:
+      description: RemoveProductFromCartResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RemoveProductFromCartResponse'
+    Updatecartproductquantity200:
+      description: UpdateCartProductQuantityResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateCartProductQuantityResponse'
+    Clearcart200:
+      description: ClearCartResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClearCartResponse'
+    Createpaymentsession200:
+      description: CreatePaymentSessionResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreatePaymentSessionResponse'
+    Validatepaymentsession200:
+      description: ValidatePaymentSessionResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidatePaymentSessionResponse'
+    Checkoutcartpix200:
+      description: CheckoutCartPixResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CheckoutCartPixResponse'
+    Checkpaymentstatus200:
+      description: CheckPaymentStatusResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CheckPaymentStatusResponse'
+    Listpendingmoderationproducts200:
+      description: ListPendingModerationProductsResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ListPendingModerationProductsResponse'
+    Approveproduct200:
+      description: ApproveProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApproveProductResponse'
+    Rejectproduct200:
+      description: RejectProductResponse.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RejectProductResponse'
+  requestBodies:
+    Login:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Login'
+    RegisterUser:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RegisterUser'
+    CreateShop:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateShop'
+    UpdateShop:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateShop'
+    CreateCategory:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateCategory'
+    CreateProduct:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/ProductForm'
+    UpdateProduct:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/ProductForm'
+    CreateMonitor:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateMonitor'
+    CreatePickupLocation:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreatePickupLocation'
+    CreateConsignment:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Consignment'
+    UpdateConsignment:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Consignment'
+    AddProductsToConsignment:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AddProductsToConsignment'
+    UpdateConsignmentProduct:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateConsignmentProduct'
+    CreateReport:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateReport'
+    UpdateReport:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateReport'
+    AddProductToCart:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AddProductToCart'
+    UpdateCartQuantity:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateCartQuantity'
+    SessionId:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SessionId'
+    CartPixPayment:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CartPixPayment'
+    ModerateProduct:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ModerateProduct'
   schemas:
-    add_product_to_consignment:
+    BadRequestResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: boolean
+          example: false
+        message:
+          type: string
+      additionalProperties: false
+    UnauthorizedResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          example: 401
+        message:
+          type: string
+      additionalProperties: false
+    AddressResource:
       type: object
       properties:
+        street: {type: string}
+        number: {type: string}
+        neighborhood: {type: string}
+        city: {type: string}
+        state: {type: string}
+        cep: {type: string}
+        complement: {type: string}
+    OwnerResource:
+      type: object
+      additionalProperties: true
+    ShopSummaryResource:
+      type: object
+      required: [id, name, slug, phone]
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        slug: {type: string}
+        phone: {type: string}
+        status: {type: string}
+    ShopResource:
+      allOf:
+        - $ref: '#/components/schemas/ShopSummaryResource'
+        - type: object
+          properties:
+            address:
+              $ref: '#/components/schemas/AddressResource'
+            owner:
+              $ref: '#/components/schemas/OwnerResource'
+    DetailedShopResource:
+      allOf:
+        - $ref: '#/components/schemas/ShopResource'
+        - type: object
+          properties:
+            products_count: {type: integer}
+            pickup_locations_count: {type: integer}
+    CategoryResource:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: integer}
+        name: {type: string}
+    SpecificationResource:
+      type: object
+      properties:
+        name: {type: string}
+        value: {type: string}
+    ProductResource:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        stock: {type: integer}
+        price: {type: number}
+        discount: {type: number}
+        featured: {type: boolean}
+        code: {type: string}
+        uuid: {type: string}
+        platform_cut: {type: number}
+        platform_cut_type: {type: string}
+        colors:
+          type: array
+          items: {type: string}
+        sizes:
+          type: array
+          items: {type: string}
+        allowCustomName: {type: boolean}
+        allowCustomModality: {type: boolean}
+        allowCustomColorSelection: {type: boolean}
+        moderation_status: {type: string}
+        category: {type: string}
+        category_id: {type: integer}
+        imageUrl: {type: string}
+        description: {type: string}
+        specificationsImages:
+          type: array
+          items: {type: string}
+        descriptionImages:
+          type: array
+          items: {type: string}
+        deliveryImages:
+          type: array
+          items: {type: string}
+        specifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecificationResource'
+    PendingProductResource:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        description: {type: string}
+        price: {type: number}
+        category: {type: string}
+        imageUrl: {type: string}
+        establishmentId: {type: integer}
+        establishmentName: {type: string}
+        taxType: {type: string}
+    ConsigneeResource:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        email: {type: string, format: email}
+        phone: {type: string}
+        address:
+          $ref: '#/components/schemas/AddressResource'
+    PickupLocationResource:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        datetime: {type: string}
+        address:
+          $ref: '#/components/schemas/AddressResource'
+    ConsignmentWithShipmentResource:
+      type: object
+      properties:
+        id: {type: string}
+        commission_type: {type: string}
+        commission_value: {type: number}
+        status: {type: string}
+        code: {type: string}
+        slug: {type: string}
+        record_type: {type: string}
+        shop_name: {type: string}
+        shop_id: {type: integer}
+        responsibleMonitor: {type: string}
+        destination: {type: string}
+        created_at: {type: string, format: date-time}
+    ConsignmentResource:
+      type: object
+      properties:
+        id: {type: integer}
+        commission_type: {type: string}
+        commission_value: {type: number}
+        code: {type: string}
+        slug: {type: string}
+        status: {type: string}
+        destination: {type: string}
+        responsibleMonitor: {type: string}
+        created_at: {type: string, format: date-time}
+    PackageResource:
+      type: object
+      properties:
+        price: {type: number}
+        quantity: {type: integer}
+    ConsignmentProductResource:
+      allOf:
+        - $ref: '#/components/schemas/ProductResource'
+        - type: object
+          properties:
+            image: {type: string}
+            original_price: {type: number}
+            original_quantity: {type: integer}
+            consignment_price: {type: number}
+            consignment_quantity: {type: integer}
+            pivot:
+              $ref: '#/components/schemas/PackageResource'
+    ReportResource:
+      type: object
+      properties:
+        id: {type: integer}
+        description: {type: string}
+        moment: {type: string}
+        customerName: {type: string}
+        occurrenceScope: {type: string}
+        orderId: {type: integer}
+        priority: {type: string}
+        status: {type: string}
+        type: {type: string}
+        createdAt: {type: string, format: date-time}
+    CartProductResource:
+      type: object
+      properties:
+        id: {type: integer}
+        product_id: {type: integer}
+        shop_id: {type: integer}
+        product_name: {type: string}
+        product_image: {type: string}
+        shop_name: {type: string}
+        quantity: {type: integer}
+        price: {type: number}
+        discount: {type: number}
+        _subtotal: {type: number}
+        _price_with_discount: {type: number}
+        _subtotal_with_discount: {type: number}
+        subtotal: {type: number}
+        price_with_discount: {type: number}
+        subtotal_with_discount: {type: number}
+    LoginResponse:
+      type: object
+      description: Response emitted by gin-jwt LoginHandler.
+      additionalProperties: true
+      properties:
+        code: {type: integer}
+        token: {type: string}
+        expire: {type: string}
+        message: {type: string}
+    RefreshJwtResponse:
+      type: object
+      description: Response emitted by gin-jwt RefreshHandler.
+      additionalProperties: true
+      properties:
+        code: {type: integer}
+        token: {type: string}
+        expire: {type: string}
+        message: {type: string}
+    RegisterUserResponse:
+      type: object
+      required: [message]
+      properties:
+        message: {type: string, example: Successfully registered}
+    AuthLogoutResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code: {type: integer}
+        message: {type: string}
+    UserPermissionsResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: object
+          additionalProperties: true
+    UserDataResponse:
+      type: object
+      required: [name, email, message]
+      properties:
+        name: {type: string}
+        email: {type: string, format: email}
+        message: {type: string}
+    UserLevelResponse:
+      type: object
+      required: [level]
+      properties:
+        level: {type: string}
+    PermissionCheckResponse:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, example: Permitido}
+    ListShopsResponse:
+      type: object
+      required: [success, message, shops]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        shops:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShopResource'
+    ListRestrictedShopsResponse:
+      $ref: '#/components/schemas/ListShopsResponse'
+    CreateShopResponse:
+      type: object
+      required: [success, message, shop]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        shop:
+          $ref: '#/components/schemas/ShopSummaryResource'
+    ViewShopResponse:
+      type: object
+      required: [success, message, shop]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        shop:
+          $ref: '#/components/schemas/DetailedShopResource'
+    UpdateShopResponse:
+      type: object
+      required: [message]
+      properties:
+        message: {type: string}
+    DeactivateShopResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListShopProductsResponse:
+      type: object
+      required: [success, message, shop, products, total]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        shop:
+          $ref: '#/components/schemas/ShopResource'
         products:
           type: array
           items:
-            type: object
-            properties:
-              productId:
-                type: integer
-              productName:
-                type: string
-              quantity:
-                type: integer
-              price:
-                type: integer
-              color:
-                type: string
-              description:
-                type: string
-              category:
-                type: string
-              discount:
-                type: integer
-              featured:
-                type: boolean
-      example:
-        products:
-          - productId: 1
-            productName: aosiddsa
-            quantity: 1
-            price: 1
-            color: '#000000'
-            description: dsaokdjsajdoasdjsa
-            category: Sem Categoria
-            discount: 10
-            featured: true
-    approve_product:
+            $ref: '#/components/schemas/ProductResource'
+        total: {type: integer}
+    ListCategoriesResponse:
       type: object
+      required: [success, message, data]
       properties:
-        platform_cut:
-          type: integer
-        platform_cut_type:
-          type: string
-      example:
-        platform_cut: 5
-        platform_cut_type: percentage
-    create_report:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResource'
+    CreateCategoryResponse:
       type: object
+      required: [success, message, id]
       properties:
-        orderId:
-          type: integer
+        success: {type: boolean}
+        message: {type: string}
+        id: {type: integer}
+    ListPublicProductsResponse:
+      type: object
+      required: [success, message, produtos]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        produtos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductResource'
+    CreateProductResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListShopOwnerProductsResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductResource'
+    ViewPublicProductResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          $ref: '#/components/schemas/ProductResource'
+    UpdateProductResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    DeleteProductResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    DeleteProductImageResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListPendingModerationProductsResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingProductResource'
+    ApproveProductResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    RejectProductResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListMonitorsResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsigneeResource'
+    CreateMonitorResponse:
+      type: object
+      required: [message, monitor]
+      properties:
+        message: {type: string}
         monitor:
-          type: string
-        moment:
-          type: string
-        type:
-          type: string
-        status:
-          type: string
-        description:
-          type: string
-        priority:
-          type: string
-        occurrenceScope:
-          type: string
-      example:
-        orderId: 1
-        monitor: pedro
-        moment: exposicao
-        type: falta_peca
-        status: aberto
-        description: a
-        priority: media
-        occurrenceScope: product
-    create_consignment:
+          $ref: '#/components/schemas/ConsigneeResource'
+    ListPickupLocationsResponse:
       type: object
+      required: [success, message, data]
       properties:
-        destinationId:
-          type: integer
-        monitorId:
-          type: integer
-        status:
-          type: string
-        monitorProfit:
-          type: integer
-      example:
-        destinationId: 1
-        monitorId: 1
-        status: RASCUNHO
-        monitorProfit: 3
-    create_monitor:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PickupLocationResource'
+    CreatePickupLocationResponse:
       type: object
+      required: [success, message, ponto, id]
       properties:
-        name:
-          type: string
-        email:
-          type: string
-        phone:
-          type: string
-        address:
+        success: {type: boolean}
+        message: {type: string}
+        ponto: {type: integer}
+        id: {type: integer}
+    ListConsignmentsResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsignmentWithShipmentResource'
+    CreateConsignmentResponse:
+      type: object
+      required: [success, message, id]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        id: {type: integer}
+    ViewConsignmentResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          $ref: '#/components/schemas/ConsignmentResource'
+    UpdateConsignmentResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    DeleteConsignmentResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListConsignmentProductsResponse:
+      type: object
+      required: [success, message, products, total_products, consignment_id]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsignmentProductResource'
+        total_products: {type: integer}
+        consignment_id: {type: string}
+    AddProductsToConsignmentResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    UpdateConsignmentProductResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListReportsResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportResource'
+    CreateReportResponse:
+      type: object
+      required: [success, message, id]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        id: {type: integer}
+    ViewReportResponse:
+      type: object
+      required: [success, message, report]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        report:
+          $ref: '#/components/schemas/ReportResource'
+    UpdateReportResponse:
+      type: object
+      required: [success, message, report]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        report:
+          $ref: '#/components/schemas/ReportResource'
+    DeleteReportResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ListCartProductsResponse:
+      type: object
+      required: [success, message, items, total, item_count, total_with_discount, total_discount, session_id]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartProductResource'
+        total: {type: number}
+        item_count: {type: integer}
+        total_with_discount: {type: number}
+        total_discount: {type: number}
+        session_id: {type: string}
+    AddProductToCartResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    RemoveProductFromCartResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    UpdateCartProductQuantityResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    ClearCartResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    CreatePaymentSessionResponse:
+      type: object
+      required: [success, session_id, metadata, message]
+      properties:
+        success: {type: boolean}
+        session_id: {type: string}
+        metadata:
           type: object
           properties:
-            street:
-              type: string
-            number:
-              type: string
-            neighborhood:
-              type: string
-            city:
-              type: string
-            state:
-              type: string
-            cep:
-              type: string
-      example:
-        name: pedro
-        email: pedro@gmail.com
-        phone: '27998209673'
-        address:
-          street: Rua Nova
-          number: '50'
-          neighborhood: Bairro
-          city: Campinas
-          state: SP
-          cep: '13000000'
-    create_pickup_location:
+            session_type: {type: string}
+            created_at: {type: string, format: date-time}
+            expires_at: {type: string, format: date-time}
+            request_ip: {type: string}
+            user_agent: {type: string}
+        message: {type: string}
+    ValidatePaymentSessionResponse:
       type: object
+      required: [success, message]
       properties:
-        name:
-          type: string
-        datetime:
-          type: string
-        address:
-          type: object
-          properties:
-            street:
-              type: string
-            number:
-              type: string
-            neighborhood:
-              type: string
-            city:
-              type: string
-            state:
-              type: string
-            cep:
-              type: string
-            complement:
-              type: string
-      example:
-        name: ponto
-        datetime: '2024-03-25T14:05:43'
-        address:
-          street: Rua Nova
-          number: '50'
-          neighborhood: Bairro
-          city: Campinas
-          state: SP
-          cep: '13000000'
-          complement: Opcional
-    create_product:
+        success: {type: boolean}
+        message: {type: string}
+    CheckoutCartPixResponse:
       type: object
+      required: [success, payment_id, message, amount, status, items, total_items, cart_type, cart_identifier]
       properties:
-        name:
-          type: string
-        description:
-          type: string
-        price:
-          type: string
-        category:
-          type: string
-        stock:
-          type: string
-        featured:
-          type: string
-        discount:
-          type: string
-        allowCustomName:
-          type: string
-        allowCustomization:
-          type: string
-        allowCustomModality:
-          type: string
-        allowCustomColorSelection:
-          type: string
-        colors:
-          type: string
-        specifications:
-          type: string
-        imageUrl:
+        success: {type: boolean}
+        payment_id: {type: string}
+        message: {type: string}
+        amount: {type: number}
+        status: {type: string}
+        qr_code: {type: string}
+        qr_code_base64: {type: string}
+        items:
           type: array
           items:
-            type: string
-        descriptionImages:
-          type: array
-          items:
-            type: string
-        specificationImages:
-          type: array
-          items:
-            type: string
-        deliveryImages:
-          type: array
-          items:
-            type: string
-    create_shop:
+            $ref: '#/components/schemas/CartProductResource'
+        total_items: {type: integer}
+        cart_type: {type: string}
+        cart_identifier: {type: string}
+    CheckPaymentStatusResponse:
       type: object
+      required: [payment_id, external_referece, status, amount, _amount]
       properties:
-        name:
-          type: string
-        email:
-          type: string
-        telephone:
-          type: string
-        status:
-          type: string
+        payment_id: {type: string}
+        external_referece: {type: string}
+        status: {type: string}
+        amount: {type: number}
+        _amount: {type: string}
+
+    Login:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string}
+    RegisterUser:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: {type: string}
+        email: {type: string, format: email}
+        password: {type: string}
+    Address:
+      type: object
+      required: [street, number, neighborhood, city, state, cep]
+      properties:
+        street: {type: string}
+        number: {type: string}
+        neighborhood: {type: string}
+        city: {type: string}
+        state: {type: string}
+        cep: {type: string}
+        complement: {type: string}
+    CreateShop:
+      type: object
+      required: [name, telephone, status, email, address]
+      properties:
+        name: {type: string}
+        telephone: {type: string}
+        status: {type: string}
+        email: {type: string, format: email}
         address:
-          type: object
-          properties:
-            street:
-              type: string
-            number:
-              type: string
-            neighborhood:
-              type: string
-            city:
-              type: string
-            state:
-              type: string
-            cep:
-              type: string
-            complement:
-              type: string
-      example:
-        name: Nova Loja
-        email: contato@shop.com
-        telephone: '11988887777'
-        status: active
+          $ref: '#/components/schemas/Address'
+    UpdateShop:
+      type: object
+      properties:
+        name: {type: string}
+        telephone: {type: string}
+        status: {type: string}
+        email: {type: string, format: email}
         address:
-          street: Rua Nova
-          number: '50'
-          neighborhood: Bairro
-          city: Campinas
-          state: SP
-          cep: '13000000'
-          complement: Opcional
-    login_admin_2:
+          $ref: '#/components/schemas/Address'
+    CreateCategory:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string}
+    ProductForm:
       type: object
       properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: sistemas@lzero.org
-        password: TestingPassword
-    login_admin:
+        name: {type: string}
+        description: {type: string}
+        price: {type: string}
+        category_id: {type: integer}
+        stock: {type: integer}
+        featured: {type: boolean}
+        discount: {type: string}
+        allowCustomName: {type: boolean}
+        allowCustomModality: {type: boolean}
+        allowCustomColorSelection: {type: boolean}
+        colors: {type: string, description: JSON encoded array of color strings.}
+        specifications: {type: string, description: JSON encoded array of specification objects.}
+        imageUrl: {type: string, format: binary}
+        descriptionImages[]:
+          type: array
+          items: {type: string, format: binary}
+        specificationImages[]:
+          type: array
+          items: {type: string, format: binary}
+        deliveryImages[]:
+          type: array
+          items: {type: string, format: binary}
+    CreateMonitor:
+      type: object
+      required: [name, email, phone, address]
+      properties:
+        name: {type: string}
+        email: {type: string, format: email}
+        phone: {type: string}
+        address:
+          $ref: '#/components/schemas/Address'
+    CreatePickupLocation:
+      type: object
+      required: [name, datetime, address]
+      properties:
+        name: {type: string}
+        datetime: {type: string, example: '2024-03-25T14:05:43'}
+        address:
+          $ref: '#/components/schemas/Address'
+    Consignment:
       type: object
       properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: sistemas@lzero.org
-        password: TestingPassword
-    login_monitor:
+        destinationId: {type: integer}
+        monitorId: {type: integer}
+        status: {type: string}
+        monitorProfit: {type: number}
+        monitorProfitPercentage: {type: number}
+    AddProductsToConsignment:
       type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: pedro@gmail.com
-        password: '27998209673'
-    login_shop:
-      type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: contato@lshop.com
-        password: '11988887777'
-    login:
-      type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: a@gmail.com
-        password: abc
-    partial_update_consignment:
-      type: object
-      properties:
-        status:
-          type: string
-      example:
-        status: CONFERIDO
-    register:
-      type: object
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        name: a
-        email: a@gmail.com
-        password: abc
-    shouldfail_add_absurd_ammount_of_products:
-      type: object
+      required: [products]
       properties:
         products:
           type: array
           items:
             type: object
+            required: [productId, quantity, price, color, discount, featured]
             properties:
-              productId:
-                type: integer
-              productName:
-                type: string
-              quantity:
-                type: integer
-              price:
-                type: integer
-              color:
-                type: string
-              description:
-                type: string
-              category:
-                type: string
-              discount:
-                type: integer
-              featured:
-                type: boolean
-      example:
-        products:
-          - productId: 1
-            productName: aosiddsa
-            quantity: 999
-            price: 1
-            color: '#000000'
-            description: dsaokdjsajdoasdjsa
-            category: Sem Categoria
-            discount: 10
-            featured: true
-    update_consignment:
+              productId: {type: integer}
+              productName: {type: string}
+              quantity: {type: integer}
+              price: {type: number}
+              color: {type: string}
+              description: {type: string}
+              category: {type: string}
+              discount: {type: number}
+              featured: {type: boolean}
+    UpdateConsignmentProduct:
       type: object
       properties:
-        destinationId:
-          type: integer
-        monitorId:
-          type: integer
-        status:
-          type: string
-        monitorProfit:
-          type: integer
-      example:
-        destinationId: 1
-        monitorId: 1
-        status: CONFERIR - DEVOLUÇÃO
-        monitorProfit: 5
-    update_product_form:
+        price: {type: number}
+        quantity: {type: integer}
+    CreateReport:
       type: object
       properties:
-        name:
-          type: string
-        description:
-          type: string
-        price:
-          type: string
-        category:
-          type: string
-        stock:
-          type: string
-        featured:
-          type: string
-        discount:
-          type: string
-        allowCustomName:
-          type: string
-        allowCustomization:
-          type: string
-        allowCustomModality:
-          type: string
-        allowCustomColorSelection:
-          type: string
-        colors:
-          type: string
-        specifications:
-          type: string
-        imageUrl:
-          type: string
-        descriptionImages:
-          type: string
-        specificationImages:
-          type: string
-        deliveryImages:
-          type: string
-    update_shop:
+        orderId: {type: integer}
+        monitor: {type: string}
+        moment: {type: string}
+        type: {type: string}
+        status: {type: string}
+        description: {type: string}
+        priority: {type: string}
+        occurrenceScope: {type: string}
+    UpdateReport:
       type: object
       properties:
-        name:
-          type: string
-        email:
-          type: string
-        telephone:
-          type: string
-        status:
-          type: string
-        address:
-          type: object
-          properties:
-            street:
-              type: string
-            number:
-              type: string
-            neighborhood:
-              type: string
-            city:
-              type: string
-            state:
-              type: string
-            cep:
-              type: string
-            complement:
-              type: string
-      example:
-        name: Nova lAbsadd
-        email: contato@lshop.com
-        telephone: '11988887777'
-        status: active
-        address:
-          street: Rua Nova
-          number: '50'
-          neighborhood: Bairro
-          city: Campinas
-          state: SP
-          cep: '13000000'
-          complement: Opcional
-    add_product_to_cart:
+        field: {nullable: true}
+    AddProductToCart:
       type: object
+      required: [product_id, quantity, session_id]
       properties:
-        product_id:
-          type: integer
-        quantity:
-          type: integer
-        session_id:
-          type: string
+        product_id: {type: integer}
+        quantity: {type: integer}
+        session_id: {type: string}
         personalization:
           type: object
-      example:
-        product_id: 1
-        quantity: 1
-        session_id: temp_69af0ba7865c0_1773079463
-        personalization: {}
-  requestBodies:
-    add_product_to_consignment:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/add_product_to_consignment'
-      description: ''
-      required: true
-    approve_product:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/approve_product'
-      description: ''
-      required: true
-    create_report:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/create_report'
-      description: ''
-      required: true
-    create_consignment:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/create_consignment'
-      description: ''
-      required: true
-    create_monitor:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/create_monitor'
-      description: ''
-      required: true
-    create_pickup_location:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/create_pickup_location'
-      description: ''
-      required: true
-    create_product:
-      content:
-        multipart/form-data:
-          schema:
-            $ref: '#/components/schemas/create_product'
-      description: ''
-      required: true
-    create_shop:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/create_shop'
-      description: ''
-      required: true
-    login_admin_2:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/login_admin_2'
-      description: ''
-      required: true
-    login_admin:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/login_admin'
-      description: ''
-      required: true
-    login_monitor:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/login_monitor'
-      description: ''
-      required: true
-    login_shop:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/login_shop'
-      description: ''
-      required: true
-    login:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/login'
-      description: ''
-      required: true
-    partial_update_consignment:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/partial_update_consignment'
-      description: ''
-      required: true
-    register:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/register'
-      description: ''
-      required: true
-    shouldfail_add_absurd_ammount_of_products:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/shouldfail_add_absurd_ammount_of_products'
-      description: ''
-      required: true
-    update_consignment:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/update_consignment'
-      description: ''
-      required: true
-    update_product_form:
-      content:
-        multipart/form-data:
-          schema:
-            $ref: '#/components/schemas/update_product_form'
-      description: ''
-      required: true
-    update_shop:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/update_shop'
-      description: ''
-      required: true
-    add_product_to_cart:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/add_product_to_cart'
-      description: ''
-      required: true
-  securitySchemes: {}
+          additionalProperties: true
+    UpdateCartQuantity:
+      type: object
+      required: [quantity]
+      properties:
+        quantity: {type: integer}
+    SessionId:
+      type: object
+      required: [session_id]
+      properties:
+        session_id: {type: string}
+    CartPixPayment:
+      type: object
+      required: [payer_name, payer_surname, payer_email, session_id, shipping_info]
+      properties:
+        payer_name: {type: string}
+        payer_surname: {type: string}
+        payer_email: {type: string, format: email}
+        payer_phone: {type: string}
+        session_id: {type: string}
+        shipping_info:
+          type: object
+          required: [type, cost, customer, address]
+          properties:
+            type: {type: string}
+            cost: {type: number}
+            customer:
+              type: object
+              required: [name, email, phone, cpf]
+              properties:
+                name: {type: string}
+                email: {type: string, format: email}
+                phone: {type: string}
+                cpf: {type: string}
+            address:
+              $ref: '#/components/schemas/Address'
+    ModerateProduct:
+      type: object
+      required: [platform_cut, platform_cut_type]
+      properties:
+        platform_cut: {type: number}
+        platform_cut_type: {type: string}
