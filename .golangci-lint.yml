@@ -1,0 +1,70 @@
+run:
+  # Increase timeout from default 1m for larger codebases
+  timeout: 5m
+  # Exit code when issues are found
+  issues-exit-code: 1
+  # Include test files in the analysis
+  tests: true
+  # Allow parallel execution for faster terminal feedback loops
+  allow-parallel-runners: true
+
+linters:
+  disable-all: true
+  enable:
+    # --- Correctness & Performance ---
+    - govet         # Enforces standard compiler-level vetting (printf, shadow, copying locks)
+    - staticcheck   # Advanced static analysis for bugs, performance bottlenecks, and deprecated APIs
+    - errcheck      # Catches unchecked errors (vital for preventing silent system failures)
+    - bodyclose     # Ensures HTTP response bodies are closed (prevents memory/socket leaks)
+    - sqlclosecheck # Ensures SQL rows and statements are closed cleanly
+
+    # --- Security & Vulnerabilities ---
+    - gosec         # Scans for security flaws (hardcoded credentials, weak crypto, unsafe allocations)
+
+    # --- Code Hygiene & Non-Verbosity ---
+    - unused        # Reports unused constants, variables, functions, and types
+    - ineffassign   # Detects assignments that are never read or used
+    - gosimple      # Suggests simpler, more idiomatic code constructions
+
+    # --- Formatting & Automation (Compatible with --fix) ---
+    - gofmt         # Standard language formatting
+    - goimports     # Fixes import block grouping and automatically updates missing packages
+    - misspell      # Fixes typos in comments and strings
+
+linters-settings:
+  govet:
+    # Turn on checking for shadowed variables
+    enable:
+      - shadow
+  
+  gosec:
+    # Exclude rules if you have specific intentional patterns (e.g., G104 for errcheck duplication)
+    excludes:
+      - G104 # Already covered comprehensively by errcheck
+  
+  errcheck:
+    # Report assertions like `x, _ := y.(Type)` if the unchecked type cast might panic
+    check-type-assertions: true
+    # Report blank identifier assignments like `_ = db.Close()`
+    check-blank: true
+
+  goimports:
+    # Puts local packages in a distinct block below standard library and 3rd party modules
+    local-prefixes: github.com/your-username/your-repo
+
+issues:
+  # Prevent high-signal security/correctness issues from being hidden by default exclusions
+  exclude-use-default: false
+  
+  # Max issues with the same text to report (0 means unlimited)
+  max-same-issues: 3
+  
+  # Max total issues reported in a single run (0 means unlimited)
+  max-issues-per-linter: 0
+
+  # Fine-tune exceptions for testing code where relaxed standards are acceptable
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec     # Allow hardcoded mock keys or predictable random numbers in test suites
+        - errcheck  # Allow skipping error checks on cleanup steps in tests

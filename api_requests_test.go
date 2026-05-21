@@ -1,9 +1,7 @@
 package main
+
 import (
-	"strconv"
 	"bytes"
-	"path"
-	"strings"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +11,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,7 +25,6 @@ import (
 	"linhazero.com/pvapi/middleware/logmw"
 	"linhazero.com/pvapi/seed"
 )
-
 
 type apiSession struct {
 	cookies []*http.Cookie
@@ -104,9 +104,9 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 	t.Run("public_permissions", func(t *testing.T) {
 		rec := h.doRequest(
-				t,
-				http.MethodGet,
-				fmt.Sprintf("/permissions?email=%s",
+			t,
+			http.MethodGet,
+			fmt.Sprintf("/permissions?email=%s",
 				registerEmail,
 			), nil, "", nil)
 
@@ -134,7 +134,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	})
 
 	adminSession = h.login(t, adminEmail, adminPassword)
-
 
 	t.Run("create_shop_for_deactivation", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos", &adminSession, map[string]any{
@@ -166,7 +165,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			)
 			assertStatus(t, rec, http.StatusOK)
 		})
-
 
 		t.Run("list_admin_includes_all_shops", func(t *testing.T) {
 			rec := h.doRequest(
@@ -203,7 +201,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			}
 		})
 	})
-
 
 	t.Run("create_shop", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos", &adminSession, map[string]any{
@@ -379,7 +376,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			assertStatus(t, rec, http.StatusOK)
 		})
 	})
-
 
 	t.Run("create_product", func(t *testing.T) {
 		rec := h.doMultipart(t, http.MethodPost, "/produtos", &shopSession, map[string]string{
@@ -684,7 +680,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 	})
 
-	t.Run("create_payment_session", func(t * testing.T) {
+	t.Run("create_payment_session", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
@@ -704,7 +700,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			})
 			assertStatus(t, rec, 400)
 		})
-
 
 		t.Run("add_products_to_cart_for_deletion", func(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
@@ -738,11 +733,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 					t, http.MethodDelete, "/carrinho/limpar", nil,
 					map[string]any{
 						"session_id": paymentSession,
-				})
+					})
 				assertStatus(t, rec, http.StatusOK)
 			})
 		})
-
 
 		t.Run("add_product_to_cart", func(t *testing.T) {
 			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
@@ -762,7 +756,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			assertStatus(t, rec, http.StatusOK)
 		})
 
-		t.Run("list_cart_products",  func(t * testing.T) {
+		t.Run("list_cart_products", func(t *testing.T) {
 			rec := h.doRequest(
 				t,
 				http.MethodGet,
@@ -783,19 +777,19 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 
 		/*
-		{
-			"payer_name": "Something",
-			"payer_surname": "Somewhere",
-			"payer_email":"something@somewhere.com",
-			"session_id": paymentSession
-		}
+			{
+				"payer_name": "Something",
+				"payer_surname": "Somewhere",
+				"payer_email":"something@somewhere.com",
+				"session_id": paymentSession
+			}
 		*/
 
 		clientName := "APRO"
 		clientEmail := "test@testuser.com"
 		clientPhone := "27998181999"
 
-		t.Run("checkout_cart_items", func(t * testing.T) {
+		t.Run("checkout_cart_items", func(t *testing.T) {
 			rec := h.doJSON(
 				t,
 				http.MethodPost,
@@ -836,7 +830,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		time.Sleep(3 * time.Second)
 
-		t.Run("check_payment_status", func(t * testing.T) {
+		t.Run("check_payment_status", func(t *testing.T) {
 			rec := h.doRequest(
 				t,
 				http.MethodGet,
@@ -854,7 +848,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 
 		clientSession = h.login(t, clientEmail, clientPhone)
-		func(_ any) { }(clientSession) // XXX
+		func(_ any) {}(clientSession) // XXX
 	})
 
 	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
@@ -900,7 +894,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			})
 		})
 	})
-	
+
 	t.Run("list_clients", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/clientes", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
