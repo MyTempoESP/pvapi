@@ -141,8 +141,7 @@ func setupRoutes(
 
 	clients := t.Group("/clientes", withAuth)
 	{
-		func(_ any) { }(clients) // XXX
-		func(_ any) { }(client.List) // XXX
+		clients.GET("", client.ListHandler(pool))
 	}
 
 	admin := t.Group("/admin", withAuth)

@@ -15,8 +15,9 @@ import (
 )
 
 type Client struct {
-	ID    int
-	Field any
+	ID    int    `db:"id"`
+	Name  string `db:"user_name"`
+	Email string `db:"user_email"`
 }
 
 func (c Client) Save(
