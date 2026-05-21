@@ -52,7 +52,7 @@ func run(logger *slog.Logger) (err error) {
 	t.Use(logmw.LogMiddleware(logger))
 	t.Use(gin.Recovery())
 
-	t.MaxMultipartMemory = 8 << 20 
+	t.MaxMultipartMemory = 8 << 20
 
 	// TODO: Check environment variables are properly set
 

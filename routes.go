@@ -5,16 +5,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/controllers/cart"
+	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/controllers/client"
 	"linhazero.com/pvapi/controllers/consignee"
 	"linhazero.com/pvapi/controllers/consignment"
+	"linhazero.com/pvapi/controllers/payment"
 	"linhazero.com/pvapi/controllers/pickups"
 	"linhazero.com/pvapi/controllers/product"
 	"linhazero.com/pvapi/controllers/report"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
-	"linhazero.com/pvapi/controllers/payment"
-	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/middleware/auth"
 	"linhazero.com/pvapi/util"
 )
@@ -92,8 +92,8 @@ func setupRoutes(
 
 		products.DELETE(
 			":product/img/:url",
-  			product.DeleteImageHandler(pool),
- 		)
+			product.DeleteImageHandler(pool),
+		)
 	}
 
 	consignees := t.Group("/monitores", withAuth)
