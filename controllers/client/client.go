@@ -21,9 +21,9 @@ func ListHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, gin.H{
-			"success": true,
-			"data":    clients,
-		})
+		util.Wrap(
+			c, "clientes listados com sucesso",
+			util.ResourceCollection(clients),
+		)
 	}
 }

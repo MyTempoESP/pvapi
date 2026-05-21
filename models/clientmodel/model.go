@@ -14,9 +14,10 @@ import (
 
 
 type Client struct {
-	ID    int    `db:"id"`
+	ID    int    `db:"user_id"`
 	Name  string `db:"user_name"`
 	Email string `db:"user_email"`
+	Phone string `db:"user_phone"`
 }
 
 func AssociateToCart(
@@ -64,6 +65,7 @@ func CreateForCart(
 	err = tx.QueryRow(
 		ctx, query.CreateClientQuery,
 		userID,
+		clientPhone,
 	).Scan(&clientID)
 
 	if err != nil {
@@ -92,19 +94,7 @@ func List(
 	)
 }
 
-func Find(
-	ctx context.Context,
-	base db.Queryable,
-	id any,
-) (Client, error) {
-	return util.WithCollectExactlyOneRow[Client](
-		ctx,
-		base,
-		query.FindClientQuery,
-		id,
-	)
-}
-
+// TODO: archive instead of delete
 func Delete(
 	ctx context.Context,
 	base db.Queryable,
