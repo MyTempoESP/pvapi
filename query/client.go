@@ -21,7 +21,9 @@ SELECT
 	u.email AS user_email
 FROM clients c
 LEFT JOIN users u ON u.id = c.user_id
-WHERE c.shop_id = $1
+LEFT JOIN carts cc ON cc.client_id = c.id
+LEFT JOIN shipments s ON s.cart_id = cc.id
+WHERE s.shop_id = $1
 `
 
 	// TODO: only way to find clients is through payments

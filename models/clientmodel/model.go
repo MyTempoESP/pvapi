@@ -10,49 +10,13 @@ import (
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/util/userutils"
-
-	sq "github.com/Masterminds/squirrel"
 )
+
 
 type Client struct {
 	ID    int    `db:"id"`
 	Name  string `db:"user_name"`
 	Email string `db:"user_email"`
-}
-
-func (c Client) Save(
-	ctx context.Context,
-	base db.Queryable,
-) (err error) {
-	q := util.SQL
-
-	fields := make(map[string]any)
-
-	if c.Field != nil {
-		fields["field"] = c.Field
-	}
-
-	if len(fields) == 0 {
-		return
-	}
-
-	query, params, err := q.Update("clients").
-		SetMap(fields).
-		Where(sq.Eq{"id": c.ID}).
-		ToSql()
-
-	if err != nil {
-		return fmt.Errorf("could not build SQL query: %w", err)
-	}
-
-	_, err = base.Exec(ctx, query, params...)
-
-	if err != nil {
-		return fmt.Errorf(
-			"could not update client, query: %q, %w", query, err)
-	}
-
-	return
 }
 
 func AssociateToCart(
