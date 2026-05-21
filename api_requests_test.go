@@ -906,8 +906,8 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 
 		body := decodeJSON(t, rec)
-		if _, ok := body["data"]; !ok {
-			t.Fatalf("expected 'data' field in response, got %s", rec.Body.String())
+		if _, ok := body["clients"]; !ok {
+			t.Fatalf("expected 'clients' field in response, got %s", rec.Body.String())
 		}
 	})
 }
