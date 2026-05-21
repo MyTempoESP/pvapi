@@ -451,10 +451,15 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 	})
 
-	/*t.Run("list_clients", func(t *testing.T) {
+	t.Run("list_clients", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/clientes", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
-	})*/
+
+		body := decodeJSON(t, rec)
+		if _, ok := body["data"]; !ok {
+			t.Fatalf("expected 'data' field in response, got %s", rec.Body.String())
+		}
+	})
 
 	t.Run("view_pending_products", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/admin/moderacao/pendentes", &adminSession, "", nil)
