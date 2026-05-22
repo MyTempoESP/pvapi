@@ -28,7 +28,7 @@ func JustNew(
 		return err
 	}
 
-	_, err = user.Save(ctx, base)
+	_, err = user.MustSave(ctx, base)
 
 	return err
 }
@@ -55,29 +55,6 @@ func NewUser(name, email, password string) (User, error) {
 	}, nil
 }
 
-// Save inserts the user to the database, or just selects one if already exists
-func (u User) Save(
-	ctx context.Context,
-	base db.Queryable,
-) (user int, err error) {
-	user, err = usermodel.FindOrCreate(
-		ctx, base,
-		u.Name, u.Email,
-		u.PasswordHash,
-	)
-
-	return
-}
-
-// JustSave simply saves the user without returning anything but an error on failure
-func (u User) JustSave(
-	ctx context.Context,
-	base db.Queryable,
-) error {
-	_, err := u.Save(ctx, base)
-	return err
-}
-
 // MustSave inserts the user to the database, throwing an error if already exists
 func (u User) MustSave(
 	ctx context.Context,
@@ -100,7 +77,7 @@ func (u User) MustSave(
 			}
 		}
 
-		return 0, nil
+		return 0, err
 	}
 
 	return user, nil

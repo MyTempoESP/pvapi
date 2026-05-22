@@ -201,10 +201,10 @@ func authRegistrator(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		err = util.Transaction(
+		_, err = util.TransactionReturn[int](
 			c.Request.Context(),
 			pool,
-			user.JustSave,
+			user.MustSave,
 		)
 
 		if err != nil {

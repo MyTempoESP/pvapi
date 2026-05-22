@@ -848,6 +848,60 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		})
 
 		clientSession = h.login(t, clientEmail, clientPhone)
+
+		t.Run("second_checkout_with_existing_client", func(t *testing.T) {
+			rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
+			assertStatus(t, rec, http.StatusOK)
+			secondSession := asString(t, asMap(t, decodeJSON(t, rec))["session_id"])
+
+			rec = h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+				"product_id":      productID,
+				"quantity":        1,
+				"session_id":      secondSession,
+				"personalization": map[string]any{},
+			})
+			assertStatus(t, rec, http.StatusOK)
+
+			rec = h.doJSON(t, http.MethodPost, "/api/payments/pix/cart", nil, map[string]any{
+				"payer_name":    clientName,
+				"payer_surname": "test",
+				"payer_email":   clientEmail,
+				"payer_phone":   "27998181888",
+				"session_id":    secondSession,
+				"shipping_info": map[string]any{
+					"type": "standard",
+					"cost": 10.0,
+					"customer": map[string]any{
+						"name":  clientName,
+						"email": clientEmail,
+						"phone": "27998181888",
+						"cpf":   "12345678901",
+					},
+					"address": map[string]any{
+						"street":       "Rua Exemplo",
+						"number":       "123",
+						"neighborhood": "Centro",
+						"city":         "Cidade",
+						"state":        "SP",
+						"cep":          "01001001",
+						"complement":   "Apto 1",
+					},
+				},
+			})
+			assertStatus(t, rec, http.StatusOK)
+			body := decodeJSON(t, rec)
+			secondPaymentID := asString(t, asMap(t, body)["payment_id"])
+
+			time.Sleep(3 * time.Second)
+
+			rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/pagamento/status/%s", secondPaymentID), nil, "", nil)
+			assertStatus(t, rec, http.StatusOK)
+			status := asString(t, asMap(t, decodeJSON(t, rec))["status"])
+			if status != "approved" {
+				t.Fatalf("second payment was not processed, got %s", status)
+			}
+		})
+
 		func(_ any) {}(clientSession) // XXX
 	})
 
