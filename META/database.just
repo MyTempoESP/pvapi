@@ -9,7 +9,7 @@ default:
 
 [group('data')]
 migrate url:
-    podman run --rm -v ./internal/database/migrations:/migrations:Z \
+    podman run --rm -v ../internal/database/migrations:/migrations:Z \
         --network host \
         docker.io/migrate/migrate -path /migrations/ \
         -database \
