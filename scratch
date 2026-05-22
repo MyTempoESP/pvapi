@@ -1,6 +1,0 @@
-controllers/payment/payment.go:19:7: missing import path
-# linhazero.com/pvapi/controllers/payment
-controllers/payment/payment.go:19:2: gin redeclared in this block
-	controllers/payment/payment.go:17:2: other declaration of gin
-controllers/payment/payment.go:19:2: "github.com/gin-gonic/gin" imported and not used
-controllers/payment/payment.go:61:7: undefined: gin.JSON
