@@ -65,7 +65,7 @@ func CreateHandler(
 		)
 
 		if err != nil {
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
