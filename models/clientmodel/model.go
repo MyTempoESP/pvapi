@@ -2,6 +2,7 @@ package clientmodel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -43,48 +44,57 @@ func CreateForCart(
 	clientPhone string, // password
 	cartID int,
 ) (err error) {
-	// XXX: not a good idea to generate
-	// a password inside a transaction
-	user, err := userutils.NewUser(
-		clientName,
-		clientEmail,
-		clientPhone,
-	)
+	userID, err := usermodel.FindByEmail(ctx, tx, clientEmail)
 
-	if err != nil {
-		return
+	if errors.Is(err, pgx.ErrNoRows) {
+		user, err := userutils.NewUser(
+			clientName,
+			clientEmail,
+			clientPhone,
+		)
+		if err != nil {
+			return err
+		}
+
+		userID, err = usermodel.Create(
+			ctx, tx,
+			clientName,
+			clientEmail,
+			user.PasswordHash,
+		)
+		if err != nil {
+			return fmt.Errorf("error creating user: %w", err)
+		}
+
+		var clientID int
+		err = tx.QueryRow(
+			ctx, query.CreateClientQuery,
+			userID,
+			clientPhone,
+		).Scan(&clientID)
+		if err != nil {
+			return fmt.Errorf("error creating client: %w", err)
+		}
+
+		return AssociateToCart(ctx, tx, clientID, cartID)
 	}
 
-	userID, err := usermodel.FindOrCreate(
-		ctx, tx,
-		clientName,
-		clientEmail,
-		user.PasswordHash,
-	)
-
 	if err != nil {
-		return fmt.Errorf("error finding or creating user: %w", err)
+		return err
 	}
 
 	var clientID int
+	err = tx.QueryRow(ctx, query.FindClientByUserQuery, userID).Scan(&clientID)
 
-	err = tx.QueryRow(
-		ctx, query.CreateClientQuery,
-		userID,
-		clientPhone,
-	).Scan(&clientID)
-
-	if err != nil {
-		return fmt.Errorf("error creating client: %w", err)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("user is not a client: %w", util.ErrDuplicatedResource)
 	}
 
-	err = AssociateToCart(ctx, tx, clientID, cartID)
-
 	if err != nil {
-		return
+		return err
 	}
 
-	return
+	return AssociateToCart(ctx, tx, clientID, cartID)
 }
 
 func List(
