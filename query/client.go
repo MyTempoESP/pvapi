@@ -28,6 +28,10 @@ LEFT JOIN shipments s ON s.cart_id = cc.id
 WHERE s.shop_id = $1
 `
 
+	FindClientByUserQuery = `
+SELECT id FROM clients WHERE user_id = $1
+`
+
 	DeleteClientQuery = `
 DELETE FROM clients
 WHERE id = $1

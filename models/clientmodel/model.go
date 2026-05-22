@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/util/userutils"
@@ -54,10 +55,15 @@ func CreateForCart(
 		return
 	}
 
-	userID, err := user.Save(ctx, tx)
+	userID, err := usermodel.FindOrCreate(
+		ctx, tx,
+		clientName,
+		clientEmail,
+		user.PasswordHash,
+	)
 
 	if err != nil {
-		return fmt.Errorf("error creating user: %w", err)
+		return fmt.Errorf("error finding or creating user: %w", err)
 	}
 
 	var clientID int

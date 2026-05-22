@@ -29,7 +29,7 @@ func Create(
 
 	err = pgx.BeginFunc(ctx, pool,
 		func(tx pgx.Tx) error {
-			userID, err := user.Save(ctx, tx)
+			userID, err := user.MustSave(ctx, tx)
 
 			if err != nil {
 				return err
