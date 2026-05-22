@@ -58,4 +58,9 @@ FROM consignees c
 LEFT JOIN reports r ON r.consignee_id = c.id
 WHERE c.id = $1 AND r.id = $2
 `
+
+	DeleteConsigneeQuery = `
+DELETE FROM consignees
+WHERE id = $1
+`
 )

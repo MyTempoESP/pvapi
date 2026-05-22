@@ -100,6 +100,7 @@ func setupRoutes(
 	{
 		consignees.POST("", consignee.CreateHandler(pool))
 		consignees.GET("", consignee.ListHandler(pool))
+		consignees.DELETE(":consignee", consignee.DeleteHandler(pool))
 	}
 
 	consignments := t.Group("/remessas", withAuth)

@@ -1,7 +1,11 @@
 package consignee
 
 import (
+	"context"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/consigneemodel"
@@ -91,5 +95,32 @@ func UpdateHandler(
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
+	}
+}
+
+func DeleteHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("consignee"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func(ctx context.Context, tx pgx.Tx) error {
+				return consigneemodel.Delete(ctx, tx, id)
+			},
+		)
+
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		util.OK(c, "monitor deletado com sucesso")
 	}
 }
