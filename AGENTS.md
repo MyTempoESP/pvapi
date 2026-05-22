@@ -86,6 +86,9 @@ Run the verification pipeline immediately after any code modifications:
 golangci-lint run --fix
 ```
 
+- Do NOT run `go test`, the test harness is specific and intricate.
+- Always ask for manual test feedback after changes.
+
 **Zero-Tolerance Policy:**
 - Treat any non-zero exit code or lint warning as a blocker.
 - Do not declare task completion if compilation, linting, or tests fail.
