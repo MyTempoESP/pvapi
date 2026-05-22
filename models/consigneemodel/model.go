@@ -77,6 +77,15 @@ func HasConsignment(
 	)
 }
 
+func Delete(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID int,
+) error {
+	_, err := base.Exec(ctx, query.DeleteConsigneeQuery, consigneeID)
+	return err
+}
+
 func HasReport(
 	ctx context.Context,
 	base db.Queryable,

@@ -285,6 +285,30 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		//consigneeID = findIDByFieldValue(t, monitors, "email", consigneeEmail)
 	})
 
+	t.Run("delete_monitor", func(t *testing.T) {
+		deleteEmail := fmt.Sprintf("api-del-monitor-%d@example.com", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/monitores", &shopSession, map[string]any{
+			"name":  fmt.Sprintf("Para Deletar %d", runID),
+			"email": deleteEmail,
+			"phone": "11999999999",
+			"address": map[string]any{
+				"street":       "Rua Nova",
+				"number":       "50",
+				"neighborhood": "Bairro",
+				"city":         "Campinas",
+				"state":        "SP",
+				"cep":          "13000000",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		deleteID := asInt(t, asMap(t, decodeJSON(t, rec)["monitor"])["id"])
+
+		rec = h.doRequest(t, http.MethodDelete, fmt.Sprintf("/monitores/%d", deleteID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+	})
+
 	t.Run("create_pickup_location", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
 			"name":     "ponto",
