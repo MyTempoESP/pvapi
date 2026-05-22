@@ -80,7 +80,7 @@ func DeleteImageHandler(
 
 		if imageBase == "" {
 			util.HandleBadRequest(
-				c, errors.New("Nenhuma imagem especificada"))
+				c, errors.New("nenhuma imagem especificada"))
 			return
 		}
 
@@ -105,7 +105,7 @@ func DeleteImageHandler(
 
 		if !hasImage {
 			util.HandleBadRequest(
-				c, errors.New("O produto nao possui a imagem"))
+				c, errors.New("o produto nao possui a imagem"))
 			return
 		}
 

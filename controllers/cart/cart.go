@@ -130,7 +130,7 @@ func ViewHandler(
 	return func(c *gin.Context) {
 		sessionID, ok := c.GetQuery("session_id")
 		if !ok {
-			util.HandleBadRequest(c, fmt.Errorf("No session_id"))
+			util.HandleBadRequest(c, fmt.Errorf("no session_id"))
 			return
 		}
 

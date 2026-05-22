@@ -78,7 +78,7 @@ func (c Comission) defineComissionType() (
 	if comissionType == "" {
 		err = fmt.Errorf(
 			"nenhum tipo de comissão especificado %w",
-			util.BadRequestError,
+			util.ErrBadRequest,
 		)
 		return
 	}

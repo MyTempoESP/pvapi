@@ -47,7 +47,7 @@ func (a AddProductAction) Exec(
 
 	if err != nil {
 		return fmt.Errorf(
-			"Couldn't add products to consignment %q: %w",
+			"couldn't add products to consignment %q: %w",
 			a.ConsignmentID,
 			err,
 		)
@@ -246,7 +246,6 @@ func DeleteAny(
 		return fmt.Errorf("unknown record type: %s", recordType)
 	}
 
-	return err
 }
 
 // ListProductsAny returns products from either a consignment or a shipment.

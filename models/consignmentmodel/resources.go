@@ -35,7 +35,7 @@ type ConsignmentWithShipmentResource struct {
 	ShopID   int    `json:"shop_id"`
 
 	// present for consignments
-	ConsigneeName string `json:"responsibleMonitor",omitempty`
+	ConsigneeName string `json:"responsibleMonitor,omitempty"`
 
 	// consignment: pickup location name; shipment: delivery address text
 	Destination string `json:"destination,omitempty"`
@@ -47,13 +47,13 @@ func (c ConsignmentWithShipment) ToResource() (
 	r ConsignmentWithShipmentResource,
 ) {
 	r = ConsignmentWithShipmentResource{
-		Status:         c.Status,
-		Code:           c.Code,
-		Slug:           c.Slug,
-		RecordType:     c.RecordType,
-		ShopID:         c.Shop.ID,
-		ShopName:       c.Shop.Name,
-		CreatedAt:      c.CreatedAt,
+		Status:     c.Status,
+		Code:       c.Code,
+		Slug:       c.Slug,
+		RecordType: c.RecordType,
+		ShopID:     c.Shop.ID,
+		ShopName:   c.Name,
+		CreatedAt:  c.CreatedAt,
 	}
 
 	if c.RecordType == "consignment" {
@@ -122,19 +122,19 @@ func (c Consignment) ToResource() ConsignmentResource {
 
 func (p ConsignmentProduct) ToResource() ProductResource {
 	return ProductResource{
-		Image:            p.Product.Attributes.Image,
+		Image:            p.Attributes.Image,
 		OriginalPrice:    p.Product.Price,
-		OriginalQuantity: p.Product.Stock,
+		OriginalQuantity: p.Stock,
 
 		PackagePrice:    p.Package.Price,
-		PackageQuantity: p.Package.Quantity,
+		PackageQuantity: p.Quantity,
 
 		ProductResource: p.Product.ToResource(),
 
 		// The nested "pivot" object
 		Package: PackageResource{
 			Price:    p.Package.Price,
-			Quantity: p.Package.Quantity,
+			Quantity: p.Quantity,
 		},
 	}
 }

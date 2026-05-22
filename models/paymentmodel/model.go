@@ -209,7 +209,7 @@ func (p PaymentBlueprint) Save(
 
 	if err != nil {
 		err = fmt.Errorf(
-			"Mercado pago error: %w, ", err)
+			"mercado pago error: %w, ", err)
 		return
 	}
 

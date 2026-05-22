@@ -95,7 +95,7 @@ func (u User) MustSave(
 			if pge.Code == pgerrcode.UniqueViolation {
 				return 0, fmt.Errorf(
 					"user already exists: %w",
-					util.DuplicatedResourceError,
+					util.ErrDuplicatedResource,
 				)
 			}
 		}
