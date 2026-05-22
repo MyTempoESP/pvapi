@@ -1,0 +1,74 @@
+name: Generate Database ERD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'internal/database/migrations/**'
+  workflow_dispatch:
+
+jobs:
+  build-erd:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: app_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Install Tools (golang-migrate & planter)
+        run: |
+          echo "Installing migration binary and schema tracker..."
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          go install github.com/achiku/planter@latest
+
+      - name: Run Database Migrations
+        run: |
+          echo "Executing migrations from internal directory..."
+          migrate -path internal/database/migrations \
+                  -database "postgres://runner:password@localhost:5432/app_db?sslmode=disable" \
+                  up
+
+      - name: Generate PlantUML Schema Text
+        run: |
+          mkdir -p docs
+          planter "postgres://runner:password@localhost:5432/app_db?sslmode=disable" -o docs/erd.puml
+
+      - name: Install PlantUML Utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y plantuml
+
+      - name: Render Diagram to PNG
+        run: plantuml -tpng docs/erd.puml
+
+      - name: Commit and Push Architectural Artifacts
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/erd.puml docs/erd.png
+          
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore: auto-generate architectural database diagram [skip ci]"
+            git push
+          fi
