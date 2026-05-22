@@ -19,15 +19,15 @@ import (
 )
 
 var (
-	BadRequestError         = errors.New("malformed request")
-	DuplicatedResourceError = errors.New("trying to create duplicated resource")
-	NotImplementedError     = errors.New("function not yet implemented")
+	ErrBadRequest         = errors.New("malformed request")
+	ErrDuplicatedResource = errors.New("trying to create duplicated resource")
+	ErrNotImplemented     = errors.New("function not yet implemented")
 )
 
 func NotImplemented(operation string) error {
 	return fmt.Errorf(
 		"could not fulfill request for operation %q: %w",
-		operation, NotImplementedError,
+		operation, ErrNotImplemented,
 	)
 }
 
@@ -111,7 +111,7 @@ func LogError(c *gin.Context, message string, a ...any) {
 // HandleGuess guesses the correct error code based
 // on the error returned from a generic operation
 func HandleGuess(c *gin.Context, err error) {
-	if errors.Is(err, BadRequestError) {
+	if errors.Is(err, ErrBadRequest) {
 		HandleBadRequest(c, err)
 		return
 	}
@@ -127,7 +127,7 @@ func HandleGuessFromDBOperation(c *gin.Context, err error) {
 		return
 	}
 
-	if errors.Is(err, DuplicatedResourceError) {
+	if errors.Is(err, ErrDuplicatedResource) {
 		// TODO: correct error code
 		Handle500(c, err)
 		return
@@ -274,7 +274,7 @@ func TransactionReturn[T any](
 	if err != nil {
 		return zero, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	t, err := f(ctx, tx)
 
@@ -299,7 +299,7 @@ func TransactionAwareReturn[T any](
 	if err != nil {
 		return zero, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	t, err := f(ctx, tx)
 
@@ -336,7 +336,7 @@ func Bake(
 	batch *pgx.Batch,
 ) (err error) {
 	b := base.SendBatch(ctx, batch)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	for range batch.Len() {
 		_, err = b.Exec()

@@ -117,8 +117,5 @@ func (p Product) ToResource() ProductResource {
 }
 
 func (s Specification) ToResource() SpecificationResource {
-	return SpecificationResource{
-		Name:  s.Name,
-		Value: s.Value,
-	}
+	return SpecificationResource(s)
 }

@@ -1,10 +1,10 @@
 package clientmodel
 
 /*
-                'id' => (string) $client->id,
-                'name' => $client->name,
-                'email' => $client->email,
-                'phone' => $client->phone,
+   'id' => (string) $client->id,
+   'name' => $client->name,
+   'email' => $client->email,
+   'phone' => $client->phone,
 */
 
 type ClientResource struct {
@@ -15,11 +15,5 @@ type ClientResource struct {
 }
 
 func (c Client) ToResource() ClientResource {
-	return ClientResource{
-		ID: c.ID,
-		Name: c.Name,
-		Email: c.Email,
-		Phone: c.Phone,
-	}
+	return ClientResource(c)
 }
-

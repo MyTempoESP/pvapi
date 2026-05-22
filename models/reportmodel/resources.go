@@ -32,16 +32,5 @@ type ReportResource struct {
 }
 
 func (r Report) ToResource() ReportResource {
-	return ReportResource{
-		ID:            r.ID,
-		Description:   r.Description,
-		Moment:        r.Moment,
-		Monitor:       r.Monitor,
-		Scope:         r.Scope,
-		ConsignmentID: r.ConsignmentID,
-		Priority:      r.Priority,
-		Status:        r.Status,
-		Type:          r.Type,
-		CreatedAt:     r.CreatedAt,
-	}
+	return ReportResource(r)
 }

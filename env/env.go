@@ -13,7 +13,7 @@ func wrapEnv(k string) func() (string, error) {
 			return v, nil
 		}
 		return "", fmt.Errorf(
-			"Required environment variable %q not defined", k)
+			"required environment variable %q not defined", k)
 	}
 }
 

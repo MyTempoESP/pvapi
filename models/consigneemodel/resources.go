@@ -13,8 +13,8 @@ type ConsigneeResource struct {
 func (c Consignee) ToResource() *ConsigneeResource {
 	return &ConsigneeResource{
 		ID:      c.ID,
-		Name:    c.User.Name,
-		Email:   c.User.Email,
+		Name:    c.Name,
+		Email:   c.Email,
 		Phone:   c.Phone,
 		Address: c.Address,
 	}

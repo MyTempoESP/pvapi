@@ -70,7 +70,7 @@ func (b *Bouncer) Dispatch(c *gin.Context, user User) bool {
 
 	for _, g := range b.Protected {
 		if strings.HasPrefix(resource.Path, g.Path) {
-			isAllowed, err := g.Gate.Dispatch(user, resource)
+			isAllowed, err := g.Dispatch(user, resource)
 
 			if err != nil {
 				util.LogWarn(

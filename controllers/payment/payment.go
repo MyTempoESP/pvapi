@@ -214,7 +214,6 @@ func ValidateTemporarySession(
 		}
 
 		c.JSON(200, gin.H{"success": true, "message": "sessao valida"})
-		return
 	}
 }
 

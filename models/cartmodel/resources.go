@@ -50,8 +50,7 @@ type CartDetailsResource struct {
 	SessionID string `json:"session_id"`
 }
 
-func (c CartProduct) ToResource(
-) CartProductResource {
+func (c CartProduct) ToResource() CartProductResource {
 	quantityDecimal := decimal.NewFromInt(int64(c.Quantity)) // must be sized int
 	priceDecrement := c.Discount.Div(decimal.NewFromInt(100)).Mul(c.Price)
 
@@ -60,27 +59,27 @@ func (c CartProduct) ToResource(
 	subtotalWithDiscount := priceWithDiscount.Mul(quantityDecimal)
 
 	// XXX: remove this
-	subtotalF , _ := subtotal.Float64()
-	priceWithDiscountF , _ := priceWithDiscount.Float64()
-	subtotalWithDiscountF , _ := subtotalWithDiscount.Float64()
+	subtotalF, _ := subtotal.Float64()
+	priceWithDiscountF, _ := priceWithDiscount.Float64()
+	subtotalWithDiscountF, _ := subtotalWithDiscount.Float64()
 
 	return CartProductResource{
-		ID: c.CartItem.ID,
-		ProductID: c.ProductID,
-		ShopID: c.ShopID,
-		ProductName: c.Name,
-		ProductImg: c.Image,
-		ShopName: c.ShopName,
-		Quantity: c.CartItem.Quantity,
-		Price: c.Price,
-		Discount: c.Discount,
-		Subtotal: subtotal,
-		PriceWithDiscount: priceWithDiscount,
+		ID:                   c.ID,
+		ProductID:            c.ProductID,
+		ShopID:               c.ShopID,
+		ProductName:          c.Name,
+		ProductImg:           c.Image,
+		ShopName:             c.ShopName,
+		Quantity:             c.Quantity,
+		Price:                c.Price,
+		Discount:             c.Discount,
+		Subtotal:             subtotal,
+		PriceWithDiscount:    priceWithDiscount,
 		SubtotalWithDiscount: subtotalWithDiscount,
 
 		// XXX: this is blasphemy atp
-		SubtotalF: subtotalF,
-		PriceWithDiscountF: priceWithDiscountF,
+		SubtotalF:             subtotalF,
+		PriceWithDiscountF:    priceWithDiscountF,
 		SubtotalWithDiscountF: subtotalWithDiscountF,
 	}
 }
@@ -89,9 +88,9 @@ func (c CartDetails) ToResource(
 	sessionID string,
 ) CartDetailsResource {
 	var (
-		total             decimal.Decimal = decimal.NewFromInt(0)
-		totalDiscount     decimal.Decimal = decimal.NewFromInt(0)
-		totalWithDiscount decimal.Decimal = decimal.NewFromInt(0)
+		total             = decimal.NewFromInt(0)
+		totalDiscount     = decimal.NewFromInt(0)
+		totalWithDiscount = decimal.NewFromInt(0)
 	)
 
 	itemResources := util.ResourceCollection[CartProductResource](c.Items)
@@ -104,22 +103,22 @@ func (c CartDetails) ToResource(
 	totalDiscount = total.Sub(totalWithDiscount)
 
 	// XXX: this makes me so pissed off
-	totalWithDiscountF, _  := totalWithDiscount.Float64()
+	totalWithDiscountF, _ := totalWithDiscount.Float64()
 	totalDiscountF, _ := totalDiscount.Float64()
 
 	totalF, _ := total.Float64()
 
 	return CartDetailsResource{
-		Total: total,
-		TotalF: totalF,
-		Items: itemResources,
-		Count: len(c.Items),
+		Total:             total,
+		TotalF:            totalF,
+		Items:             itemResources,
+		Count:             len(c.Items),
 		TotalWithDiscount: totalWithDiscount,
-		TotalDiscount: totalDiscount,
+		TotalDiscount:     totalDiscount,
 
 		// XXX: remove this
 		TotalWithDiscountF: totalWithDiscountF,
-		TotalDiscountF: totalDiscountF,
+		TotalDiscountF:     totalDiscountF,
 
 		SessionID: sessionID,
 	}

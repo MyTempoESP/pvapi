@@ -19,7 +19,7 @@ func checkFileSanity(m *multipart.FileHeader) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file header: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	buff := make([]byte, 512)
 	if _, err := file.Read(buff); err != nil && err != io.EOF {
