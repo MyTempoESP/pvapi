@@ -62,13 +62,11 @@ jobs:
       - name: Render Diagram to PNG
         run: plantuml -tpng docs/erd.puml
 
-      - name: Commit and Push Architectural Artifacts
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/erd.puml docs/erd.png
-          
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "chore: auto-generate architectural database diagram [skip ci]"
-            git push
-          fi
+      - name: Upload Diagram to GitHub Run Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-schema-erd
+          path: |
+            docs/erd.puml
+            docs/erd.png
+          retention-days: 14
