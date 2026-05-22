@@ -87,7 +87,7 @@ worker: db go
 clean:
 	-podman stop test-postgres
 	-podman unshare rm -rf "{{db_base_dir}}"
-	-find ./public/uploads \
+	-find ../public/uploads \
 		-type f \
 		\( \
 			-name '*.png'  -o \
