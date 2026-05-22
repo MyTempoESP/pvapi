@@ -128,12 +128,27 @@ func HandleGuessFromDBOperation(c *gin.Context, err error) {
 	}
 
 	if errors.Is(err, ErrDuplicatedResource) {
-		// TODO: correct error code
-		Handle500(c, err)
+		HandleDuplicatedResource(c, err)
 		return
 	}
 
 	Handle500(c, err)
+}
+
+// HandleDuplicatedResource handles ErrDuplicatedResource errors with a
+// machine-readable 409 Conflict response.
+func HandleDuplicatedResource(c *gin.Context, err error) {
+	logger := logmw.GetLogger(c)
+	logger.Warn("Duplicated resource", "error", err)
+
+	c.AbortWithStatusJSON(
+		http.StatusConflict,
+		gin.H{
+			"success": false,
+			"message": "resource already exists",
+			"code":    "duplicated_resource",
+		},
+	)
 }
 
 type Show[R any] interface {
