@@ -6,7 +6,7 @@ on:
       - wip
     paths:
       - 'internal/database/migrations/**'
-      - 'docs/**.puml'
+      - 'Dev/docs/**.puml'
   workflow_dispatch:
 
 concurrency:
@@ -69,15 +69,16 @@ jobs:
           mkdir -p Dev/docs
           planter "postgres://runner:password@localhost:5432/app_db?sslmode=disable" -o Dev/docs/erd.puml
 
-      - name: Render All Diagrams to PNG
-        uses: holowinski/plantuml-github-action@main
+      - name: Render All Diagrams to PNG (ERD + Docs)
+        uses: cloudbees-io/plantuml-action@v1
         with:
-          args: "-v -tpng docs/**.puml"
+          args: "-v -tpng Dev/docs/**.puml"
 
       - name: Ship Compiled PNG Images to n8n Vault
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_DIAGRAM_WEBHOOK }}
         run: |
+          shopt -s nullglob
           for filepath in Dev/docs/*.png; do
             filename=$(basename "$filepath")
             echo "Uploading: $filename"
