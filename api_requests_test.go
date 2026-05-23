@@ -65,14 +65,15 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		adminSession     apiSession
 		genericSession   apiSession
 		shopSession      apiSession
-shopID           int
-		shopSlug         string
-		consigneeID      int
-		pickupID         int
-		categoryID       int
-		productID        int
-		consignmentID    int
-		reportID         int
+		consigneeSession apiSession
+		shopID         int
+		shopSlug       string
+		consigneeID    int
+		pickupID       int
+		categoryID     int
+		productID      int
+		consignmentID  int
+		reportID       int
 	)
 
 	t.Run("user_no_auth_test", func(t *testing.T) {
@@ -303,6 +304,10 @@ shopID           int
 
 		rec = h.doRequest(t, http.MethodDelete, fmt.Sprintf("/monitores/%d", deleteID), &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("monitor_login", func(t *testing.T) {
+		consigneeSession = h.login(t, consigneeEmail, consigneePassword)
 	})
 
 	t.Run("create_pickup_location", func(t *testing.T) {
@@ -650,6 +655,48 @@ shopID           int
 		}
 	})
 
+	t.Run("create_report_nonexistent_product_fails", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
+			"orderId":         99999,
+			"monitor":         consigneeName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "a",
+			"priority":        "baixa",
+			"occurrenceScope": "product",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("create_report_nonexistent_consignment_fails", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
+			"orderId":         99999,
+			"monitor":         consigneeName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "a",
+			"priority":        "baixa",
+			"occurrenceScope": "consignment",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("create_report_unknown_scope_fails", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
+			"orderId":         productID,
+			"monitor":         consigneeName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "a",
+			"priority":        "baixa",
+			"occurrenceScope": "invalid",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
 	t.Run("create_report_product_scope", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
 			"orderId":         productID,
@@ -686,6 +733,28 @@ shopID           int
 		report := asMap(t, body["report"])
 		if asInt(t, report["id"]) != reportID {
 			t.Fatalf("expected report id %d, got body %s", reportID, rec.Body.String())
+		}
+	})
+
+	t.Run("consignee_view_product_report", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/ocorrencias/%d", reportID), &consigneeSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asInt(t, report["id"]) != reportID {
+			t.Fatalf("expected report id %d, got body %s", reportID, rec.Body.String())
+		}
+	})
+
+	t.Run("consignee_list_reports_includes_product_report", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/ocorrencias", &consigneeSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		reports := asSlice(t, body["data"])
+		if !containsID(reports, reportID) {
+			t.Fatalf("report %d not found in consignee report list: %s", reportID, rec.Body.String())
 		}
 	})
 

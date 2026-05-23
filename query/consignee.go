@@ -51,19 +51,17 @@ LEFT JOIN consignments p ON p.shop_id = c.shop_id
 WHERE c.id = $1 AND p.id = $2
 `
 
+	ConsigneeHasProduct = `
+SELECT (p.id IS NOT NULL) AS hasProduct
+FROM consignees c
+LEFT JOIN products p ON p.shop_id = c.shop_id
+WHERE c.id = $1 AND p.id = $2
+`
 
 	ConsigneeHasReportQuery = `
 SELECT (r.id IS NOT NULL) AS hasReport
 FROM consignees c
 LEFT JOIN reports r ON r.consignee_id = c.id
-WHERE c.id = $1 AND r.id = $2
-`
-
-	ConsigneeHasProductReportQuery = `
-SELECT (r.id IS NOT NULL) AS hasReport
-FROM consignees c
-LEFT JOIN products p ON p.shop_id = c.shop_id
-LEFT JOIN reports r ON r.product_id = p.id
 WHERE c.id = $1 AND r.id = $2
 `
 

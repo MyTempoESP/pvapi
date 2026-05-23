@@ -2,6 +2,8 @@ package query
 
 const (
 	CreateReportQuery = `
+-- TODO: resolving consignee by u.name = @consignee_name is fragile;
+-- replace with consignee ID once the frontend passes it.
 WITH consignee AS (
 	SELECT c.*
 	FROM consignees c
@@ -65,6 +67,8 @@ WHERE id = $1
 `
 
 	CreateProductReportQuery = `
+-- TODO: resolving consignee by u.name = @consignee_name is fragile;
+-- replace with consignee ID once the frontend passes it.
 WITH consignee AS (
 	SELECT c.*
 	FROM consignees c

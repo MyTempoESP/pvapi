@@ -75,6 +75,19 @@ func HasConsignment(
 	)
 }
 
+func HasProduct(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID, productID int,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ConsigneeHasProduct,
+		consigneeID, productID,
+	)
+}
+
 func Delete(
 	ctx context.Context,
 	base db.Queryable,
@@ -93,20 +106,6 @@ func HasReport(
 		ctx,
 		base,
 		query.ConsigneeHasReportQuery,
-		consignee,
-		report,
-	)
-}
-
-func HasProductReport(
-	ctx context.Context,
-	base db.Queryable,
-	consignee, report any,
-) (bool, error) {
-	return model.HasResource(
-		ctx,
-		base,
-		query.ConsigneeHasProductReportQuery,
 		consignee,
 		report,
 	)

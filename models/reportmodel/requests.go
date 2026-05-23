@@ -16,7 +16,7 @@ type CreateReportRequest struct {
 	Moment        string `json:"moment"`
 	Monitor       string `json:"monitor"`
 	Scope         string `json:"occurrenceScope"`
-	ConsignmentID int    `json:"orderId"`
+	OrderID int    `json:"orderId"`
 	Priority      string `json:"priority"`
 	Status        string `json:"status"`
 	Type          string `json:"type"`
