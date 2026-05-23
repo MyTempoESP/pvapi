@@ -1,8 +1,6 @@
 package consignmentmodel
 
 import (
-	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -20,69 +18,6 @@ type ProductResource struct {
 
 	productmodel.ProductResource
 	Package PackageResource `json:"pivot"`
-}
-
-type ConsignmentWithShipmentResource struct {
-	ID             string           `json:"id"`
-	ComissionType  *string          `json:"commission_type,omitempty"`
-	ComissionValue *decimal.Decimal `json:"commission_value,omitempty"`
-	Status         string           `json:"status"`
-	Code           string           `json:"code"`
-	Slug           string           `json:"slug"`
-	RecordType     string           `json:"record_type"`
-
-	ShopName string `json:"shop_name"`
-	ShopID   int    `json:"shop_id"`
-
-	// present for consignments
-	ConsigneeName string `json:"responsibleMonitor,omitempty"`
-
-	// consignment: pickup location name; shipment: delivery address text
-	Destination string `json:"destination,omitempty"`
-
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func (c ConsignmentWithShipment) ToResource() (
-	r ConsignmentWithShipmentResource,
-) {
-	r = ConsignmentWithShipmentResource{
-		Status:     c.Status,
-		Code:       c.Code,
-		Slug:       c.Slug,
-		RecordType: c.RecordType,
-		ShopID:     c.Shop.ID,
-		ShopName:   c.Name,
-		CreatedAt:  c.CreatedAt,
-	}
-
-	if c.RecordType == "consignment" {
-		r.ID = strconv.Itoa(c.ID)
-
-		r.ComissionType = c.ComissionType
-		r.ComissionValue = c.ComissionValue
-
-		if c.ConsigneeID != nil && c.ConsigneeName != nil {
-			r.ConsigneeName = *c.ConsigneeName
-		}
-
-		if c.PickupName != nil {
-			r.Destination = *c.PickupName
-		}
-
-		return
-	}
-
-	// Shipment
-	r.ID = fmt.Sprintf("V-%d", c.ID)
-
-	// generic name for consignee since shipments are based
-	r.ConsigneeName = "sistema"
-
-	// PickupName as the delivery address
-	r.Destination = *c.PickupName
-
-	return
 }
 
 type PackageResource struct {

@@ -65,15 +65,13 @@ func List(
 func HasConsignment(
 	ctx context.Context,
 	base db.Queryable,
-	consigneeID int, consignment string,
+	consigneeID, consignmentID int,
 ) (bool, error) {
-	id, recordType := util.CutShipmentPrefix(consignment)
-
 	return model.HasResource(
 		ctx,
 		base,
 		query.ConsigneeHasConsignment,
-		consigneeID, id, recordType,
+		consigneeID, consignmentID,
 	)
 }
 

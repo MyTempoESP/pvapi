@@ -3,7 +3,6 @@ package consignmentmodel
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -225,86 +224,4 @@ func Delete(
 	return err
 }
 
-func DeleteAny(
-	ctx context.Context,
-	base db.Queryable,
-	searchQuery string,
-) (err error) {
-	idStr, recordType := util.CutShipmentPrefix(searchQuery)
 
-	switch recordType {
-	case "consignment":
-		return Delete(ctx, base, idStr)
-	case "shipment":
-		_, err = base.Exec(
-			ctx,
-			query.DeleteShipment,
-			idStr,
-		)
-		return
-	default:
-		return fmt.Errorf("unknown record type: %s", recordType)
-	}
-
-}
-
-// ListProductsAny returns products from either a consignment or a shipment.
-// The searchQuery can be a plain ID ("1") or prefixed as "V-1" for shipments.
-func ListProductsAny(
-	ctx context.Context,
-	base db.Queryable,
-	searchQuery string,
-) ([]ConsignmentProduct, error) {
-	idStr, recordType := util.CutShipmentPrefix(searchQuery)
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid id: %s", idStr)
-	}
-
-	switch recordType {
-	case "consignment":
-		return ListProducts(ctx, base, id)
-	case "shipment":
-		return util.WithCollect[ConsignmentProduct](
-			ctx, base,
-			query.ListShipmentProductsQuery,
-			id,
-		)
-	default:
-		return nil, fmt.Errorf("unknown record type: %s", recordType)
-	}
-}
-
-// ListAll returns both consignments and shipments for a given shop,
-// using the unified view.
-func ListAll(
-	ctx context.Context,
-	base db.Queryable,
-	shopID int,
-) ([]ConsignmentWithShipment, error) {
-	return util.WithCollect[ConsignmentWithShipment](
-		ctx,
-		base,
-		query.ListConsignmentsWithShipmentsQuery,
-		shopID,
-	)
-}
-
-// FindAny can return both consignments and shipments from a given query,
-// using the unified view. Parses queries of the form /(V-)?\d/
-func FindAny(
-	ctx context.Context,
-	base db.Queryable,
-	searchQuery string,
-) (ConsignmentWithShipment, error) {
-	id, recordType := util.CutShipmentPrefix(searchQuery)
-
-	return util.WithCollectExactlyOneRow[ConsignmentWithShipment](
-		ctx,
-		base,
-		query.FindFromViewQuery,
-		id,
-		recordType,
-	)
-}

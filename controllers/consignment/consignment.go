@@ -17,7 +17,7 @@ func ListHandler(
 	return func(c *gin.Context) {
 		user := authmodel.GetUserFromContext(c)
 
-		consignments, err := consignmentmodel.ListAll(
+		consignments, err := consignmentmodel.List(
 			c.Request.Context(),
 			pool,
 			user.ActiveRoleID,
@@ -41,12 +41,17 @@ func ListProductsHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		rawID := c.Param("consignment")
+		id, err := strconv.Atoi(c.Param("consignment"))
 
-		products, err := consignmentmodel.ListProductsAny(
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		products, err := consignmentmodel.ListProducts(
 			c.Request.Context(),
 			pool,
-			rawID,
+			id,
 		)
 
 		if err != nil {
@@ -61,7 +66,7 @@ func ListProductsHandler(
 			gin.H{
 				"products":       collection,
 				"total_products": len(collection),
-				"consignment_id": rawID,
+				"consignment_id": id,
 			},
 		)
 	}
@@ -154,12 +159,17 @@ func ViewHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		consignmentID := c.Param("consignment")
+		id, err := strconv.Atoi(c.Param("consignment"))
 
-		consignment, err := consignmentmodel.FindAny(
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		consignment, err := consignmentmodel.Find(
 			c.Request.Context(),
 			pool,
-			consignmentID,
+			id,
 		)
 
 		if err != nil {
@@ -256,13 +266,20 @@ func DeleteHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		err := consignmentmodel.DeleteAny(
+		id, err := strconv.Atoi(c.Param("consignment"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = consignmentmodel.Delete(
 			c.Request.Context(), pool,
-			c.Param("consignment"),
+			id,
 		)
 
 		if err != nil {
-			util.Handle500(c, err)
+			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
