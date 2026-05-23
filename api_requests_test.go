@@ -1,5 +1,6 @@
 package main
 
+
 import (
 	"bytes"
 	"context"
@@ -866,6 +867,199 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"", nil,
 		)
 		assertStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("checkout_confirm", func(t *testing.T) {
+		sessionID := fmt.Sprintf("checkout-test-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		var cartID int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&cartID)
+		if err != nil {
+			t.Fatalf("get cart id: %v", err)
+		}
+
+		_, err = h.pool.Exec(context.Background(),
+			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
+			 VALUES ($1, 1, '{}', $2)`,
+			productID, cartID)
+		if err != nil {
+			t.Fatalf("add product to cart: %v", err)
+		}
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+			"cart_id":            cartID,
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
+			"items": []map[string]any{
+				{
+					"product_id":     productID,
+					"consignment_id": consignmentID,
+					"quantity":       1,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		if _, ok := body["unique_id"]; !ok {
+			t.Fatal("expected unique_id in response")
+		}
+		if asString(t, body["status"]) != "paid" {
+			t.Fatalf("expected status 'paid', got %v", body["status"])
+		}
+
+		t.Run("idempotent_retry", func(t *testing.T) {
+			rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+				"cart_id":            cartID,
+				"value_paid":         "3.00",
+				"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
+				"items": []map[string]any{
+					{
+						"product_id":     productID,
+						"consignment_id": consignmentID,
+						"quantity":       1,
+					},
+				},
+			})
+			assertStatus(t, rec2, http.StatusOK)
+
+			body2 := decodeJSON(t, rec2)
+			if asString(t, body2["unique_id"]) != asString(t, body["unique_id"]) {
+				t.Fatal("idempotent retry returned different unique_id")
+			}
+		})
+	})
+
+	t.Run("checkout_confirm_invalid_cart", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+			"cart_id":            99999,
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-INVALID-%d", runID),
+			"items": []map[string]any{
+				{
+					"product_id":     productID,
+					"consignment_id": consignmentID,
+					"quantity":       1,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusNotFound)
+	})
+
+	t.Run("checkout_confirm_empty_cart", func(t *testing.T) {
+		sessionID := fmt.Sprintf("empty-checkout-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create empty cart: %v", err)
+		}
+
+		var emptyCartID int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&emptyCartID)
+		if err != nil {
+			t.Fatalf("get empty cart id: %v", err)
+		}
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+			"cart_id":            emptyCartID,
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-EMPTY-%d", runID),
+			"items": []map[string]any{
+				{
+					"product_id":     productID,
+					"consignment_id": consignmentID,
+					"quantity":       1,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusUnprocessableEntity)
+	})
+
+	t.Run("checkout_confirm_insufficient_stock", func(t *testing.T) {
+		sessionID := fmt.Sprintf("overstock-checkout-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		var overCartID int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&overCartID)
+		if err != nil {
+			t.Fatalf("get cart id: %v", err)
+		}
+
+		_, err = h.pool.Exec(context.Background(),
+			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
+			 VALUES ($1, 999, '{}', $2)`,
+			productID, overCartID)
+		if err != nil {
+			t.Fatalf("add product to cart: %v", err)
+		}
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+			"cart_id":            overCartID,
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-OVER-%d", runID),
+			"items": []map[string]any{
+				{
+					"product_id":     productID,
+					"consignment_id": consignmentID,
+					"quantity":       999,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusConflict)
+	})
+
+	t.Run("checkout_confirm_product_not_in_consignment", func(t *testing.T) {
+		sessionID := fmt.Sprintf("wrong-consignment-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		var wrongCartID int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&wrongCartID)
+		if err != nil {
+			t.Fatalf("get cart id: %v", err)
+		}
+
+		_, err = h.pool.Exec(context.Background(),
+			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
+			 VALUES ($1, 1, '{}', $2)`,
+			productID, wrongCartID)
+		if err != nil {
+			t.Fatalf("add product to cart: %v", err)
+		}
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+			"cart_id":            wrongCartID,
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-WRONG-%d", runID),
+			"items": []map[string]any{
+				{
+					"product_id":     productID,
+					"consignment_id": 99999,
+					"quantity":       1,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusUnprocessableEntity)
 	})
 
 	t.Run("list_clients", func(t *testing.T) {

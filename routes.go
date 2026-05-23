@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/controllers/cart"
 	"linhazero.com/pvapi/controllers/category"
+	"linhazero.com/pvapi/controllers/checkout"
 	"linhazero.com/pvapi/controllers/client"
 	"linhazero.com/pvapi/controllers/consignee"
 	"linhazero.com/pvapi/controllers/consignment"
@@ -175,6 +176,11 @@ func setupRoutes(
 	{
 		payments.POST("/session/validate",
 			payment.ValidateTemporarySession)
+	}
+
+	checkouts := t.Group("/checkouts")
+	{
+		checkouts.POST("/confirm", checkout.ConfirmHandler(pool))
 	}
 
 	t.Static("/assets", "./public/uploads")
