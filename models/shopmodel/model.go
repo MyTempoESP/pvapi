@@ -325,3 +325,17 @@ func HasReport(
 	)
 }
 
+func HasProductReport(
+	ctx context.Context,
+	base db.Queryable,
+	shop, report any,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ShopHasProductReportQuery,
+		shop,
+		report,
+	)
+}
+

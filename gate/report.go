@@ -5,6 +5,7 @@ import (
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/consigneemodel"
 	"linhazero.com/pvapi/models/policymodel"
+	"linhazero.com/pvapi/models/reportmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 )
 
@@ -15,7 +16,18 @@ type ReportGate struct {
 func (p *ReportGate) InvolvedIn(u User, r Resource) (bool, error) {
 	id := r.Metadata["id"]
 
+	scope, err := reportmodel.FindScope(r.Context, p.Base, id)
+	if err != nil {
+		return false, err
+	}
+
 	if u.Role == roles.Shop {
+		if scope == "product" {
+			return shopmodel.HasProductReport(
+				r.Context, p.Base,
+				u.ActiveRoleID, id,
+			)
+		}
 		return shopmodel.HasReport(
 			r.Context, p.Base,
 			u.ActiveRoleID, id,
@@ -23,6 +35,12 @@ func (p *ReportGate) InvolvedIn(u User, r Resource) (bool, error) {
 	}
 
 	if u.Role == roles.Consignee {
+		if scope == "product" {
+			return consigneemodel.HasProductReport(
+				r.Context, p.Base,
+				u.ActiveRoleID, id,
+			)
+		}
 		return consigneemodel.HasReport(
 			r.Context, p.Base,
 			u.ActiveRoleID, id,
@@ -39,16 +57,22 @@ func (p *ReportGate) Owns(u User, r Resource) (bool, error) {
 
 	id := r.Metadata["id"]
 
-	hasReport, err := shopmodel.HasReport(
-		r.Context, p.Base,
-		u.ActiveRoleID, id,
-	)
-
+	scope, err := reportmodel.FindScope(r.Context, p.Base, id)
 	if err != nil {
 		return false, err
 	}
 
-	return hasReport, nil
+	if scope == "product" {
+		return shopmodel.HasProductReport(
+			r.Context, p.Base,
+			u.ActiveRoleID, id,
+		)
+	}
+
+	return shopmodel.HasReport(
+		r.Context, p.Base,
+		u.ActiveRoleID, id,
+	)
 }
 
 func (report *ReportGate) Dispatch(
