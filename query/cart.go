@@ -101,6 +101,42 @@ JOIN carts c ON c.id = cart_id
 WHERE id = $1 AND c.session_id = $2
 `
 
+	ListCartConsignmentOptions = `
+SELECT
+	cp.product_id,
+	p.name AS product_name,
+
+	c.id AS consignment_id,
+	c.status AS consignment_status,
+	c.code AS consignment_code,
+
+	pkg.price AS consignment_price,
+	pkg.quantity AS consignment_stock,
+	pkg.discount AS consignment_discount,
+
+	pl.id AS pickup_id,
+	pl.name AS pickup_name,
+	pl.pickup_at AS pickup_date,
+
+	a.addrstreet,
+	a.addrnumber,
+	a.addrcity,
+	a.addrstate,
+	a.addrcep,
+	a.addrneigh,
+	a.addrcomplement
+FROM cart_product cp
+JOIN carts cart ON cart.id = cp.cart_id
+JOIN products p ON p.id = cp.product_id
+LEFT JOIN packages pkg ON pkg.product_id = cp.product_id
+LEFT JOIN consignments c ON c.id = pkg.consignment_id
+	AND c.status NOT IN ('ARQUIVADO', 'RASCUNHO')
+LEFT JOIN pickup_locations pl ON pl.id = c.pickup_location_id
+LEFT JOIN aliased_addresses_view a ON a.address_id = pl.address_id
+WHERE cart.session_id = $1
+ORDER BY cp.product_id, c.id
+`
+
 	// freeze prices & hold stock
 	CartHoldStock = `
 WITH update_cart_products AS (

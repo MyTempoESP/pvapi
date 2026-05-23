@@ -137,6 +137,35 @@ func ViewHandler(
 	}
 }
 
+func ConsignmentOptionsHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sessionID, ok := c.GetQuery("session_id")
+		if !ok {
+			util.HandleBadRequest(c, fmt.Errorf("no session_id"))
+			return
+		}
+
+		rows, err := cartmodel.FindConsignmentOptions(
+			c.Request.Context(), pool,
+			sessionID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		grouped := cartmodel.GroupByProduct(rows)
+
+		util.WrapLabeled(
+			c, "opções de remessa listadas com sucesso",
+			"products", grouped,
+		)
+	}
+}
+
 func AddProductHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

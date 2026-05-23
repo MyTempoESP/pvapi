@@ -633,6 +633,105 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("cart_consignment_options", func(t *testing.T) {
+		sessionID := fmt.Sprintf("test-cart-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		_, err = h.pool.Exec(context.Background(),
+			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
+			 SELECT $1, 2, '{}', id FROM carts WHERE session_id = $2`,
+			productID, sessionID)
+		if err != nil {
+			t.Fatalf("add product to cart: %v", err)
+		}
+
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/carrinho/remessas?session_id=%s", sessionID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		products := asSlice(t, body["products"])
+
+		if len(products) == 0 {
+			t.Fatal("expected at least one product in response")
+		}
+
+		product := asMap(t, products[0])
+		if asInt(t, product["product_id"]) != productID {
+			t.Fatalf("expected product_id %d, got %v", productID, product["product_id"])
+		}
+
+		if _, ok := product["product_name"]; !ok {
+			t.Fatal("expected product_name field")
+		}
+
+		consignments := asSlice(t, product["consignments"])
+		if len(consignments) == 0 {
+			t.Fatal("expected at least one consignment option")
+		}
+
+		first := asMap(t, consignments[0])
+		if asInt(t, first["consignment_id"]) != consignmentID {
+			t.Fatalf("expected consignment_id %d, got %v", consignmentID, first["consignment_id"])
+		}
+
+		for _, field := range []string{"price_in_consignment", "discount", "consignment_stock"} {
+			if _, ok := first[field]; !ok {
+				t.Fatalf("expected %s field", field)
+			}
+		}
+
+		pickup := asMap(t, first["pickup"])
+		if asInt(t, pickup["id"]) != pickupID {
+			t.Fatalf("expected pickup id %d, got %v", pickupID, pickup["id"])
+		}
+
+		if _, ok := pickup["name"]; !ok {
+			t.Fatal("expected pickup name field")
+		}
+		if _, ok := pickup["date"]; !ok {
+			t.Fatal("expected pickup date field")
+		}
+
+		address := asMap(t, pickup["address"])
+		if asString(t, address["street"]) != "Rua Nova" {
+			t.Fatalf("expected street 'Rua Nova', got %v", address["street"])
+		}
+	})
+
+	t.Run("cart_consignment_options_missing_session", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/carrinho/remessas", nil, "", nil)
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("cart_consignment_options_empty_cart", func(t *testing.T) {
+		sessionID := fmt.Sprintf("empty-cart-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/carrinho/remessas?session_id=%s", sessionID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		products := asSlice(t, body["products"])
+
+		if len(products) != 0 {
+			t.Fatalf("expected empty products list, got %d items", len(products))
+		}
+	})
+
 	t.Run("shouldFail_add_absurd_ammount_of_products", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", consignmentID), &shopSession, map[string]any{
 			"products": []map[string]any{
