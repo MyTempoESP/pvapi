@@ -19,7 +19,8 @@ type Report struct {
 	Moment        string    `db:"moment"`
 	Monitor       string    `db:"consignee_id"`
 	Scope         string    `db:"scope"`
-	ConsignmentID int       `db:"consignment_id"`
+	ConsignmentID *int      `db:"consignment_id"`
+	ProductID     *int      `db:"product_id"`
 	Priority      string    `db:"priority"`
 	Status        string    `db:"status"`
 	Type          string    `db:"type"`
@@ -66,6 +67,24 @@ func (r ReportBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (int, error) {
+	if r.Scope == "product" {
+		return model.Create(
+			ctx,
+			base,
+			query.CreateProductReportQuery,
+			util.Args{
+				"description":    r.Description,
+				"moment":         r.Moment,
+				"consignee_name": r.Monitor,
+				"scope":          r.Scope,
+				"product_id":     r.ConsignmentID,
+				"priority":       r.Priority,
+				"status":         r.Status,
+				"type":           r.Type,
+			},
+		)
+	}
+
 	return model.Create(
 		ctx,
 		base,
@@ -120,6 +139,16 @@ func Find(
 		query.FindReportQuery,
 		id,
 	)
+}
+
+func FindScope(
+	ctx context.Context,
+	base db.Queryable,
+	id any,
+) (string, error) {
+	var scope string
+	err := base.QueryRow(ctx, query.FindReportScopeQuery, id).Scan(&scope)
+	return scope, err
 }
 
 func Delete(

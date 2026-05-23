@@ -97,3 +97,17 @@ func HasReport(
 		report,
 	)
 }
+
+func HasProductReport(
+	ctx context.Context,
+	base db.Queryable,
+	consignee, report any,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ConsigneeHasProductReportQuery,
+		consignee,
+		report,
+	)
+}

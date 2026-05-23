@@ -19,18 +19,36 @@ import "time"
 */
 
 type ReportResource struct {
-	ID            int       `json:"id"`
-	Description   string    `json:"description"`
-	Moment        string    `json:"moment"`
-	Monitor       string    `json:"customerName"`
-	Scope         string    `json:"occurrenceScope"`
-	ConsignmentID int       `json:"orderId"`
-	Priority      string    `json:"priority"`
-	Status        string    `json:"status"`
-	Type          string    `json:"type"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID          int       `json:"id"`
+	Description string    `json:"description"`
+	Moment      string    `json:"moment"`
+	Monitor     string    `json:"customerName"`
+	Scope       string    `json:"occurrenceScope"`
+	OrderID     int       `json:"orderId"`
+	Priority    string    `json:"priority"`
+	Status      string    `json:"status"`
+	Type        string    `json:"type"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 func (r Report) ToResource() ReportResource {
-	return ReportResource(r)
+	orderID := 0
+	if r.Scope == "product" && r.ProductID != nil {
+		orderID = *r.ProductID
+	} else if r.ConsignmentID != nil {
+		orderID = *r.ConsignmentID
+	}
+
+	return ReportResource{
+		ID:          r.ID,
+		Description: r.Description,
+		Moment:      r.Moment,
+		Monitor:     r.Monitor,
+		Scope:       r.Scope,
+		OrderID:     orderID,
+		Priority:    r.Priority,
+		Status:      r.Status,
+		Type:        r.Type,
+		CreatedAt:   r.CreatedAt,
+	}
 }

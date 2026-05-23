@@ -650,15 +650,15 @@ shopID           int
 		}
 	})
 
-	t.Run("create_report", func(t *testing.T) {
+	t.Run("create_report_product_scope", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
-			"orderId":         consignmentID,
+			"orderId":         productID,
 			"monitor":         consigneeName,
 			"moment":          "exposicao",
 			"type":            "falta_peca",
 			"status":          "aberto",
 			"description":     "a",
-			"priority":        "media",
+			"priority":        "baixa",
 			"occurrenceScope": "product",
 		})
 		assertStatus(t, rec, http.StatusOK)

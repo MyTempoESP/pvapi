@@ -174,6 +174,14 @@ LEFT JOIN reports r ON r.consignment_id = c.id
 WHERE s.id = $1 AND r.id = $2
 `
 
+	ShopHasProductReportQuery = `
+SELECT (r.id IS NOT NULL) AS hasReport
+FROM shops s
+LEFT JOIN products p ON p.shop_id = s.id
+LEFT JOIN reports r ON r.product_id = p.id
+WHERE s.id = $1 AND r.id = $2
+`
+
 	ListAllActiveShops = `
 SELECT
 	*

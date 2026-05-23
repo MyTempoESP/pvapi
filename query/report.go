@@ -40,11 +40,12 @@ FROM reports
 `
 
 	ListAllReportsByShopQuery = `
-SELECT
-    r.*
+SELECT r.*
 FROM shops s
-JOIN consignments c ON c.shop_id = s.id
-JOIN reports r ON r.consignment_id = c.id
+JOIN reports r ON
+	(r.consignment_id IN (SELECT c.id FROM consignments c WHERE c.shop_id = s.id))
+	OR
+	(r.product_id IN (SELECT p.id FROM products p WHERE p.shop_id = s.id))
 WHERE s.id = $1
 `
 
@@ -63,8 +64,44 @@ FROM reports
 WHERE id = $1
 `
 
+	CreateProductReportQuery = `
+WITH consignee AS (
+	SELECT c.*
+	FROM consignees c
+	LEFT JOIN users u ON c.user_id = u.id
+	WHERE u.name = @consignee_name
+)
+INSERT INTO reports
+	(
+		description,
+		moment,
+		consignee_id,
+		scope,
+		product_id,
+		priority,
+		status,
+		type
+	)
+VALUES
+	(
+		@description,
+		@moment,
+		(SELECT id FROM consignee),
+		@scope,
+		@product_id,
+		@priority,
+		@status,
+		@type
+	)
+RETURNING id
+`
+
 	DeleteReportQuery = `
 DELETE FROM reports
 WHERE id = $1
+`
+
+	FindReportScopeQuery = `
+SELECT scope FROM reports WHERE id = $1
 `
 )
