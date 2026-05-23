@@ -1,0 +1,127 @@
+@startuml
+start
+
+partition "Add Product to Cart" {
+  :POST /carrinho/adicionar;
+
+  note right
+    **Request**
+    {
+      "product_id": 5,
+      "quantity": 1,
+      "personalization": {},
+      "session_id": "temp_69af0..."
+    }
+  end note
+
+  if (Active cart exists\nto session?) then (yes)
+    :Reuse cart_id;
+  else (no)
+    :Create new cart;
+  endif
+
+  :Insert row into cart_product
+  (product_id, quantity, personalization, cart_id);
+
+  note right
+    **Response (200)**
+    { "success": true,
+      "message": "produto adicionado!" }
+  end note
+
+  note left
+    **Optional steps (all use ?session_id=)**
+    GET /carrinho/dados
+    → { items, total, item_count,
+         total_with_discount, total_discount,
+         session_id }
+    GET /carrinho/remessas
+    → consignment/pickup options per product
+    PUT /carrinho/atualizar/:item
+    → { "quantity": 3 }
+    DELETE /carrinho/remover/:item
+  end note
+}
+
+partition "Checkout Confirmation" {
+  :POST /checkouts/confirm
+  ?session_id=...;
+
+  note right
+    **Request body**
+    {
+      "value_paid": "99.90",
+      "external_reference": "PAY-12345",
+      "items": [
+        {
+          "product_id": 1,
+          "consignment_id": 2,
+          "quantity": 1
+        }
+      ]
+    }
+  end note
+
+  if (Idempotency check:\ncheckout with same session +\nexternal_reference exists?) then (yes)
+    :Return existing unique_id\n(status: paid);
+
+    note left
+      **Response (200)**
+      { "success": true,
+        "message": "checkout confirmed",
+        "unique_id": "550e...",
+        "status": "paid" }
+    end note
+
+    detach
+  else (no)
+  endif
+
+  :Resolve cart_id from session_id
+  (reject if cart already FINISHED-);
+
+  if (Cart found?) then (yes)
+    if (Cart has items?) then (yes)
+      :Validate stock availability
+      for each requested item;
+
+      #lightblue:package_reserved.package_id ←
+      package_map[product_id];
+      #lightblue:Check available ≥ quantity
+      per item;
+
+      if (Stock sufficient\nto all items?) then (yes)
+        :Parse value_paid (decimal);
+        :Insert checkout row\n→ unique_id generated;
+        :Reserve stock in package_reserved
+        (batch insert for all items);
+        :Finish cart: rename session_id
+        to FINISHED-{external_reference};
+        :Commit transaction;
+
+        :Return unique_id, status: paid;
+
+        note left
+          **Response (200)**
+          { "success": true,
+            "message": "checkout confirmed",
+            "unique_id": "550e...",
+            "status": "paid" }
+        end note
+
+      else (no)
+        :Abort: insufficient stock (409);
+        detach
+      endif
+    else (no)
+      :Abort: cart empty (422);
+      detach
+    endif
+  else (no)
+    :Abort: cart not found (404);
+    detach
+  endif
+}
+
+stop
+@enduml

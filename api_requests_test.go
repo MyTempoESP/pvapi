@@ -733,6 +733,29 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("add_product_auto_creates_cart", func(t *testing.T) {
+		sessionID := fmt.Sprintf("auto-create-%d", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		rec = h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		items := asSlice(t, body["items"])
+		if len(items) != 1 {
+			t.Fatalf("expected 1 item in cart, got %d: %s", len(items), rec.Body.String())
+		}
+	})
+
 	t.Run("shouldFail_add_absurd_ammount_of_products", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", consignmentID), &shopSession, map[string]any{
 			"products": []map[string]any{

@@ -1,0 +1,127 @@
+@startuml
+start
+
+partition "Adicionar Produto ao Carrinho" {
+  :POST /carrinho/adicionar;
+
+  note right
+    **Requisição**
+    {
+      "product_id": 5,
+      "quantity": 1,
+      "personalization": {},
+      "session_id": "temp_69af0..."
+    }
+  end note
+
+  if (Carrinho ativo existe\npara a sessão?) then (sim)
+    :Reusar cart_id;
+  else (não)
+    :Criar novo carrinho;
+  endif
+
+  :Inserir linha em cart_product
+  (product_id, quantity, personalization, cart_id);
+
+  note right
+    **Resposta (200)**
+    { "success": true,
+      "message": "produto adicionado!" }
+  end note
+
+  note left
+    **Passos opcionais (todos usam ?session_id=)**
+    GET /carrinho/dados
+    → { items, total, item_count,
+         total_with_discount, total_discount,
+         session_id }
+    GET /carrinho/remessas
+    → opções de consignação/retirada por produto
+    PUT /carrinho/atualizar/:item
+    → { "quantity": 3 }
+    DELETE /carrinho/remover/:item
+  end note
+}
+
+partition "Confirmação do Checkout" {
+  :POST /checkouts/confirm
+  ?session_id=...;
+
+  note right
+    **Corpo da requisição**
+    {
+      "value_paid": "99.90",
+      "external_reference": "PAY-12345",
+      "items": [
+        {
+          "product_id": 1,
+          "consignment_id": 2,
+          "quantity": 1
+        }
+      ]
+    }
+  end note
+
+  if (Verificação de idempotência:\ncheckout com mesma sessão +\nexternal_reference existe?) then (sim)
+    :Retornar unique_id existente\n(status: paid);
+
+    note left
+      **Resposta (200)**
+      { "success": true,
+        "message": "checkout confirmado",
+        "unique_id": "550e...",
+        "status": "paid" }
+    end note
+
+    detach
+  else (não)
+  endif
+
+  :Resolver cart_id da session_id
+  (rejeitar se carrinho já FINISHED-);
+
+  if (Carrinho encontrado?) then (sim)
+    if (Carrinho tem itens?) then (sim)
+      :Validar disponibilidade de estoque
+      para cada item solicitado;
+
+      #lightblue:package_reserved.package_id ←
+      package_map[product_id];
+      #lightblue:Verificar disponível ≥ quantidade
+      por item;
+
+      if (Estoque suficiente\npara todos os itens?) then (sim)
+        :Parsear value_paid (decimal);
+        :Inserir linha de checkout\n→ unique_id gerado;
+        :Reservar estoque em package_reserved
+        (inserção em lote para todos os itens);
+        :Finalizar carrinho: renomear session_id
+        para FINISHED-{external_reference};
+        :Commit da transação;
+
+        :Retornar unique_id, status: paid;
+
+        note left
+          **Resposta (200)**
+          { "success": true,
+            "message": "checkout confirmado",
+            "unique_id": "550e...",
+            "status": "paid" }
+        end note
+
+      else (não)
+        :Abortar: estoque insuficiente (409);
+        detach
+      endif
+    else (não)
+      :Abortar: carrinho vazio (422);
+      detach
+    endif
+  else (não)
+    :Abortar: carrinho não encontrado (404);
+    detach
+  endif
+}
+
+stop
+@enduml
