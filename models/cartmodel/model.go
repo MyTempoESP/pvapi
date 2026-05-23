@@ -2,6 +2,8 @@ package cartmodel
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"linhazero.com/pvapi/query"
@@ -116,18 +118,43 @@ func (c CartDetails) HoldStock(
 
 func (r AddToCartRequest) Exec(
 	ctx context.Context,
-	base pgx.Tx,
+	tx pgx.Tx,
 ) (err error) {
-	_, err = base.Exec(
+	var cartID int
+
+	err = tx.QueryRow(
 		ctx,
-		query.AddProductToCartQuery,
-		util.Args{
-			"quantity": r.Quantity,
-			"product_id": r.ProductID,
-			"session_id": r.SessionID,
-			"personalizations": r.Personalization,
-		},
+		query.FindActiveCartBySessionQuery,
+		r.SessionID,
+	).Scan(&cartID)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = tx.QueryRow(
+				ctx,
+				query.CreateCartQuery,
+				r.SessionID,
+			).Scan(&cartID)
+			if err != nil {
+				return fmt.Errorf("failed to create cart: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to resolve cart: %w", err)
+		}
+	}
+
+	_, err = tx.Exec(
+		ctx,
+		query.InsertCartProductQuery,
+		r.ProductID,
+		r.Personalization,
+		r.Quantity,
+		cartID,
 	)
+	if err != nil {
+		return fmt.Errorf("failed to insert cart product: %w", err)
+	}
+
 	return
 }
 

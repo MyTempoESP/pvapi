@@ -1,6 +1,13 @@
 package query
 
 const (
+	FindActiveCartBySessionQuery = `
+SELECT id
+FROM carts
+WHERE session_id = $1
+  AND session_id NOT LIKE 'FINISHED-%'
+`
+
 	CreateCartQuery = `
 INSERT INTO carts
 	(
@@ -12,12 +19,10 @@ VALUES
 		NULL,
 		$1
 	)
+RETURNING id
 `
 
-	AddProductToCartQuery = `
-WITH fetch_cart AS (
-	SELECT id FROM carts WHERE session_id = @session_id
-)
+	InsertCartProductQuery = `
 INSERT INTO cart_product
 	(
 		product_id,
@@ -25,12 +30,13 @@ INSERT INTO cart_product
 		quantity,
 		cart_id
 	)
-SELECT
-	@product_id,
-	@personalizations,
-	@quantity,
-	c.id
-FROM fetch_cart c
+VALUES
+	(
+		$1,
+		$2,
+		$3,
+		$4
+	)
 `
 
 	VerifyCartItemQuantity = `
