@@ -7,7 +7,6 @@ import (
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/db"
-	//"linhazero.com/pvapi/models/productmodel"
 	"github.com/shopspring/decimal"
 )
 
@@ -51,30 +50,6 @@ func Create(
 	sessionID string,
 ) error {
 	_, err := tx.Exec(ctx, query.CreateCartQuery, sessionID)
-	return err
-}
-
-func ClearSession(
-	ctx context.Context,	
-	tx pgx.Tx,
-	sessionID string,
-) (err error) {
-	var cartID int
-
-	if err = tx.QueryRow(
-		ctx,
-		`select id from carts where session_id = $1`,
-		sessionID,
-	).Scan(&cartID); err != nil {
-		return
-	}
-
-	_, err = tx.Exec(
-		ctx,
-		`delete from cart_product where cart_id = $1`,
-		cartID,
-	)
-
 	return err
 }
 
@@ -160,11 +135,13 @@ func RemoveCartProduct(
 	ctx context.Context,
 	tx pgx.Tx,
 	cartProduct int,
+	sessionID string,
 ) error {
 	_, err := tx.Exec(
 		ctx,
 		query.RemoveCartProductQuery,
 		cartProduct,
+		sessionID,
 	)
 	return err
 }
@@ -174,6 +151,7 @@ func ItemNewQuantity(
 	tx pgx.Tx,
 	item int,
 	qty int,
+	sessionID string,
 ) (err error) {
 	var productID int
 
@@ -181,25 +159,12 @@ func ItemNewQuantity(
 		ctx,
 		query.GetCartItemProductID,
 		item,
+		sessionID,
 	).Scan(&productID)
 
 	if err != nil {
 		return
 	}
-
-// Le security (tm) # actual deduction moved to HoldStock
-/*
-	err = productmodel.TakeFromCart(
-		ctx, tx,
-		productID,
-		item,
-		qty,
-	)
-
-	if err != nil {
-		return
-	}
-*/
 
 	_, err = tx.Exec(
 		ctx,

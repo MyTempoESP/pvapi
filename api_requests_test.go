@@ -62,13 +62,10 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	updatedProductName := fmt.Sprintf("Produto Atualizado %d", runID)
 
 	var (
-		paymentSession   string
 		adminSession     apiSession
 		genericSession   apiSession
 		shopSession      apiSession
-		consigneeSession apiSession
-		clientSession    apiSession
-		shopID           int
+shopID           int
 		shopSlug         string
 		consigneeID      int
 		pickupID         int
@@ -76,7 +73,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		productID        int
 		consignmentID    int
 		reportID         int
-		paymentID        string
 	)
 
 	t.Run("user_no_auth_test", func(t *testing.T) {
@@ -587,7 +583,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		body := decodeJSON(t, rec)
 		consignment := asMap(t, body["data"])
-		if asString(t, consignment["id"]) != strconv.Itoa(consignmentID) {
+		if asInt(t, consignment["id"]) != consignmentID {
 			t.Fatalf("expected consignment id %d, got body %s", consignmentID, rec.Body.String())
 		}
 	})
@@ -702,275 +698,6 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"", nil,
 		)
 		assertStatus(t, rec, http.StatusOK)
-	})
-
-	t.Run("create_payment_session", func(t *testing.T) {
-		rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
-		assertStatus(t, rec, http.StatusOK)
-		body := decodeJSON(t, rec)
-		report := asMap(t, body)
-		paymentSession = asString(t, report["session_id"])
-
-		t.Run("validate_payment_session", func(t *testing.T) {
-			rec := h.doJSON(t, http.MethodPost, "/payments/session/validate", nil, map[string]any{
-				"session_id": paymentSession,
-			})
-			assertStatus(t, rec, http.StatusOK)
-		})
-
-		t.Run("invalidate_payment_session", func(t *testing.T) {
-			rec := h.doJSON(t, http.MethodPost, "/payments/session/validate", nil, map[string]any{
-				"session_id": "temp_0_bogus",
-			})
-			assertStatus(t, rec, 400)
-		})
-
-		t.Run("add_products_to_cart_for_deletion", func(t *testing.T) {
-			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-				"product_id":      productID,
-				"quantity":        1,
-				"session_id":      paymentSession,
-				"personalization": map[string]any{},
-			})
-			assertStatus(t, rec, http.StatusOK)
-
-			t.Run("remove_product_from_cart", func(t *testing.T) {
-				rec := h.doRequest(
-					t,
-					http.MethodDelete,
-					"/carrinho/remover/1",
-					nil, "", nil,
-				)
-				assertStatus(t, rec, http.StatusOK)
-			})
-
-			rec = h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-				"product_id":      productID,
-				"quantity":        1,
-				"session_id":      paymentSession,
-				"personalization": map[string]any{},
-			})
-			assertStatus(t, rec, http.StatusOK)
-
-			t.Run("clear_cart", func(t *testing.T) {
-				rec := h.doJSON(
-					t, http.MethodDelete, "/carrinho/limpar", nil,
-					map[string]any{
-						"session_id": paymentSession,
-					})
-				assertStatus(t, rec, http.StatusOK)
-			})
-		})
-
-		t.Run("add_product_to_cart", func(t *testing.T) {
-			rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-				"product_id":      productID,
-				"quantity":        1,
-				"session_id":      paymentSession,
-				"personalization": map[string]any{"random_shit": "bs"},
-			})
-			assertStatus(t, rec, http.StatusOK)
-		})
-
-		t.Run("update_cart_product_quantity", func(t *testing.T) {
-			// TODO: stop using magic numbers
-			rec := h.doJSON(t, http.MethodPut, "/carrinho/atualizar/3", nil, map[string]any{
-				"quantity": 2,
-			})
-			assertStatus(t, rec, http.StatusOK)
-		})
-
-		t.Run("list_cart_products", func(t *testing.T) {
-			rec := h.doRequest(
-				t,
-				http.MethodGet,
-				fmt.Sprintf("/carrinho/dados?session_id=%s", paymentSession),
-				nil, "", nil,
-			)
-			assertStatus(t, rec, http.StatusOK)
-			body := decodeJSON(t, rec)
-			report := asMap(t, body)
-			itemsField, ok := report["items"]
-			if !ok {
-				t.Fatal("expected body to contain 'items'.")
-			}
-			items := itemsField.([]any)
-			if len(items) != 1 {
-				t.Fatal("expected 'items' to contain only a single product'.")
-			}
-		})
-
-		/*
-			{
-				"payer_name": "Something",
-				"payer_surname": "Somewhere",
-				"payer_email":"something@somewhere.com",
-				"session_id": paymentSession
-			}
-		*/
-
-		clientName := "APRO"
-		clientEmail := "test@testuser.com"
-		clientPhone := "27998181999"
-
-		t.Run("checkout_cart_items", func(t *testing.T) {
-			rec := h.doJSON(
-				t,
-				http.MethodPost,
-				"/api/payments/pix/cart",
-				nil,
-				map[string]any{
-					"payer_name":    clientName,
-					"payer_surname": "test",
-					"payer_email":   clientEmail,
-					"payer_phone":   clientPhone,
-					"session_id":    paymentSession,
-					"shipping_info": map[string]any{
-						"type": "standard",
-						"cost": 10.0,
-						"customer": map[string]any{
-							"name":  clientName,
-							"email": clientEmail,
-							"phone": clientPhone,
-							"cpf":   "12345678901",
-						},
-						"address": map[string]any{
-							"street":       "Rua Exemplo",
-							"number":       "123",
-							"neighborhood": "Centro",
-							"city":         "Cidade",
-							"state":        "SP",
-							"cep":          "01001001",
-							"complement":   "Apto 1",
-						},
-					},
-				},
-			)
-			assertStatus(t, rec, http.StatusOK)
-			body := decodeJSON(t, rec)
-			report := asMap(t, body)
-			paymentID = asString(t, report["payment_id"])
-		})
-
-		time.Sleep(3 * time.Second)
-
-		t.Run("check_payment_status", func(t *testing.T) {
-			rec := h.doRequest(
-				t,
-				http.MethodGet,
-				fmt.Sprintf("/pagamento/status/%s", paymentID),
-				nil, "", nil,
-			)
-			assertStatus(t, rec, http.StatusOK)
-
-			body := decodeJSON(t, rec)
-			report := asMap(t, body)
-			status := asString(t, report["status"])
-			if status != "approved" {
-				t.Fatalf("payment was not processed, got %s", status)
-			}
-		})
-
-		clientSession = h.login(t, clientEmail, clientPhone)
-
-		t.Run("second_checkout_with_existing_client", func(t *testing.T) {
-			rec := h.doJSON(t, http.MethodPost, "/payments/session/create", nil, map[string]any{})
-			assertStatus(t, rec, http.StatusOK)
-			secondSession := asString(t, asMap(t, decodeJSON(t, rec))["session_id"])
-
-			rec = h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-				"product_id":      productID,
-				"quantity":        1,
-				"session_id":      secondSession,
-				"personalization": map[string]any{},
-			})
-			assertStatus(t, rec, http.StatusOK)
-
-			rec = h.doJSON(t, http.MethodPost, "/api/payments/pix/cart", nil, map[string]any{
-				"payer_name":    clientName,
-				"payer_surname": "test",
-				"payer_email":   clientEmail,
-				"payer_phone":   "27998181888",
-				"session_id":    secondSession,
-				"shipping_info": map[string]any{
-					"type": "standard",
-					"cost": 10.0,
-					"customer": map[string]any{
-						"name":  clientName,
-						"email": clientEmail,
-						"phone": "27998181888",
-						"cpf":   "12345678901",
-					},
-					"address": map[string]any{
-						"street":       "Rua Exemplo",
-						"number":       "123",
-						"neighborhood": "Centro",
-						"city":         "Cidade",
-						"state":        "SP",
-						"cep":          "01001001",
-						"complement":   "Apto 1",
-					},
-				},
-			})
-			assertStatus(t, rec, http.StatusOK)
-			body := decodeJSON(t, rec)
-			secondPaymentID := asString(t, asMap(t, body)["payment_id"])
-
-			time.Sleep(3 * time.Second)
-
-			rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/pagamento/status/%s", secondPaymentID), nil, "", nil)
-			assertStatus(t, rec, http.StatusOK)
-			status := asString(t, asMap(t, decodeJSON(t, rec))["status"])
-			if status != "approved" {
-				t.Fatalf("second payment was not processed, got %s", status)
-			}
-		})
-
-		func(_ any) {}(clientSession) // XXX
-	})
-
-	consigneeSession = h.login(t, consigneeEmail, consigneePassword)
-	_ = consigneeSession
-
-	t.Run("shipments", func(t *testing.T) {
-		t.Run("list_shipments", func(t *testing.T) {
-			rec := h.doRequest(t, http.MethodGet, "/remessas", &shopSession, "", nil)
-			assertStatus(t, rec, http.StatusOK)
-			body := decodeJSON(t, rec)
-			data := asSlice(t, body["data"])
-
-			var shipmentCode string
-			for _, item := range data {
-				obj := asMap(t, item)
-				codeVal, ok := obj["id"]
-				if !ok {
-					continue
-				}
-				codeStr, ok := codeVal.(string)
-				if !ok || !strings.HasPrefix(codeStr, "V-") {
-					continue
-				}
-				shipmentCode = codeStr
-				break
-			}
-			if shipmentCode == "" {
-				t.Fatalf(
-					"expected a shipment, %s",
-					rec.Body.String(),
-				)
-			}
-
-			t.Run("view_shipment", func(t *testing.T) {
-				rec := h.doRequest(t, http.MethodGet, "/remessas/"+shipmentCode, &shopSession, "", nil)
-				assertStatus(t, rec, http.StatusOK)
-				body := decodeJSON(t, rec)
-				data := asMap(t, body["data"])
-				gotCode := asString(t, data["id"])
-				if gotCode != shipmentCode {
-					t.Fatalf("expected shipment %q, got %q", shipmentCode, gotCode)
-				}
-			})
-		})
 	})
 
 	t.Run("list_clients", func(t *testing.T) {

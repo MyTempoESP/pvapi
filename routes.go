@@ -168,27 +168,15 @@ func setupRoutes(
 		carts.POST("/adicionar", cart.AddProductHandler(pool))
 		carts.DELETE("/remover/:item", cart.RemoveHandler(pool))
 		carts.PUT("/atualizar/:item", cart.QuantityHandler(pool))
-		carts.DELETE("/limpar", cart.ClearHandler(pool))
 	}
 
 	payments := t.Group("/payments")
 	{
-		payments.POST("/session/create",
-			payment.CreateTemporarySession(pool))
-
 		payments.POST("/session/validate",
-			payment.ValidateTemporarySession(pool))
-
-		// what the fuck
-		public.GET("/pagamento/status/:payment",
-			payment.HandleStatusCheck(pool))
-	}
-
-	api := t.Group("/api")
-	{
-		api.POST("/payments/pix/cart", payment.CartPIXHandler(pool))
+			payment.ValidateTemporarySession)
 	}
 
 	t.Static("/assets", "./public/uploads")
 	t.Static("/public/uploads", "./public/uploads") // alias
 }
+

@@ -12,38 +12,6 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
-func ClearHandler(
-	pool *pgxpool.Pool,
-) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		var request struct{
-			SessionID string `json:"session_id"`
-		}
-
-		err := c.ShouldBind(&request);
-
-		if err != nil {
-			util.HandleBadRequest(c, err)
-			return
-		}
-
-		err = util.TransactionAware(
-			c.Request.Context(), pool,
-			func (ctx context.Context, tx pgx.Tx) error {
-				return cartmodel.ClearSession(
-					ctx, tx, request.SessionID)
-			},
-		)
-
-		if err != nil {
-			util.HandleGuessFromDBOperation(c, err)
-			return
-		}
-
-		util.OK(c, "carrinho limpo")
-	}
-}
-
 func getItem(c *gin.Context) (int, error) {
 	return strconv.Atoi(c.Params.ByName("item"))
 }
@@ -52,6 +20,12 @@ func QuantityHandler(
 	pool *pgxpool.Pool,
 ) func (c *gin.Context) {
 	return func (c *gin.Context) {
+		sessionID, ok := c.GetQuery("session_id")
+		if !ok {
+			util.HandleBadRequest(c, fmt.Errorf("no session_id"))
+			return
+		}
+
 		item, err := getItem(c)
 
 		if err != nil {
@@ -61,9 +35,6 @@ func QuantityHandler(
 
 		var request struct{
 			Quantity int `json:"quantity" binding:"required"`
-
-			//TODO: validate session
-			//SessionID string `json:"session_id" binding:"required"`
 		}
 
 		err = c.ShouldBind(&request)
@@ -80,7 +51,7 @@ func QuantityHandler(
 					ctx, tx,
 					item,
 					request.Quantity,
-					//request.SessionID,
+					sessionID,
 				)
 			},
 		)
@@ -98,6 +69,12 @@ func RemoveHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		sessionID, ok := c.GetQuery("session_id")
+		if !ok {
+			util.HandleBadRequest(c, fmt.Errorf("no session_id"))
+			return
+		}
+
 		item, err := getItem(c)
 
 		if err != nil {
@@ -111,6 +88,7 @@ func RemoveHandler(
 				return cartmodel.RemoveCartProduct(
 					ctx, tx,
 					item,
+					sessionID,
 				)
 			},
 		)

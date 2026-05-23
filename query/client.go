@@ -16,7 +16,7 @@ WHERE id = $2
 `
 
 	ListShopClientsQuery = `
-SELECT
+SELECT DISTINCT
 	u.id AS user_id,
 	u.name AS user_name,
 	u.email AS user_email,
@@ -24,8 +24,9 @@ SELECT
 FROM clients c
 LEFT JOIN users u ON u.id = c.user_id
 LEFT JOIN carts cc ON cc.client_id = c.id
-LEFT JOIN shipments s ON s.cart_id = cc.id
-WHERE s.shop_id = $1
+LEFT JOIN cart_product cp ON cp.cart_id = cc.id
+LEFT JOIN products p ON p.id = cp.product_id
+WHERE p.shop_id = $1
 `
 
 	FindClientByUserQuery = `
