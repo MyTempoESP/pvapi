@@ -169,16 +169,10 @@ WHERE s.id = $1 AND p.id = $2
 	ShopHasReportQuery = `
 SELECT (r.id IS NOT NULL) AS hasReport
 FROM shops s
-LEFT JOIN consignments c ON c.shop_id = s.id
-LEFT JOIN reports r ON r.consignment_id = c.id
-WHERE s.id = $1 AND r.id = $2
-`
-
-	ShopHasProductReportQuery = `
-SELECT (r.id IS NOT NULL) AS hasReport
-FROM shops s
-LEFT JOIN products p ON p.shop_id = s.id
-LEFT JOIN reports r ON r.product_id = p.id
+LEFT JOIN reports r ON
+	(r.scope = 'consignment' AND r.consignment_id IN (SELECT c.id FROM consignments c WHERE c.shop_id = s.id))
+	OR
+	(r.scope = 'product'     AND r.product_id     IN (SELECT p.id FROM products    p WHERE p.shop_id = s.id))
 WHERE s.id = $1 AND r.id = $2
 `
 

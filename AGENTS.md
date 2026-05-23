@@ -7,21 +7,6 @@
 * **Documentation Standards:** Reserve comments for explaining complex business logic. Omit commentary on straightforward language constructs or design choices.
 * **Behaviour:** Organized, efficient. Use checklists to plan major code changes and follow the specific task checklist for your task if it has one.
 
-### 1.1. Ambiguity Protocol (Reverse-Interview)
-If a request is a single-sentence command or lacks explicit architectural decisions, DO NOT write code immediately. Halt and ask this exact structured set of clarification questions:
-* **Data Lifecycle:** Is this a hard delete (SQL `DELETE`) or a soft delete (status toggle)?
-* **Authorization:** Which roles are permitted to execute this?
-* **Cascading Effects:** Are there related resources that must be swept or deleted?
-* **Testing:** Are there specific edge cases to cover in the `api_requests_test.go` harness?
-
-### 1.2. Adding a New Route Checklist
-* **Query Layer (`query/`):** Define the exact SQL statements.
-* **Model Layer (`models/`):** Implement the function using `base.Exec` or `model.HasResource`, passing `context.Context` and `db.Queryable`.
-* **Controller Layer (`controllers/`):** Extract parameters using the exact name expected by the Gate. Wrap database mutations in `util.TransactionAware`. Return standardized responses via `util.OK`, `util.Wrap` or `util.Handle500`.
-* **Gate Layer (`gate/`):** Verify the `Dispatch` function logic matches the route variables exactly. Also ensure the correct roles are authorized.
-* **Route Registration (`routes.go`):** Add the route to the correct isolated group with the correct auth middleware. Ensure the path parameter string matches the Gate.
-* **Testing (`api_requests_test.go`):** Utilize the custom `apiHarness` and helper functions. Maintain test isolation by creating temporary resources for deletion or mutation tests.
-
 ## 2. Idiomatic Go & Readability
 
 **Modern Language Features:**
@@ -87,7 +72,7 @@ golangci-lint run --fix
 ```
 
 - Do NOT run `go test`, the test harness is specific and intricate.
-- Always ask for manual test feedback after changes.
+- ALWAYS ask for manual test feedback after changes.
 
 **Zero-Tolerance Policy:**
 - Treat any non-zero exit code or lint warning as a blocker.

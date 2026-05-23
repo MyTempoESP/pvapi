@@ -1,14 +1,18 @@
 package report
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/gate/roles"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/consigneemodel"
 	"linhazero.com/pvapi/models/reportmodel"
+	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
 
@@ -62,6 +66,14 @@ func CreateHandler(
 
 		err := c.ShouldBind(&request)
 
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		user := authmodel.GetUserFromContext(c)
+
+		err = validateScope(c, pool, user, request.Scope, request.OrderID)
 		if err != nil {
 			util.HandleBadRequest(c, err)
 			return
@@ -169,4 +181,85 @@ func DeleteHandler(
 			c, "[report] deletado com sucesso",
 		)
 	}
+}
+
+func validateScope(
+	c *gin.Context,
+	pool *pgxpool.Pool,
+	user authmodel.AuthUser,
+	scope string,
+	entityID int,
+) error {
+	ctx := c.Request.Context()
+
+	switch scope {
+	case "consignment":
+		return validateConsignmentScope(ctx, pool, user, entityID)
+	case "product":
+		return validateProductScope(ctx, pool, user, entityID)
+	default:
+		return fmt.Errorf("unknown report scope: %q", scope)
+	}
+}
+
+func validateConsignmentScope(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	user authmodel.AuthUser,
+	consignmentID int,
+) error {
+	var (
+		hasResource bool
+		err         error
+	)
+
+	switch user.Role {
+	case roles.Shop:
+		hasResource, err = shopmodel.HasConsignment(ctx, pool, user.ActiveRoleID, consignmentID)
+	case roles.Consignee:
+		hasResource, err = consigneemodel.HasConsignment(ctx, pool, user.ActiveRoleID, consignmentID)
+	default:
+		return errors.New("user not authorized to create reports")
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to verify consignment ownership: %w", err)
+	}
+
+	if !hasResource {
+		return errors.New("consignment not found or does not belong to this shop")
+	}
+
+	return nil
+}
+
+func validateProductScope(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	user authmodel.AuthUser,
+	productID int,
+) error {
+	var (
+		hasResource bool
+		err         error
+	)
+
+	switch user.Role {
+	case roles.Shop:
+		hasResource, err = shopmodel.HasProduct(ctx, pool, user.ActiveRoleID, productID)
+	case roles.Consignee:
+		hasResource, err = consigneemodel.HasProduct(ctx, pool, user.ActiveRoleID, productID)
+	default:
+		return errors.New("user not authorized to create reports")
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to verify product ownership: %w", err)
+	}
+
+	if !hasResource {
+		return errors.New("product not found or does not belong to this shop")
+	}
+
+	return nil
 }
