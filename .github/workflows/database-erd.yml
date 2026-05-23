@@ -70,9 +70,15 @@ jobs:
           planter "postgres://runner:password@localhost:5432/app_db?sslmode=disable" -o Dev/docs/erd.puml
 
       - name: Render All Diagrams to PNG (ERD + Docs)
-        uses: cloudbees-io/plantuml-action@v1
-        with:
-          args: "-v -tpng Dev/docs/**.puml"
+        run: |
+          echo "Downloading headless graphviz rendering support..."
+          sudo apt-get update && sudo apt-get install -y graphviz
+
+          echo "Downloading official PlantUML binary execution payload..."
+          curl -o plantuml.jar -L "https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar"
+
+          echo "Compiling system diagrams locally..."
+          java -jar plantuml.jar -v -tpng "Dev/docs/**.puml"
 
       - name: Ship Compiled PNG Images to n8n Vault
         env:
