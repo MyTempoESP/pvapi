@@ -14,6 +14,12 @@ func ConfirmHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		sessionID := c.Query("session_id")
+		if sessionID == "" {
+			util.HandleBadRequest(c, errors.New("session_id is required"))
+			return
+		}
+
 		var req checkoutmodel.ConfirmRequest
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -24,6 +30,7 @@ func ConfirmHandler(
 		resp, err := checkoutmodel.Confirm(
 			c.Request.Context(),
 			pool,
+			sessionID,
 			req,
 		)
 
