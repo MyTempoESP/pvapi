@@ -36,10 +36,11 @@ VALUES
 	)
 `
 
-	FindCheckoutByCartRefQuery = `
+	FindCheckoutBySessionRefQuery = `
 SELECT unique_id
 FROM checkouts
-WHERE cart_id = $1
+JOIN carts ON carts.id = checkouts.cart_id
+WHERE carts.session_id IN ($1, 'FINISHED-' || $2)
   AND external_reference = $2
 `
 
@@ -68,6 +69,6 @@ FOR UPDATE OF pkg
 	FinishCartQuery = `
 UPDATE carts
 SET session_id = 'FINISHED-' || $2
-WHERE id = $1
+WHERE session_id = $1
 `
 )

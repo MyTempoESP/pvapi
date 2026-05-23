@@ -20,7 +20,6 @@ type ConfirmItem struct {
 }
 
 type ConfirmRequest struct {
-	CartID            int           `json:"cart_id" binding:"required"`
 	ValuePaid         string        `json:"value_paid" binding:"required"`
 	ExternalReference string        `json:"external_reference" binding:"required"`
 	Items             []ConfirmItem `json:"items" binding:"required,min=1,dive"`
@@ -48,6 +47,7 @@ var (
 func Confirm(
 	ctx context.Context,
 	pool *pgxpool.Pool,
+	sessionID string,
 	req ConfirmRequest,
 ) (ConfirmResponse, error) {
 	var resp ConfirmResponse
@@ -62,8 +62,8 @@ func Confirm(
 	var existingUUID string
 	err = tx.QueryRow(
 		ctx,
-		query.FindCheckoutByCartRefQuery,
-		req.CartID,
+		query.FindCheckoutBySessionRefQuery,
+		sessionID,
 		req.ExternalReference,
 	).Scan(&existingUUID)
 
@@ -77,20 +77,20 @@ func Confirm(
 		return resp, fmt.Errorf("failed to check idempotency: %w", err)
 	}
 
-	// Validate cart
-	var cartExists bool
+	// Resolve cart_id from session_id
+	var cartID int
 	err = tx.QueryRow(
 		ctx,
-		`SELECT COUNT(*) > 0 FROM carts
-		 WHERE id = $1
+		`SELECT id FROM carts
+		 WHERE session_id = $1
 		   AND session_id NOT LIKE 'FINISHED-%'`,
-		req.CartID,
-	).Scan(&cartExists)
+		sessionID,
+	).Scan(&cartID)
 	if err != nil {
-		return resp, fmt.Errorf("failed to validate cart: %w", err)
-	}
-	if !cartExists {
-		return resp, ErrCartNotFound
+		if errors.Is(err, pgx.ErrNoRows) {
+			return resp, ErrCartNotFound
+		}
+		return resp, fmt.Errorf("failed to resolve cart: %w", err)
 	}
 
 	// Validate cart has items
@@ -98,7 +98,7 @@ func Confirm(
 	err = tx.QueryRow(
 		ctx,
 		`SELECT COUNT(*) FROM cart_product WHERE cart_id = $1`,
-		req.CartID,
+		cartID,
 	).Scan(&itemCount)
 	if err != nil {
 		return resp, fmt.Errorf("failed to count cart items: %w", err)
@@ -148,8 +148,8 @@ func Confirm(
 	}
 
 	description := fmt.Sprintf(
-		"Checkout for cart #%d — %d items",
-		req.CartID,
+		"Checkout for session %s — %d items",
+		sessionID,
 		itemCount,
 	)
 
@@ -158,7 +158,7 @@ func Confirm(
 		ctx,
 		query.InsertCheckoutQuery,
 		util.Args{
-			"cart_id":            req.CartID,
+			"cart_id":            cartID,
 			"value":              value,
 			"description":        description,
 			"external_reference": req.ExternalReference,
@@ -199,7 +199,7 @@ func Confirm(
 	_, err = tx.Exec(
 		ctx,
 		query.FinishCartQuery,
-		req.CartID,
+		sessionID,
 		req.ExternalReference,
 	)
 	if err != nil {

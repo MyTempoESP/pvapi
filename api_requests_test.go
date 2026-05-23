@@ -893,8 +893,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatalf("add product to cart: %v", err)
 		}
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"cart_id":            cartID,
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
 			"items": []map[string]any{
@@ -916,8 +915,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 
 		t.Run("idempotent_retry", func(t *testing.T) {
-			rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-				"cart_id":            cartID,
+			rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 				"value_paid":         "3.00",
 				"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
 				"items": []map[string]any{
@@ -938,8 +936,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	})
 
 	t.Run("checkout_confirm_invalid_cart", func(t *testing.T) {
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"cart_id":            99999,
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id=nonexistent-"+fmt.Sprint(runID), nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-INVALID-%d", runID),
 			"items": []map[string]any{
@@ -969,8 +966,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatalf("get empty cart id: %v", err)
 		}
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"cart_id":            emptyCartID,
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-EMPTY-%d", runID),
 			"items": []map[string]any{
@@ -1008,8 +1004,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatalf("add product to cart: %v", err)
 		}
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"cart_id":            overCartID,
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-OVER-%d", runID),
 			"items": []map[string]any{
@@ -1047,8 +1042,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatalf("add product to cart: %v", err)
 		}
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"cart_id":            wrongCartID,
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-WRONG-%d", runID),
 			"items": []map[string]any{
