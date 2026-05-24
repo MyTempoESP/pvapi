@@ -53,10 +53,18 @@ db: (internal::ensure 't::db-ui' 't::clean')
 alias b:=db
 
 
+[private]
+db-erd-gen: test-db
+	planter '{{ db_url }}' -o docs/erd.puml
+
+[doc('Generate plantuml diagram from database')]
+[group('util')]
+db-erd: (internal::ensure 't::db-erd-gen' 't::clean')
+
 # internal
 
 [private]
-worker: db go
+worker: test-db go
 
 
 [private]
@@ -80,7 +88,7 @@ worker: db go
 [group('target')]
 @go *flags="-v":
 	printf "{{BOLD + WHITE}}go test {{flags}} .{{NORMAL}}\n"
-	go test {{flags}} .
+	go test {{flags}} ..
 
 
 [group('util')]
