@@ -1,0 +1,252 @@
+@startuml
+hide circle
+skinparam linetype ortho
+
+entity "**addresses**" {
+  + ""id"": //serial [PK]//
+  --
+  *""street"": //text //
+  *""city"": //text //
+  *""neighborhood"": //text //
+  *""state"": //text //
+  *""cep"": //text //
+  *""number"": //integer //
+  ""complement"": //text //
+}
+
+entity "**admins**" {
+  + ""id"": //serial [PK]//
+  --
+  *""user_id"": //integer [FK]//
+}
+
+entity "**cart_product**" {
+  + ""id"": //serial [PK]//
+  --
+  *""product_id"": //integer [FK]//
+  *""cart_id"": //integer [FK]//
+  *""personalizations"": //jsonb //
+  *""quantity"": //integer //
+  *""price"": //numeric(12,2) //
+}
+
+entity "**carts**" {
+  + ""id"": //serial [PK]//
+  --
+  ""client_id"": //integer [FK]//
+  *""session_id"": //text //
+}
+
+entity "**categories**" {
+  + ""id"": //serial [PK]//
+  --
+  *""name"": //text //
+  *""description"": //text //
+  *""shop_id"": //integer [FK]//
+}
+
+entity "**checkouts**" {
+  + ""id"": //serial [PK]//
+  --
+  *""cart_id"": //integer [FK]//
+  ""consignment_id"": //integer //
+  ""unique_id"": //uuid //
+  *""value"": //numeric(12,2) //
+  *""status"": //text //
+  *""description"": //text //
+  *""external_reference"": //text //
+  ""metadata"": //jsonb //
+  ""processed_at"": //timestamp with time zone //
+}
+
+entity "**clients**" {
+  + ""id"": //serial [PK]//
+  --
+  *""user_id"": //integer [FK]//
+  ""telephone"": //text //
+}
+
+entity "**consignees**" {
+  + ""id"": //serial [PK]//
+  --
+  *""user_id"": //integer [FK]//
+  *""address_id"": //integer [FK]//
+  *""shop_id"": //integer [FK]//
+  *""telephone"": //text //
+}
+
+entity "**consignments**" {
+  + ""id"": //serial [PK]//
+  --
+  *""shop_id"": //integer [FK]//
+  ""consignee_id"": //integer [FK]//
+  ""pickup_location_id"": //integer [FK]//
+  *""comission_type"": //text //
+  *""comission_value"": //numeric(12,2) //
+  ""created_at"": //timestamp with time zone //
+  *""status"": //text //
+  *""code"": //uuid //
+  *""slug"": //text //
+}
+
+entity "**package_reserved**" {
+  + ""id"": //serial [PK]//
+  --
+  *""package_id"": //integer [FK]//
+  *""checkout_id"": //integer [FK]//
+  *""quantity"": //integer //
+  ""reserved_at"": //timestamp with time zone //
+}
+
+entity "**packages**" {
+  + ""id"": //serial [PK]//
+  --
+  *""product_id"": //integer [FK]//
+  *""consignment_id"": //integer [FK]//
+  *""quantity"": //integer //
+  ""price"": //numeric(12,2) //
+  ""created_at"": //timestamp with time zone //
+  *""discount"": //numeric(12,2) //
+  *""featured"": //boolean //
+  *""attributesvalues"": //json //
+}
+
+entity "**pickup_locations**" {
+  + ""id"": //serial [PK]//
+  --
+  ""address_id"": //integer [FK]//
+  *""shop_id"": //integer [FK]//
+  *""name"": //text //
+  *""pickup_at"": //timestamp with time zone //
+}
+
+entity "**products**" {
+  + ""id"": //serial [PK]//
+  --
+  *""name"": //text //
+  *""price"": //numeric(12,2) //
+  *""discount"": //numeric(5,2) //
+  *""stock"": //integer //
+  *""featured"": //boolean //
+  *""shop_id"": //integer [FK]//
+  ""moderation_status"": //text //
+  *""category_id"": //integer [FK]//
+  *""description"": //text //
+  *""attr"": //jsonb //
+  *""code"": //text //
+  *""uniqueid"": //uuid //
+  *""platform_cut"": //numeric(12,2) //
+  *""platform_cut_type"": //text //
+}
+
+entity "**recovery_tokens**" {
+  + ""id"": //serial [PK]//
+  --
+  *""user_id"": //integer [FK]//
+  *""token"": //text //
+  *""expiration_date"": //timestamp with time zone //
+  *""confirmation_code"": //text //
+  ""created_at"": //timestamp with time zone //
+}
+
+entity "**reports**" {
+  + ""id"": //serial [PK]//
+  --
+  ""consignment_id"": //integer [FK]//
+  *""scope"": //text //
+  *""type"": //text //
+  *""priority"": //text //
+  *""description"": //text //
+  *""status"": //text //
+  *""created_at"": //timestamp with time zone //
+  *""consignee_id"": //integer //
+  *""moment"": //text //
+  ""product_id"": //integer [FK]//
+}
+
+entity "**schema_migrations**" {
+  + ""version"": //bigint [PK]//
+  --
+  *""dirty"": //boolean //
+}
+
+entity "**shops**" {
+  + ""id"": //serial [PK]//
+  --
+  *""user_id"": //integer [FK]//
+  *""address_id"": //integer [FK]//
+  *""telephone"": //text //
+  *""slug"": //text //
+  *""name"": //text //
+  ""created_at"": //timestamp with time zone //
+  ""status"": //text //
+}
+
+entity "**users**" {
+  + ""id"": //serial [PK]//
+  --
+  *""name"": //text //
+  *""email"": //text //
+  *""password_hash"": //text //
+}
+
+"**admins**"   }--  "**users**"
+
+"**admins**"   }--  "**users**"
+
+"**cart_product**"   }--  "**carts**"
+
+"**cart_product**"   }--  "**products**"
+
+"**carts**"   }--  "**clients**"
+
+"**categories**"   }--  "**shops**"
+
+"**checkouts**"   }--  "**carts**"
+
+"**checkouts**"   }--  "**carts**"
+
+"**clients**"   }--  "**users**"
+
+"**clients**"   }--  "**users**"
+
+"**consignees**"   }--  "**addresses**"
+
+"**consignees**"   }--  "**shops**"
+
+"**consignees**"   }--  "**users**"
+
+"**consignments**"   }--  "**consignees**"
+
+"**consignments**"   }--  "**pickup_locations**"
+
+"**consignments**"   }--  "**shops**"
+
+"**package_reserved**"   }--  "**checkouts**"
+
+"**package_reserved**"   }--  "**packages**"
+
+"**packages**"   }--  "**consignments**"
+
+"**packages**"   }--  "**products**"
+
+"**pickup_locations**"   }--  "**addresses**"
+
+"**pickup_locations**"   }--  "**shops**"
+
+"**products**"   }--  "**categories**"
+
+"**products**"   }--  "**shops**"
+
+"**recovery_tokens**"   }--  "**users**"
+
+"**reports**"   }--  "**consignments**"
+
+"**reports**"   }--  "**products**"
+
+"**shops**"   }--  "**addresses**"
+
+"**shops**"   }--  "**users**"
+
+"**shops**"   }--  "**users**"
+@enduml
