@@ -11,6 +11,7 @@ import (
 
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/qrcode"
 )
 
 type ConfirmItem struct {
@@ -35,6 +36,7 @@ type PackageStock struct {
 type ConfirmResponse struct {
 	UniqueID string `json:"unique_id"`
 	Status   string `json:"status"`
+	QrCode   string `json:"qr_code"`
 }
 
 var (
@@ -58,27 +60,70 @@ func Confirm(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// Idempotency check
-	var existingUUID string
+	// 1. Idempotency
+	uniqueID, done, err := checkIdempotency(ctx, tx, sessionID, req.ExternalReference)
+	if err != nil {
+		return resp, err
+	}
+	if done {
+		return ConfirmResponse{UniqueID: uniqueID, Status: "paid"}, tx.Commit(ctx)
+	}
+
+	// 2. Cart resolution
+	cartID, itemCount, err := resolveCart(ctx, tx, sessionID)
+	if err != nil {
+		return resp, err
+	}
+
+	// 3. Stock validation
+	packageMap, err := validateStock(ctx, tx, req.Items)
+	if err != nil {
+		return resp, err
+	}
+
+	// 4. Parse payment value
+	value, err := decimal.NewFromString(req.ValuePaid)
+	if err != nil {
+		return resp, fmt.Errorf("invalid value_paid: %w", err)
+	}
+
+	// 5. Persist checkout, reservations and finish cart
+	uniqueID, err = writeCheckout(ctx, tx, cartID, sessionID, req.ExternalReference, value, itemCount, req.Items, packageMap)
+	if err != nil {
+		return resp, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return resp, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// 6. QR code
+	qr, err := qrcode.Encode(uniqueID)
+	if err != nil {
+		return resp, fmt.Errorf("failed to generate qr code: %w", err)
+	}
+
+	return ConfirmResponse{UniqueID: uniqueID, Status: "paid", QrCode: qr}, nil
+}
+
+func checkIdempotency(ctx context.Context, tx pgx.Tx, sessionID, externalReference string) (uniqueID string, done bool, err error) {
 	err = tx.QueryRow(
 		ctx,
 		query.FindCheckoutBySessionRefQuery,
 		sessionID,
-		req.ExternalReference,
-	).Scan(&existingUUID)
+		externalReference,
+	).Scan(&uniqueID)
 
 	if err == nil {
-		resp.UniqueID = existingUUID
-		resp.Status = "paid"
-		return resp, tx.Commit(ctx)
+		return uniqueID, true, nil
 	}
-
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return resp, fmt.Errorf("failed to check idempotency: %w", err)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, nil
 	}
+	return "", false, fmt.Errorf("failed to check idempotency: %w", err)
+}
 
-	// Resolve cart_id from session_id
-	var cartID int
+func resolveCart(ctx context.Context, tx pgx.Tx, sessionID string) (cartID int, itemCount int, err error) {
 	err = tx.QueryRow(
 		ctx,
 		`SELECT id FROM carts
@@ -88,28 +133,30 @@ func Confirm(
 	).Scan(&cartID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return resp, ErrCartNotFound
+			return 0, 0, ErrCartNotFound
 		}
-		return resp, fmt.Errorf("failed to resolve cart: %w", err)
+		return 0, 0, fmt.Errorf("failed to resolve cart: %w", err)
 	}
 
-	// Validate cart has items
-	var itemCount int
 	err = tx.QueryRow(
 		ctx,
 		`SELECT COUNT(*) FROM cart_product WHERE cart_id = $1`,
 		cartID,
 	).Scan(&itemCount)
 	if err != nil {
-		return resp, fmt.Errorf("failed to count cart items: %w", err)
+		return 0, 0, fmt.Errorf("failed to count cart items: %w", err)
 	}
 	if itemCount == 0 {
-		return resp, ErrCartEmpty
+		return 0, 0, ErrCartEmpty
 	}
 
-	// Stock availability check
+	return cartID, itemCount, nil
+}
+
+func validateStock(ctx context.Context, tx pgx.Tx, items []ConfirmItem) (map[int]int, error) {
 	packageMap := make(map[int]int) // product_id -> package_id
-	for _, item := range req.Items {
+
+	for _, item := range items {
 		stock, err := util.WithCollectExactlyOneRow[PackageStock](
 			ctx, tx,
 			query.CheckPackageAvailabilityQuery,
@@ -118,18 +165,18 @@ func Confirm(
 		)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return resp, fmt.Errorf(
+				return nil, fmt.Errorf(
 					"%w: product %d in consignment %d",
 					ErrProductNotInConsignment,
 					item.ProductID,
 					item.ConsignmentID,
 				)
 			}
-			return resp, fmt.Errorf("failed to check stock: %w", err)
+			return nil, fmt.Errorf("failed to check stock: %w", err)
 		}
 
 		if stock.Available < item.Quantity {
-			return resp, fmt.Errorf(
+			return nil, fmt.Errorf(
 				"%w: product %d (need %d, have %d)",
 				ErrInsufficientStock,
 				item.ProductID,
@@ -141,47 +188,52 @@ func Confirm(
 		packageMap[item.ProductID] = stock.PackageID
 	}
 
-	// Parse value
-	value, err := decimal.NewFromString(req.ValuePaid)
-	if err != nil {
-		return resp, fmt.Errorf("invalid value_paid: %w", err)
-	}
+	return packageMap, nil
+}
 
+func writeCheckout(
+	ctx context.Context,
+	tx pgx.Tx,
+	cartID int,
+	sessionID, externalReference string,
+	value decimal.Decimal,
+	itemCount int,
+	items []ConfirmItem,
+	packageMap map[int]int,
+) (string, error) {
 	description := fmt.Sprintf(
 		"Checkout for session %s — %d items",
 		sessionID,
 		itemCount,
 	)
 
-	// Insert checkout
-	err = tx.QueryRow(
+	var uniqueID string
+	err := tx.QueryRow(
 		ctx,
 		query.InsertCheckoutQuery,
 		util.Args{
 			"cart_id":            cartID,
 			"value":              value,
 			"description":        description,
-			"external_reference": req.ExternalReference,
+			"external_reference": externalReference,
 		},
-	).Scan(&resp.UniqueID)
+	).Scan(&uniqueID)
 	if err != nil {
-		return resp, fmt.Errorf("failed to insert checkout: %w", err)
+		return "", fmt.Errorf("failed to insert checkout: %w", err)
 	}
 
-	// Get checkout ID for package_reserved references
 	var checkoutID int
 	err = tx.QueryRow(
 		ctx,
 		`SELECT id FROM checkouts WHERE unique_id = $1`,
-		resp.UniqueID,
+		uniqueID,
 	).Scan(&checkoutID)
 	if err != nil {
-		return resp, fmt.Errorf("failed to retrieve checkout id: %w", err)
+		return "", fmt.Errorf("failed to retrieve checkout id: %w", err)
 	}
 
-	// Reserve stock
 	batch := &pgx.Batch{}
-	for _, item := range req.Items {
+	for _, item := range items {
 		batch.Queue(
 			query.InsertPackageReservedQuery,
 			packageMap[item.ProductID],
@@ -190,27 +242,19 @@ func Confirm(
 		)
 	}
 
-	err = util.Bake(ctx, tx, batch)
-	if err != nil {
-		return resp, fmt.Errorf("failed to reserve stock: %w", err)
+	if err := util.Bake(ctx, tx, batch); err != nil {
+		return "", fmt.Errorf("failed to reserve stock: %w", err)
 	}
 
-	// Finish cart
 	_, err = tx.Exec(
 		ctx,
 		query.FinishCartQuery,
 		sessionID,
-		req.ExternalReference,
+		externalReference,
 	)
 	if err != nil {
-		return resp, fmt.Errorf("failed to finish cart: %w", err)
+		return "", fmt.Errorf("failed to finish cart: %w", err)
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return resp, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	resp.Status = "paid"
-	return resp, nil
+	return uniqueID, nil
 }

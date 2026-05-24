@@ -1057,6 +1057,11 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatalf("expected status 'paid', got %v", body["status"])
 		}
 
+		qrCode, ok := body["qr_code"].(string)
+		if !ok || qrCode == "" {
+			t.Fatal("expected non-empty qr_code in response")
+		}
+
 		t.Run("idempotent_retry", func(t *testing.T) {
 			rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 				"value_paid":         "3.00",
