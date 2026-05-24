@@ -933,6 +933,36 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		reportID = asInt(t, body["id"])
 	})
 
+	// TODO: frontend sends orderId as string when occurrenceScope="product"
+	t.Run("create_report_string_orderId_for_product", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
+			"orderId":         strconv.Itoa(productID),
+			"monitor":         consigneeName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "a",
+			"priority":        "baixa",
+			"occurrenceScope": "product",
+		})
+		assertStatus(t, rec, http.StatusOK)
+	})
+
+	// TODO: frontend sends occurrenceScope="shipment" instead of "consignment"
+	t.Run("create_report_shipment_scope_maps_to_consignment", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
+			"orderId":         consignmentID,
+			"monitor":         consigneeName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "a",
+			"priority":        "baixa",
+			"occurrenceScope": "shipment",
+		})
+		assertStatus(t, rec, http.StatusOK)
+	})
+
 	t.Run("list_reports", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/ocorrencias", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
