@@ -1,27 +1,32 @@
 @startuml
 start
 
-partition "Adicionar Produto ao Carrinho" {
-  :POST /carrinho/adicionar;
+:Cliente gera **session_id** (temp_xxxxx);
 
+partition "Gestão do Carrinho — /carrinho" {
+  note right
+    Todos os endpoints do carrinho
+    exigem **?session_id=**
+  end note
+
+  :POST /carrinho/adicionar;
   note right
     **Requisição**
     {
-      "product_id": 5,
-      "quantity": 1,
+      "product_id": 1,
+      "quantity": 2,
       "personalization": {},
       "session_id": "temp_69af0..."
     }
   end note
 
-  if (Carrinho ativo existe\npara a sessão?) then (sim)
+  if (Carrinho ativo existe?) then (sim)
     :Reusar cart_id;
   else (não)
-    :Criar novo carrinho;
+    :Criar novo carrinho\n(INSERT INTO carts);
   endif
 
-  :Inserir linha em cart_product
-  (product_id, quantity, personalization, cart_id);
+  :INSERT INTO cart_product\n(product_id, quantity, personalization, cart_id);
 
   note right
     **Resposta (200)**
@@ -29,97 +34,153 @@ partition "Adicionar Produto ao Carrinho" {
       "message": "produto adicionado!" }
   end note
 
-  note left
-    **Passos opcionais (todos usam ?session_id=)**
-    GET /carrinho/dados
-    → { items, total, item_count,
-         total_with_discount, total_discount,
-         session_id }
-    GET /carrinho/remessas
-    → opções de consignação/retirada por produto
-    PUT /carrinho/atualizar/:item
-    → { "quantity": 3 }
-    DELETE /carrinho/remover/:item
-  end note
+  fork
+    :GET /carrinho/dados;
+    note right
+      **Resposta**
+      { "items": [...],
+        "total": 0,
+        "item_count": N,
+        "total_with_discount": 0,
+        "total_discount": 0,
+        "session_id": "..." }
+    end note
+
+  fork again
+    :GET /carrinho/remessas;
+    note right
+      **Resposta**
+      { "products": [{
+          "product_id": 1,
+          "consignments": [{
+            "consignment_id": 1,
+            "price_in_consignment": "600",
+            "consignment_stock": 4,
+            "pickup": { "id", "name", "date", "address" }
+          }]
+        }]
+      }
+    end note
+
+  fork again
+    :PUT /carrinho/atualizar/:item;
+    note right
+      **Requisição** { "quantity": 5 }
+      **Resposta** { "success": true }
+      Exige session_id na query
+    end note
+
+  fork again
+    :DELETE /carrinho/remover/:item;
+    note right
+      **Resposta** { "success": true }
+      Exige session_id na query
+    end note
+  end fork
+
+  if (Carrinho vazio após remoção?) then (sim)
+    :Carrinho sem itens;
+    note left: Checkout subsequente\nfalhará com 422
+  else (não)
+    :Carrinho pronto para checkout;
+  endif
 }
 
-partition "Confirmação do Checkout" {
-  :POST /checkouts/confirm
-  ?session_id=...;
+partition "Confirmação do Checkout — /checkouts" {
+  :POST /checkouts/confirm?session_id=...;
+
+  if (session_id presente?) then (sim)
+  else (não)
+    #pink:Abortar: "session_id is required";
+    detach
+  endif
 
   note right
     **Corpo da requisição**
     {
-      "value_paid": "99.90",
+      "value_paid": "1200",
       "external_reference": "PAY-12345",
-      "items": [
-        {
-          "product_id": 1,
-          "consignment_id": 2,
-          "quantity": 1
-        }
-      ]
+      "items": [{
+        "product_id": 1,
+        "consignment_id": 1,
+        "quantity": 2
+      }]
     }
   end note
 
-  if (Verificação de idempotência:\ncheckout com mesma sessão +\nexternal_reference existe?) then (sim)
-    :Retornar unique_id existente\n(status: paid);
+  if (Corpo da requisição válido?) then (sim)
+  else (não)
+    #pink:Abortar: erros de validação;
+    detach
+  endif
+
+  :BEGIN TRANSACTION;
+
+  if (Idempotência: checkout existe\npara session_id +\nexternal_reference?) then (sim)
+    #palegreen:Retornar unique_id existente;
 
     note left
       **Resposta (200)**
       { "success": true,
-        "message": "checkout confirmado",
-        "unique_id": "550e...",
+        "unique_id": "mesmo-uuid",
         "status": "paid" }
     end note
 
+    :COMMIT;
     detach
   else (não)
   endif
 
-  :Resolver cart_id da session_id
-  (rejeitar se carrinho já FINISHED-);
+  :Resolver cart_id de carts\nWHERE session_id = $1\nAND session_id NOT LIKE 'FINISHED-%';
 
   if (Carrinho encontrado?) then (sim)
     if (Carrinho tem itens?) then (sim)
-      :Validar disponibilidade de estoque
-      para cada item solicitado;
+      :Para cada item na requisição:
 
-      #lightblue:package_reserved.package_id ←
-      package_map[product_id];
-      #lightblue:Verificar disponível ≥ quantidade
-      por item;
+      #lightblue:Consultar estoque em package_reserved\npor (product_id, consignment_id);
+      #lightblue:Verificar disponível ≥ quantidade;
 
-      if (Estoque suficiente\npara todos os itens?) then (sim)
-        :Parsear value_paid (decimal);
-        :Inserir linha de checkout\n→ unique_id gerado;
-        :Reservar estoque em package_reserved
-        (inserção em lote para todos os itens);
-        :Finalizar carrinho: renomear session_id
-        para FINISHED-{external_reference};
-        :Commit da transação;
+      if (Estoque suficiente para todos?) then (sim)
+        :Parsear value_paid → decimal;
+        :INSERT INTO checkouts\n→ unique_id (UUID);
 
-        :Retornar unique_id, status: paid;
+        :BATCH INSERT em package_reserved\n(product_id, checkout_id, quantity);
+
+        :Finalizar carrinho:\nUPDATE carts SET session_id =\n'FINISHED-{external_reference}';
+
+        #palegreen:COMMIT;
 
         note left
           **Resposta (200)**
           { "success": true,
-            "message": "checkout confirmado",
-            "unique_id": "550e...",
+            "message": "checkout confirmed",
+            "unique_id": "550e8400-...",
             "status": "paid" }
         end note
 
       else (não)
-        :Abortar: estoque insuficiente (409);
+        #pink:ROLLBACK;\nEstoque insuficiente (409);
         detach
       endif
     else (não)
-      :Abortar: carrinho vazio (422);
+      #pink:ROLLBACK;\nCarrinho vazio (422);
       detach
     endif
   else (não)
-    :Abortar: carrinho não encontrado (404);
+    #pink:ROLLBACK;\nCarrinho não encontrado (404);
     detach
+  endif
+}
+
+partition "Pós-Checkout" {
+  :Session_id do carrinho renomeado\npara FINISHED-{external_reference};
+
+  if (Cliente consulta /carrinho/dados\ncom session_id antigo?) then (sim)
+    :Retorna 404 "resource not found";
+  endif
+
+  if (Cliente reenvia mesmo checkout?) then (sim)
+    :Idempotência retorna mesmo unique_id;
   endif
 }
 

@@ -1,27 +1,32 @@
 @startuml
 start
 
-partition "Add Product to Cart" {
-  :POST /carrinho/adicionar;
+:Client generates **session_id** (temp_xxxxx);
 
+partition "Cart Management — /carrinho" {
+  note right
+    All cart endpoints require
+    **?session_id=** query parameter
+  end note
+
+  :POST /carrinho/adicionar;
   note right
     **Request**
     {
-      "product_id": 5,
-      "quantity": 1,
+      "product_id": 1,
+      "quantity": 2,
       "personalization": {},
       "session_id": "temp_69af0..."
     }
   end note
 
-  if (Active cart exists\nto session?) then (yes)
+  if (Active cart exists?) then (yes)
     :Reuse cart_id;
   else (no)
-    :Create new cart;
+    :Create new cart\n(INSERT INTO carts);
   endif
 
-  :Insert row into cart_product
-  (product_id, quantity, personalization, cart_id);
+  :INSERT INTO cart_product\n(product_id, quantity, personalization, cart_id);
 
   note right
     **Response (200)**
@@ -29,97 +34,153 @@ partition "Add Product to Cart" {
       "message": "produto adicionado!" }
   end note
 
-  note left
-    **Optional steps (all use ?session_id=)**
-    GET /carrinho/dados
-    → { items, total, item_count,
-         total_with_discount, total_discount,
-         session_id }
-    GET /carrinho/remessas
-    → consignment/pickup options per product
-    PUT /carrinho/atualizar/:item
-    → { "quantity": 3 }
-    DELETE /carrinho/remover/:item
-  end note
+  fork
+    :GET /carrinho/dados;
+    note right
+      **Response**
+      { "items": [...],
+        "total": 0,
+        "item_count": N,
+        "total_with_discount": 0,
+        "total_discount": 0,
+        "session_id": "..." }
+    end note
+
+  fork again
+    :GET /carrinho/remessas;
+    note right
+      **Response**
+      { "products": [{
+          "product_id": 1,
+          "consignments": [{
+            "consignment_id": 1,
+            "price_in_consignment": "600",
+            "consignment_stock": 4,
+            "pickup": { "id", "name", "date", "address" }
+          }]
+        }]
+      }
+    end note
+
+  fork again
+    :PUT /carrinho/atualizar/:item;
+    note right
+      **Request** { "quantity": 5 }
+      **Response** { "success": true }
+      Requires session_id in query
+    end note
+
+  fork again
+    :DELETE /carrinho/remover/:item;
+    note right
+      **Response** { "success": true }
+      Requires session_id in query
+    end note
+  end fork
+
+  if (Cart empty after removal?) then (yes)
+    :Cart has no items;
+    note left: Further checkout will\nfail with 422
+  else (no)
+    :Cart ready for checkout;
+  endif
 }
 
-partition "Checkout Confirmation" {
-  :POST /checkouts/confirm
-  ?session_id=...;
+partition "Checkout Confirmation — /checkouts" {
+  :POST /checkouts/confirm?session_id=...;
+
+  if (session_id present?) then (yes)
+  else (no)
+    #pink:Abort: "session_id is required";
+    detach
+  endif
 
   note right
     **Request body**
     {
-      "value_paid": "99.90",
+      "value_paid": "1200",
       "external_reference": "PAY-12345",
-      "items": [
-        {
-          "product_id": 1,
-          "consignment_id": 2,
-          "quantity": 1
-        }
-      ]
+      "items": [{
+        "product_id": 1,
+        "consignment_id": 1,
+        "quantity": 2
+      }]
     }
   end note
 
-  if (Idempotency check:\ncheckout with same session +\nexternal_reference exists?) then (yes)
-    :Return existing unique_id\n(status: paid);
+  if (Request body valid?) then (yes)
+  else (no)
+    #pink:Abort: field validation errors;
+    detach
+  endif
+
+  :BEGIN TRANSACTION;
+
+  if (Idempotency: checkout exists\nfor session_id +\nexternal_reference?) then (yes)
+    #palegreen:Return existing unique_id;
 
     note left
       **Response (200)**
       { "success": true,
-        "message": "checkout confirmed",
-        "unique_id": "550e...",
+        "unique_id": "same-uuid",
         "status": "paid" }
     end note
 
+    :COMMIT;
     detach
   else (no)
   endif
 
-  :Resolve cart_id from session_id
-  (reject if cart already FINISHED-);
+  :Resolve cart_id from carts\nWHERE session_id = $1\nAND session_id NOT LIKE 'FINISHED-%';
 
   if (Cart found?) then (yes)
     if (Cart has items?) then (yes)
-      :Validate stock availability
-      for each requested item;
+      :For each item in request:
 
-      #lightblue:package_reserved.package_id ←
-      package_map[product_id];
-      #lightblue:Check available ≥ quantity
-      per item;
+      #lightblue:Query package_reserved stock\nper (product_id, consignment_id);
+      #lightblue:Check available ≥ quantity;
 
-      if (Stock sufficient\nto all items?) then (yes)
-        :Parse value_paid (decimal);
-        :Insert checkout row\n→ unique_id generated;
-        :Reserve stock in package_reserved
-        (batch insert for all items);
-        :Finish cart: rename session_id
-        to FINISHED-{external_reference};
-        :Commit transaction;
+      if (Stock sufficient for all?) then (yes)
+        :Parse value_paid → decimal;
+        :INSERT INTO checkouts\n→ unique_id (UUID);
 
-        :Return unique_id, status: paid;
+        :BATCH INSERT into package_reserved\n(product_id, checkout_id, quantity);
+
+        :Finish cart:\nUPDATE carts SET session_id =\n'FINISHED-{external_reference}';
+
+        #palegreen:COMMIT;
 
         note left
           **Response (200)**
           { "success": true,
             "message": "checkout confirmed",
-            "unique_id": "550e...",
+            "unique_id": "550e8400-...",
             "status": "paid" }
         end note
 
       else (no)
-        :Abort: insufficient stock (409);
+        #pink:ROLLBACK;\nInsufficient stock (409);
         detach
       endif
     else (no)
-      :Abort: cart empty (422);
+      #pink:ROLLBACK;\nCart empty (422);
       detach
     endif
   else (no)
-    :Abort: cart not found (404);
+    #pink:ROLLBACK;\nCart not found (404);
     detach
+  endif
+}
+
+partition "Post-Checkout" {
+  :Cart session_id renamed to\nFINISHED-{external_reference};
+
+  if (Client queries /carrinho/dados\nwith old session_id?) then (yes)
+    :Returns 404 "resource not found";
+  endif
+
+  if (Client resubmits same checkout?) then (yes)
+    :Idempotency returns same unique_id;
   endif
 }
 
