@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
-
-	sq "github.com/Masterminds/squirrel"
 )
 
 type Report struct {
@@ -28,40 +27,46 @@ type Report struct {
 	CreatedAt     time.Time `db:"created_at"`
 }
 
-func (r Report) Save(
+func (b UpdateReportBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
-) (err error) {
-	if true {
-		return util.NotImplemented("Atualizar ocorrencia")
-	}
-
+) error {
 	q := util.SQL
 
 	fields := make(map[string]any)
 
-	if len(fields) == 0 {
-		return
+	if b.Status != nil {
+		fields["status"] = *b.Status
+	}
+	if b.Priority != nil {
+		fields["priority"] = *b.Priority
+	}
+	if b.Description != nil {
+		fields["description"] = *b.Description
+	}
+	if b.Type != nil {
+		fields["type"] = *b.Type
 	}
 
-	update := q.Update("consignments").
+	if len(fields) == 0 {
+		return nil
+	}
+
+	update := q.Update("reports").
 		SetMap(fields).
-		Where(sq.Eq{"id": r.ID})
+		Where(sq.Eq{"id": b.ID})
 
 	query, params, err := update.ToSql()
-
 	if err != nil {
 		return fmt.Errorf("could not build SQL query: %w", err)
 	}
 
 	_, err = base.Exec(ctx, query, params...)
-
 	if err != nil {
-		return fmt.Errorf(
-			"could not update consignment, query: %q, %w", query, err)
+		return fmt.Errorf("could not update report, query: %q, %w", query, err)
 	}
 
-	return err
+	return nil
 }
 
 func (r ReportBlueprint) Save(

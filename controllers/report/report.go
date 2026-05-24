@@ -151,19 +151,23 @@ func UpdateHandler(
 			return
 		}
 
-		report := request.Prepare(reportID)
+		blueprint := request.Prepare(reportID)
 
-		err = report.Save(c.Request.Context(), pool)
-
+		err = blueprint.Save(c.Request.Context(), pool)
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
-		// CHANGEME
+		updated, err := reportmodel.Find(c.Request.Context(), pool, reportID)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
 		util.WrapLabeled(
 			c, "[report] atualizado com sucesso",
-			"report", report.ToResource(),
+			"report", updated.ToResource(),
 		)
 	}
 }

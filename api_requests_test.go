@@ -1013,6 +1013,58 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("update_report_status", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/ocorrencias/%d", reportID), &shopSession, map[string]any{
+			"status": "em-andamento",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asString(t, report["status"]) != "em-andamento" {
+			t.Fatalf("expected status 'em-andamento', got %v", report["status"])
+		}
+	})
+
+	t.Run("update_report_priority", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/ocorrencias/%d", reportID), &shopSession, map[string]any{
+			"priority": "alta",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asString(t, report["priority"]) != "alta" {
+			t.Fatalf("expected priority 'alta', got %v", report["priority"])
+		}
+	})
+
+	t.Run("update_report_description", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/ocorrencias/%d", reportID), &shopSession, map[string]any{
+			"description": "descricao atualizada",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asString(t, report["description"]) != "descricao atualizada" {
+			t.Fatalf("expected description 'descricao atualizada', got %v", report["description"])
+		}
+	})
+
+	t.Run("update_report_type", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/ocorrencias/%d", reportID), &shopSession, map[string]any{
+			"type": "avaria",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asString(t, report["type"]) != "avaria" {
+			t.Fatalf("expected type 'avaria', got %v", report["type"])
+		}
+	})
+
 	t.Run("delete_report", func(t *testing.T) {
 		rec := h.doRequest(
 			t,

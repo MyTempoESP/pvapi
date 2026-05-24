@@ -53,7 +53,10 @@ type CreateReportRequest struct {
 }
 
 type UpdateReportRequest struct {
-	Field any `json:"field"`
+	Status      *string `json:"status"`
+	Priority    *string `json:"priority"`
+	Description *string `json:"description"`
+	Type        *string `json:"type"`
 }
 
 func (r CreateReportRequest) Prepare() ReportBlueprint {
@@ -62,8 +65,12 @@ func (r CreateReportRequest) Prepare() ReportBlueprint {
 	}
 }
 
-func (r UpdateReportRequest) Prepare(id int) Report {
-	return Report{
-		ID: id,
+func (r UpdateReportRequest) Prepare(id int) UpdateReportBlueprint {
+	return UpdateReportBlueprint{
+		ID:          id,
+		Status:      r.Status,
+		Priority:    r.Priority,
+		Description: r.Description,
+		Type:        r.Type,
 	}
 }
