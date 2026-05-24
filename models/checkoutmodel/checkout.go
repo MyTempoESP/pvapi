@@ -60,7 +60,9 @@ func Confirm(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	uniqueID, done, err := checkIdempotency(ctx, tx, sessionID, req.ExternalReference)
+	uniqueID, done, err := checkIdempotency(
+		ctx, tx, sessionID, req.ExternalReference,
+	)
 	if err != nil {
 		return resp, err
 	}
@@ -110,7 +112,11 @@ func Confirm(
 	return ConfirmResponse{UniqueID: uniqueID, Status: "paid", QrCode: qr}, nil
 }
 
-func checkIdempotency(ctx context.Context, tx pgx.Tx, sessionID, externalReference string) (uniqueID string, done bool, err error) {
+func checkIdempotency(
+	ctx context.Context,
+	tx pgx.Tx,
+	sessionID, externalReference string,
+) (uniqueID string, done bool, err error) {
 	err = tx.QueryRow(
 		ctx,
 		query.FindCheckoutBySessionRefQuery,
@@ -127,37 +133,45 @@ func checkIdempotency(ctx context.Context, tx pgx.Tx, sessionID, externalReferen
 	return "", false, fmt.Errorf("failed to check idempotency: %w", err)
 }
 
-func resolveCart(ctx context.Context, tx pgx.Tx, sessionID string) (cartID int, itemCount int, err error) {
-	err = tx.QueryRow(
+func resolveCart(
+	ctx context.Context,
+	tx pgx.Tx,
+	sessionID string,
+) (cartID int, itemCount int, err error) {
+	if err = tx.QueryRow(
 		ctx,
-		`SELECT id FROM carts
-		 WHERE session_id = $1
-		   AND session_id NOT LIKE 'FINISHED-%'`,
+		query.FindCartBySessionQuery,
 		sessionID,
-	).Scan(&cartID)
-	if err != nil {
+	).Scan(&cartID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, 0, ErrCartNotFound
+			err = ErrCartNotFound
+			return
 		}
-		return 0, 0, fmt.Errorf("failed to resolve cart: %w", err)
+		err = fmt.Errorf("failed to resolve cart: %w", err)
+		return
 	}
 
-	err = tx.QueryRow(
+	if err = tx.QueryRow(
 		ctx,
-		`SELECT COUNT(*) FROM cart_product WHERE cart_id = $1`,
+		query.CountCartItemsQuery,
 		cartID,
-	).Scan(&itemCount)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to count cart items: %w", err)
+	).Scan(&itemCount); err != nil {
+		err = fmt.Errorf("failed to count cart items: %w", err)
+		return
 	}
 	if itemCount == 0 {
-		return 0, 0, ErrCartEmpty
+		err = ErrCartEmpty
+		return
 	}
 
 	return cartID, itemCount, nil
 }
 
-func validateStock(ctx context.Context, tx pgx.Tx, items []ConfirmItem) (map[int]int, error) {
+func validateStock(
+	ctx context.Context,
+	tx pgx.Tx,
+	items []ConfirmItem,
+) (map[int]int, error) {
 	packageMap := make(map[int]int) // product_id -> package_id
 
 	for _, item := range items {
@@ -229,7 +243,7 @@ func writeCheckout(
 	var checkoutID int
 	err = tx.QueryRow(
 		ctx,
-		`SELECT id FROM checkouts WHERE unique_id = $1`,
+		query.FindCheckoutIDByUniqueIDQuery,
 		uniqueID,
 	).Scan(&checkoutID)
 	if err != nil {

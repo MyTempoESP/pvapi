@@ -71,4 +71,18 @@ UPDATE carts
 SET session_id = 'FINISHED-' || $2
 WHERE session_id = $1
 `
+
+	FindCartBySessionQuery = `
+SELECT id FROM carts
+WHERE session_id = $1
+  AND session_id NOT LIKE 'FINISHED-%'
+`
+
+	CountCartItemsQuery = `
+SELECT COUNT(*) FROM cart_product WHERE cart_id = $1
+`
+
+	FindCheckoutIDByUniqueIDQuery = `
+SELECT id FROM checkouts WHERE unique_id = $1
+`
 )
