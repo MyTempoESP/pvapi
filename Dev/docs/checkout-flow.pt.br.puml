@@ -91,7 +91,7 @@ partition "Confirmação do Checkout — /checkouts" {
 
   if (session_id presente?) then (sim)
   else (não)
-    #pink:Abortar: "session_id is required";
+    :Abortar: "session_id is required"; <<#pink>>
     detach
   endif
 
@@ -110,14 +110,14 @@ partition "Confirmação do Checkout — /checkouts" {
 
   if (Corpo da requisição válido?) then (sim)
   else (não)
-    #pink:Abortar: erros de validação;
+    :Abortar: erros de validação; <<#pink>>
     detach
   endif
 
   :BEGIN TRANSACTION;
 
   if (Idempotência: checkout existe\npara session_id +\nexternal_reference?) then (sim)
-    #palegreen:Retornar unique_id existente;
+    :Retornar unique_id existente; <<#palegreen>>
 
     note left
       **Resposta (200)**
@@ -137,8 +137,8 @@ partition "Confirmação do Checkout — /checkouts" {
     if (Carrinho tem itens?) then (sim)
       :Para cada item na requisição:
 
-      #lightblue:Consultar estoque em package_reserved\npor (product_id, consignment_id);
-      #lightblue:Verificar disponível ≥ quantidade;
+      :Consultar estoque em package_reserved\npor (product_id, consignment_id); <<#lightblue>>
+      :Verificar disponível ≥ quantidade; <<#lightblue>>
 
       if (Estoque suficiente para todos?) then (sim)
         :Parsear value_paid → decimal;
@@ -148,7 +148,7 @@ partition "Confirmação do Checkout — /checkouts" {
 
         :Finalizar carrinho:\nUPDATE carts SET session_id =\n'FINISHED-{external_reference}';
 
-        #palegreen:COMMIT;
+        :COMMIT; <<#palegreen>>
 
         note left
           **Resposta (200)**
@@ -159,15 +159,15 @@ partition "Confirmação do Checkout — /checkouts" {
         end note
 
       else (não)
-        #pink:ROLLBACK;\nEstoque insuficiente (409);
+        :ROLLBACK;\nEstoque insuficiente (409); <<#pink>>
         detach
       endif
     else (não)
-      #pink:ROLLBACK;\nCarrinho vazio (422);
+      :ROLLBACK;\nCarrinho vazio (422); <<#pink>>
       detach
     endif
   else (não)
-    #pink:ROLLBACK;\nCarrinho não encontrado (404);
+    :ROLLBACK;\nCarrinho não encontrado (404); <<#pink>>
     detach
   endif
 }
