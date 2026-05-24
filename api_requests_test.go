@@ -756,6 +756,102 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
+	t.Run("cart_view_missing_session", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/carrinho/dados", nil, "", nil)
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("add_product_fails_missing_product_id", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"quantity":        1,
+			"session_id":      fmt.Sprintf("no-product-%d", runID),
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("update_cart_item_quantity", func(t *testing.T) {
+		sessionID := fmt.Sprintf("update-qty-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		var cartID int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&cartID)
+		if err != nil {
+			t.Fatalf("get cart id: %v", err)
+		}
+
+		var cartProductID int
+		err = h.pool.QueryRow(context.Background(),
+			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
+			 VALUES ($1, 1, '{}', $2) RETURNING id`,
+			productID, cartID).Scan(&cartProductID)
+		if err != nil {
+			t.Fatalf("add product to cart: %v", err)
+		}
+
+		rec := h.doJSON(t, http.MethodPut,
+			fmt.Sprintf("/carrinho/atualizar/%d?session_id=%s", cartProductID, sessionID),
+			nil, map[string]any{"quantity": 5})
+		assertStatus(t, rec, http.StatusOK)
+
+		var qty int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT quantity FROM cart_product WHERE id = $1", cartProductID).Scan(&qty)
+		if err != nil {
+			t.Fatalf("query updated quantity: %v", err)
+		}
+		if qty != 5 {
+			t.Fatalf("expected quantity 5, got %d", qty)
+		}
+	})
+
+	t.Run("remove_cart_item", func(t *testing.T) {
+		sessionID := fmt.Sprintf("remove-item-%d", runID)
+
+		_, err := h.pool.Exec(context.Background(),
+			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
+		if err != nil {
+			t.Fatalf("create cart: %v", err)
+		}
+
+		var cartID int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&cartID)
+		if err != nil {
+			t.Fatalf("get cart id: %v", err)
+		}
+
+		var cartProductID int
+		err = h.pool.QueryRow(context.Background(),
+			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
+			 VALUES ($1, 2, '{}', $2) RETURNING id`,
+			productID, cartID).Scan(&cartProductID)
+		if err != nil {
+			t.Fatalf("add product to cart: %v", err)
+		}
+
+		rec := h.doRequest(t, http.MethodDelete,
+			fmt.Sprintf("/carrinho/remover/%d?session_id=%s", cartProductID, sessionID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		var count int
+		err = h.pool.QueryRow(context.Background(),
+			"SELECT COUNT(*) FROM cart_product WHERE id = $1", cartProductID).Scan(&count)
+		if err != nil {
+			t.Fatalf("query removed item: %v", err)
+		}
+		if count != 0 {
+			t.Fatal("expected cart item to be removed")
+		}
+	})
+
 	t.Run("shouldFail_add_absurd_ammount_of_products", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", consignmentID), &shopSession, map[string]any{
 			"products": []map[string]any{
@@ -890,6 +986,30 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"", nil,
 		)
 		assertStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("checkout_confirm_missing_session", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-NOSESSION-%d", runID),
+			"items": []map[string]any{
+				{
+					"product_id":     productID,
+					"consignment_id": consignmentID,
+					"quantity":       1,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("checkout_confirm_missing_body", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost,
+			"/checkouts/confirm?session_id=missing-body-"+fmt.Sprint(runID),
+			nil, map[string]any{
+				"value_paid": "3.00",
+			})
+		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
 	t.Run("checkout_confirm", func(t *testing.T) {
