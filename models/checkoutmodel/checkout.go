@@ -60,7 +60,6 @@ func Confirm(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// 1. Idempotency
 	uniqueID, done, err := checkIdempotency(ctx, tx, sessionID, req.ExternalReference)
 	if err != nil {
 		return resp, err
@@ -69,26 +68,32 @@ func Confirm(
 		return ConfirmResponse{UniqueID: uniqueID, Status: "paid"}, tx.Commit(ctx)
 	}
 
-	// 2. Cart resolution
 	cartID, itemCount, err := resolveCart(ctx, tx, sessionID)
 	if err != nil {
 		return resp, err
 	}
 
-	// 3. Stock validation
 	packageMap, err := validateStock(ctx, tx, req.Items)
 	if err != nil {
 		return resp, err
 	}
 
-	// 4. Parse payment value
 	value, err := decimal.NewFromString(req.ValuePaid)
 	if err != nil {
 		return resp, fmt.Errorf("invalid value_paid: %w", err)
 	}
 
-	// 5. Persist checkout, reservations and finish cart
-	uniqueID, err = writeCheckout(ctx, tx, cartID, sessionID, req.ExternalReference, value, itemCount, req.Items, packageMap)
+	// Persist checkout, reservations and finish cart
+	uniqueID, err = writeCheckout(
+		ctx, tx,
+		cartID,
+		sessionID,
+		req.ExternalReference,
+		value,
+		itemCount,
+		req.Items,
+		packageMap,
+	)
 	if err != nil {
 		return resp, err
 	}
@@ -97,7 +102,6 @@ func Confirm(
 		return resp, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// 6. QR code
 	qr, err := qrcode.Encode(uniqueID)
 	if err != nil {
 		return resp, fmt.Errorf("failed to generate qr code: %w", err)
