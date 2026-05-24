@@ -637,19 +637,13 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("cart_consignment_options", func(t *testing.T) {
 		sessionID := fmt.Sprintf("test-cart-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
-
-		_, err = h.pool.Exec(context.Background(),
-			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
-			 SELECT $1, 2, '{}', id FROM carts WHERE session_id = $2`,
-			productID, sessionID)
-		if err != nil {
-			t.Fatalf("add product to cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        2,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
 		rec := h.doRequest(t, http.MethodGet,
 			fmt.Sprintf("/carrinho/remessas?session_id=%s", sessionID),
@@ -714,11 +708,22 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("cart_consignment_options_empty_cart", func(t *testing.T) {
 		sessionID := fmt.Sprintf("empty-cart-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
+
+		viewRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
+		assertStatus(t, viewRec, http.StatusOK)
+		viewBody := decodeJSON(t, viewRec)
+		items := asSlice(t, viewBody["items"])
+		emptyItemID := asInt(t, asMap(t, items[0])["id"])
+
+		delRec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/carrinho/remover/%d?session_id=%s", emptyItemID, sessionID), nil, "", nil)
+		assertStatus(t, delRec, http.StatusOK)
 
 		rec := h.doRequest(t, http.MethodGet,
 			fmt.Sprintf("/carrinho/remessas?session_id=%s", sessionID),
@@ -773,39 +778,30 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("update_cart_item_quantity", func(t *testing.T) {
 		sessionID := fmt.Sprintf("update-qty-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
-		var cartID int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&cartID)
-		if err != nil {
-			t.Fatalf("get cart id: %v", err)
-		}
-
-		var cartProductID int
-		err = h.pool.QueryRow(context.Background(),
-			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
-			 VALUES ($1, 1, '{}', $2) RETURNING id`,
-			productID, cartID).Scan(&cartProductID)
-		if err != nil {
-			t.Fatalf("add product to cart: %v", err)
-		}
+		viewRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
+		assertStatus(t, viewRec, http.StatusOK)
+		viewBody := decodeJSON(t, viewRec)
+		cartItems := asSlice(t, viewBody["items"])
+		updateItemID := asInt(t, asMap(t, cartItems[0])["id"])
 
 		rec := h.doJSON(t, http.MethodPut,
-			fmt.Sprintf("/carrinho/atualizar/%d?session_id=%s", cartProductID, sessionID),
+			fmt.Sprintf("/carrinho/atualizar/%d?session_id=%s", updateItemID, sessionID),
 			nil, map[string]any{"quantity": 5})
 		assertStatus(t, rec, http.StatusOK)
 
-		var qty int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT quantity FROM cart_product WHERE id = $1", cartProductID).Scan(&qty)
-		if err != nil {
-			t.Fatalf("query updated quantity: %v", err)
-		}
+		verifyRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
+		assertStatus(t, verifyRec, http.StatusOK)
+		verifyBody := decodeJSON(t, verifyRec)
+		verifyItems := asSlice(t, verifyBody["items"])
+		qty := asInt(t, asMap(t, verifyItems[0])["quantity"])
 		if qty != 5 {
 			t.Fatalf("expected quantity 5, got %d", qty)
 		}
@@ -814,39 +810,29 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("remove_cart_item", func(t *testing.T) {
 		sessionID := fmt.Sprintf("remove-item-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        2,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
-		var cartID int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&cartID)
-		if err != nil {
-			t.Fatalf("get cart id: %v", err)
-		}
-
-		var cartProductID int
-		err = h.pool.QueryRow(context.Background(),
-			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
-			 VALUES ($1, 2, '{}', $2) RETURNING id`,
-			productID, cartID).Scan(&cartProductID)
-		if err != nil {
-			t.Fatalf("add product to cart: %v", err)
-		}
+		viewRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
+		assertStatus(t, viewRec, http.StatusOK)
+		viewBody := decodeJSON(t, viewRec)
+		cartItems := asSlice(t, viewBody["items"])
+		removeItemID := asInt(t, asMap(t, cartItems[0])["id"])
 
 		rec := h.doRequest(t, http.MethodDelete,
-			fmt.Sprintf("/carrinho/remover/%d?session_id=%s", cartProductID, sessionID),
+			fmt.Sprintf("/carrinho/remover/%d?session_id=%s", removeItemID, sessionID),
 			nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
-		var count int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT COUNT(*) FROM cart_product WHERE id = $1", cartProductID).Scan(&count)
-		if err != nil {
-			t.Fatalf("query removed item: %v", err)
-		}
+		verifyRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
+		assertStatus(t, verifyRec, http.StatusOK)
+		verifyBody := decodeJSON(t, verifyRec)
+		count := asInt(t, verifyBody["item_count"])
 		if count != 0 {
 			t.Fatal("expected cart item to be removed")
 		}
@@ -1103,26 +1089,13 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("checkout_confirm", func(t *testing.T) {
 		sessionID := fmt.Sprintf("checkout-test-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
-
-		var cartID int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&cartID)
-		if err != nil {
-			t.Fatalf("get cart id: %v", err)
-		}
-
-		_, err = h.pool.Exec(context.Background(),
-			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
-			 VALUES ($1, 1, '{}', $2)`,
-			productID, cartID)
-		if err != nil {
-			t.Fatalf("add product to cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
@@ -1189,18 +1162,22 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("checkout_confirm_empty_cart", func(t *testing.T) {
 		sessionID := fmt.Sprintf("empty-checkout-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create empty cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
-		var emptyCartID int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&emptyCartID)
-		if err != nil {
-			t.Fatalf("get empty cart id: %v", err)
-		}
+		viewRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
+		assertStatus(t, viewRec, http.StatusOK)
+		viewBody := decodeJSON(t, viewRec)
+		emptyItems := asSlice(t, viewBody["items"])
+		emptyItemID := asInt(t, asMap(t, emptyItems[0])["id"])
+
+		delRec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/carrinho/remover/%d?session_id=%s", emptyItemID, sessionID), nil, "", nil)
+		assertStatus(t, delRec, http.StatusOK)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
@@ -1219,26 +1196,13 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("checkout_confirm_insufficient_stock", func(t *testing.T) {
 		sessionID := fmt.Sprintf("overstock-checkout-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
-
-		var overCartID int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&overCartID)
-		if err != nil {
-			t.Fatalf("get cart id: %v", err)
-		}
-
-		_, err = h.pool.Exec(context.Background(),
-			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
-			 VALUES ($1, 999, '{}', $2)`,
-			productID, overCartID)
-		if err != nil {
-			t.Fatalf("add product to cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        999,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
@@ -1257,26 +1221,13 @@ func TestAPIRequestsImplemented(t *testing.T) {
 	t.Run("checkout_confirm_product_not_in_consignment", func(t *testing.T) {
 		sessionID := fmt.Sprintf("wrong-consignment-%d", runID)
 
-		_, err := h.pool.Exec(context.Background(),
-			"INSERT INTO carts (session_id) VALUES ($1)", sessionID)
-		if err != nil {
-			t.Fatalf("create cart: %v", err)
-		}
-
-		var wrongCartID int
-		err = h.pool.QueryRow(context.Background(),
-			"SELECT id FROM carts WHERE session_id = $1", sessionID).Scan(&wrongCartID)
-		if err != nil {
-			t.Fatalf("get cart id: %v", err)
-		}
-
-		_, err = h.pool.Exec(context.Background(),
-			`INSERT INTO cart_product (product_id, quantity, personalizations, cart_id)
-			 VALUES ($1, 1, '{}', $2)`,
-			productID, wrongCartID)
-		if err != nil {
-			t.Fatalf("add product to cart: %v", err)
-		}
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
