@@ -91,7 +91,7 @@ partition "Checkout Confirmation — /checkouts" {
 
   if (session_id present?) then (yes)
   else (no)
-    #pink:Abort: "session_id is required";
+    :Abort: "session_id is required"; <<#pink>>
     detach
   endif
 
@@ -110,14 +110,14 @@ partition "Checkout Confirmation — /checkouts" {
 
   if (Request body valid?) then (yes)
   else (no)
-    #pink:Abort: field validation errors;
+    :Abort: field validation errors; <<#pink>>
     detach
   endif
 
   :BEGIN TRANSACTION;
 
   if (Idempotency: checkout exists\nfor session_id +\nexternal_reference?) then (yes)
-    #palegreen:Return existing unique_id;
+    :Return existing unique_id; <<#palegreen>>
 
     note left
       **Response (200)**
@@ -137,8 +137,8 @@ partition "Checkout Confirmation — /checkouts" {
     if (Cart has items?) then (yes)
       :For each item in request:
 
-      #lightblue:Query package_reserved stock\nper (product_id, consignment_id);
-      #lightblue:Check available ≥ quantity;
+      :Query package_reserved stock\nper (product_id, consignment_id); <<#lightblue>>
+      :Check available ≥ quantity; <<#lightblue>>
 
       if (Stock sufficient for all?) then (yes)
         :Parse value_paid → decimal;
@@ -148,7 +148,7 @@ partition "Checkout Confirmation — /checkouts" {
 
         :Finish cart:\nUPDATE carts SET session_id =\n'FINISHED-{external_reference}';
 
-        #palegreen:COMMIT;
+        :COMMIT;<<#palegreen>>
 
         note left
           **Response (200)**
@@ -159,15 +159,15 @@ partition "Checkout Confirmation — /checkouts" {
         end note
 
       else (no)
-        #pink:ROLLBACK;\nInsufficient stock (409);
+        :ROLLBACK;\nInsufficient stock (409);<<#pink>>
         detach
       endif
     else (no)
-      #pink:ROLLBACK;\nCart empty (422);
+      :ROLLBACK;\nCart empty (422);<<#pink>>
       detach
     endif
   else (no)
-    #pink:ROLLBACK;\nCart not found (404);
+    :ROLLBACK;\nCart not found (404);<<#pink>>
     detach
   endif
 }
