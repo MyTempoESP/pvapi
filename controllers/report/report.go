@@ -73,7 +73,12 @@ func CreateHandler(
 
 		user := authmodel.GetUserFromContext(c)
 
-		err = validateScope(c, pool, user, request.Scope, request.OrderID)
+		// TODO: frontend sends occurrenceScope="shipment" instead of "consignment"
+		if request.Scope == "shipment" {
+			request.Scope = "consignment"
+		}
+
+		err = validateScope(c, pool, user, request.Scope, int(request.OrderID))
 		if err != nil {
 			util.HandleBadRequest(c, err)
 			return
