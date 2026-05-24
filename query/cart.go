@@ -97,14 +97,14 @@ WHERE cart_id = $1
 
 	RemoveCartProductQuery = `
 DELETE FROM cart_product
-JOIN carts c ON c.id = cart_id
-WHERE id = $1 AND c.session_id = $2
+USING carts c
+WHERE cart_product.id = $1 AND c.id = cart_product.cart_id AND c.session_id = $2
 `
 
 	GetCartItemProductID = `
 SELECT product_id FROM cart_product
-JOIN carts c ON c.id = cart_id
-WHERE id = $1 AND c.session_id = $2
+JOIN carts c ON c.id = cart_product.cart_id
+WHERE cart_product.id = $1 AND c.session_id = $2
 `
 
 	ListCartConsignmentOptions = `

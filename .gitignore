@@ -9,3 +9,5 @@ ide_unstable.just
 vendor/
 tmux.just
 .aider*
+*.png
+*.jpg
