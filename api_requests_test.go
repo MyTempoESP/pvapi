@@ -761,14 +761,13 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
-	t.Run("add_product_fails_invalid_product_id", func(t *testing.T) {
+	t.Run("add_product_fails_missing_product_id", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-			"product_id":      0,
 			"quantity":        1,
 			"session_id":      fmt.Sprintf("no-product-%d", runID),
 			"personalization": map[string]any{},
 		})
-		assertStatus(t, rec, http.StatusInternalServerError)
+		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
 	t.Run("update_cart_item_quantity", func(t *testing.T) {
