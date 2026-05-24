@@ -983,6 +983,9 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		if asInt(t, report["id"]) != reportID {
 			t.Fatalf("expected report id %d, got body %s", reportID, rec.Body.String())
 		}
+		if asString(t, report["customerName"]) != consigneeName {
+			t.Fatalf("expected customerName %q, got %v", consigneeName, report["customerName"])
+		}
 	})
 
 	t.Run("consignee_view_product_report", func(t *testing.T) {
@@ -993,6 +996,9 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		report := asMap(t, body["report"])
 		if asInt(t, report["id"]) != reportID {
 			t.Fatalf("expected report id %d, got body %s", reportID, rec.Body.String())
+		}
+		if asString(t, report["customerName"]) != consigneeName {
+			t.Fatalf("expected customerName %q, got %v", consigneeName, report["customerName"])
 		}
 	})
 

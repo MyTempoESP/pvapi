@@ -17,7 +17,8 @@ type Report struct {
 	ID            int       `db:"id"`
 	Description   string    `db:"description"`
 	Moment        string    `db:"moment"`
-	Monitor       string    `db:"consignee_id"`
+	ConsigneeID   int       `db:"consignee_id"`
+	ConsigneeName string    `db:"consignee_name"`
 	Scope         string    `db:"scope"`
 	ConsignmentID *int      `db:"consignment_id"`
 	ProductID     *int      `db:"product_id"`
