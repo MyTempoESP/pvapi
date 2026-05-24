@@ -60,6 +60,7 @@ func ConfirmHandler(
 			"message":   "checkout confirmed",
 			"unique_id": resp.UniqueID,
 			"status":    resp.Status,
+			"qr_code":   resp.QrCode,
 		})
 	}
 }
