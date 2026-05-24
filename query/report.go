@@ -36,34 +36,38 @@ RETURNING id
 `
 
 	ListAllReportsQuery = `
-SELECT
-    *
-FROM reports
+SELECT r.*, u.name AS consignee_name
+FROM reports r
+LEFT JOIN consignees c ON r.consignee_id = c.id
+LEFT JOIN users u ON c.user_id = u.id
 `
 
 	ListAllReportsByShopQuery = `
-SELECT r.*
+SELECT r.*, u.name AS consignee_name
 FROM shops s
 JOIN reports r ON
 	(r.consignment_id IN (SELECT c.id FROM consignments c WHERE c.shop_id = s.id))
 	OR
 	(r.product_id IN (SELECT p.id FROM products p WHERE p.shop_id = s.id))
+LEFT JOIN consignees co ON r.consignee_id = co.id
+LEFT JOIN users u ON co.user_id = u.id
 WHERE s.id = $1
 `
 
 	ListAllReportsByConsigneeQuery = `
-SELECT
-    r.*
+SELECT r.*, u.name AS consignee_name
 FROM consignees c
 JOIN reports r ON r.consignee_id = c.id
+LEFT JOIN users u ON c.user_id = u.id
 WHERE c.id = $1
 `
 
 	FindReportQuery = `
-SELECT
-    *
-FROM reports
-WHERE id = $1
+SELECT r.*, u.name AS consignee_name
+FROM reports r
+LEFT JOIN consignees c ON r.consignee_id = c.id
+LEFT JOIN users u ON c.user_id = u.id
+WHERE r.id = $1
 `
 
 	CreateProductReportQuery = `

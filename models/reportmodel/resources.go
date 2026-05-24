@@ -43,7 +43,7 @@ func (r Report) ToResource() ReportResource {
 		ID:          r.ID,
 		Description: r.Description,
 		Moment:      r.Moment,
-		Monitor:     r.Monitor,
+		Monitor:     r.ConsigneeName,
 		Scope:       r.Scope,
 		OrderID:     orderID,
 		Priority:    r.Priority,
