@@ -147,7 +147,7 @@ func PackageOptionsHandler(
 			return
 		}
 
-		rows, err := cartmodel.FindPackageOptions(
+		result, err := cartmodel.FindPackageOptions(
 			c.Request.Context(), pool,
 			sessionID,
 		)
@@ -157,11 +157,9 @@ func PackageOptionsHandler(
 			return
 		}
 
-		grouped := cartmodel.GroupByProduct(rows)
-
 		util.WrapLabeled(
 			c, "opções de pacote listadas com sucesso",
-			"products", grouped,
+			"products", result,
 		)
 	}
 }

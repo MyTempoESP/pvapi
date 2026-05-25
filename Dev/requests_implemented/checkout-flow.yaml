@@ -1,0 +1,446 @@
+openapi: "3.0.3"
+info:
+  title: PvAuto — Checkout Flow
+  version: "1.0.0"
+  description: |
+    Session-based cart-to-checkout flow for pvauto.linhazero.com.
+    Obtain a `session_id` (opaque string) from the client and use it
+    across `/carrinho` and `/checkouts` calls.
+servers:
+  - url: https://pvauto.linhazero.com
+    description: Produção
+tags:
+  - name: Carrinho
+  - name: Consignments
+  - name: Checkout
+paths:
+  /carrinho/adicionar:
+    post:
+      tags: [Carrinho]
+      summary: Adiciona produto ao carrinho
+      description: >
+        Cria ou reutiliza um carrinho ativo para `session_id`.
+        Carrinhos finalizados (session prefix `FINISHED-`) são ignorados.
+      operationId: addToCart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddToCartRequest"
+      responses:
+        "200":
+          description: Produto adicionado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /carrinho/dados:
+    get:
+      tags: [Carrinho]
+      summary: Visualiza carrinho
+      operationId: viewCart
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dados do carrinho com itens e totais
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartDetailsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /carrinho/remessas:
+    get:
+      tags: [Consignments]
+      summary: Lista opções de remessa para os itens do carrinho
+      description: >
+        Retorna, agrupado por produto, as remessas disponíveis com
+        preço, estoque e ponto de retirada. Produtos sem remessa
+        aparecem com `consignments: []`.
+      operationId: getConsignmentOptions
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Opções de remessa agrupadas por produto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsignmentOptionsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /carrinho/remover/{item}:
+    delete:
+      tags: [Carrinho]
+      summary: Remove item do carrinho
+      operationId: removeCartItem
+      parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item removido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /carrinho/atualizar/{item}:
+    put:
+      tags: [Carrinho]
+      summary: Altera quantidade de item no carrinho
+      operationId: updateCartItemQuantity
+      parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        "200":
+          description: Quantidade alterada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /checkouts/confirm:
+    post:
+      tags: [Checkout]
+      summary: Confirma checkout do carrinho
+      description: >
+        Finaliza o carrinho, reserva estoque e gera QR code para retirada.
+        Idempotente — mesma combinação `(session_id, external_reference)`
+        retorna o `unique_id` original sem duplicar a transação.
+      operationId: confirmCheckout
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmCheckoutRequest"
+      responses:
+        "200":
+          description: Checkout confirmado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmCheckoutResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Carrinho não encontrado ou já finalizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Estoque insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Carrinho vazio ou produto fora de remessa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    # ── Generic ──────────────────────────────────────────────
+    OkResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+    # ── Address ──────────────────────────────────────────────
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        cep:
+          type: string
+        complement:
+          type: string
+
+    # ── Cart ─────────────────────────────────────────────────
+    AddToCartRequest:
+      type: object
+      required: [product_id, quantity, session_id]
+      properties:
+        product_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+        personalization:
+          type: object
+          additionalProperties: true
+          default: {}
+        session_id:
+          type: string
+      example:
+        product_id: 1
+        quantity: 1
+        personalization: {}
+        session_id: "temp_abc123"
+
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        shop_id:
+          type: integer
+        product_name:
+          type: string
+        product_image:
+          type: string
+        shop_name:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+        discount:
+          type: number
+        subtotal:
+          type: number
+        price_with_discount:
+          type: number
+        subtotal_with_discount:
+          type: number
+
+    CartDetailsResponse:
+      type: object
+      required:
+        - success
+        - message
+        - items
+        - total
+        - item_count
+        - total_with_discount
+        - total_discount
+        - session_id
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        total:
+          type: number
+        item_count:
+          type: integer
+        total_with_discount:
+          type: number
+        total_discount:
+          type: number
+        session_id:
+          type: string
+
+    # ── Consignment options ──────────────────────────────────
+    PickupResource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        date:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/Address"
+
+    ConsignmentOption:
+      type: object
+      properties:
+        consignment_id:
+          type: integer
+        price_in_consignment:
+          type: string
+        discount:
+          type: string
+        consignment_stock:
+          type: integer
+        pickup:
+          $ref: "#/components/schemas/PickupResource"
+
+    ProductConsignmentOptions:
+      type: object
+      properties:
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        consignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsignmentOption"
+
+    ConsignmentOptionsResponse:
+      type: object
+      required: [success, message, products]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductConsignmentOptions"
+
+    # ── Checkout ─────────────────────────────────────────────
+    ConfirmCheckoutItem:
+      type: object
+      required: [product_id, consignment_id, quantity]
+      properties:
+        product_id:
+          type: integer
+          minimum: 1
+        consignment_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          minimum: 1
+
+    ConfirmCheckoutRequest:
+      type: object
+      required: [value_paid, external_reference, items]
+      properties:
+        value_paid:
+          type: string
+          description: Valor pago como string decimal
+        external_reference:
+          type: string
+          description: Referência externa única (chave de idempotência)
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ConfirmCheckoutItem"
+      example:
+        value_paid: "600"
+        external_reference: "pay_abc123"
+        items:
+          - product_id: 1
+            consignment_id: 2
+            quantity: 1
+
+    ConfirmCheckoutResponse:
+      type: object
+      required: [success, message, unique_id, status]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        unique_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: paid
+        qr_code:
+          type: string
+          description: QR code em data URI (PNG base64)
+
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
