@@ -175,35 +175,46 @@ func validateStock(
 	packageMap := make(map[int]int) // product_id -> package_id
 
 	for _, item := range items {
-		stock, err := util.WithCollectExactlyOneRow[PackageStock](
+		// TODO: duplicate packages for the same (product, consignment)
+		// is a known data bug. As a workaround, pick the package
+		// with the most available stock.
+		candidates, err := util.WithCollect[PackageStock](
 			ctx, tx,
 			query.CheckPackageAvailabilityQuery,
 			item.ProductID,
 			item.ConsignmentID,
 		)
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, fmt.Errorf(
-					"%w: product %d in consignment %d",
-					ErrProductNotInConsignment,
-					item.ProductID,
-					item.ConsignmentID,
-				)
-			}
 			return nil, fmt.Errorf("failed to check stock: %w", err)
 		}
 
-		if stock.Available < item.Quantity {
+		if len(candidates) == 0 {
+			return nil, fmt.Errorf(
+				"%w: product %d in consignment %d",
+				ErrProductNotInConsignment,
+				item.ProductID,
+				item.ConsignmentID,
+			)
+		}
+
+		best := candidates[0]
+		for i := 1; i < len(candidates); i++ {
+			if candidates[i].Available > best.Available {
+				best = candidates[i]
+			}
+		}
+
+		if best.Available < item.Quantity {
 			return nil, fmt.Errorf(
 				"%w: product %d (need %d, have %d)",
 				ErrInsufficientStock,
 				item.ProductID,
 				item.Quantity,
-				stock.Available,
+				best.Available,
 			)
 		}
 
-		packageMap[item.ProductID] = stock.PackageID
+		packageMap[item.ProductID] = best.PackageID
 	}
 
 	return packageMap, nil

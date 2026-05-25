@@ -1243,6 +1243,78 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusUnprocessableEntity)
 	})
 
+	t.Run("checkout_confirm_duplicate_packages_picks_most_stock", func(t *testing.T) {
+		dupConsignment := h.doJSON(t, http.MethodPost, "/remessas", &shopSession, map[string]any{
+			"destinationId": pickupID,
+			"monitorId":     consigneeID,
+			"status":        "RASCUNHO",
+			"monitorProfit": 3,
+		})
+		assertStatus(t, dupConsignment, http.StatusOK)
+		dupConsignmentID := asInt(t, decodeJSON(t, dupConsignment)["id"])
+
+		addSmall := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/remessas/%d/produtos", dupConsignmentID),
+			&shopSession, map[string]any{
+				"products": []map[string]any{{
+					"productId":   productID,
+					"productName": updatedProductName,
+					"quantity":    2,
+					"price":       3,
+					"color":       "#000000",
+					"description": "produto",
+					"category":    "n/a",
+					"discount":    0,
+					"featured":    false,
+				}},
+			})
+		assertStatus(t, addSmall, http.StatusOK)
+
+		addLarge := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/remessas/%d/produtos", dupConsignmentID),
+			&shopSession, map[string]any{
+				"products": []map[string]any{{
+					"productId":   productID,
+					"productName": updatedProductName,
+					"quantity":    5,
+					"price":       3,
+					"color":       "#000000",
+					"description": "produto",
+					"category":    "n/a",
+					"discount":    0,
+					"featured":    false,
+				}},
+			})
+		assertStatus(t, addLarge, http.StatusOK)
+
+		sessionID := fmt.Sprintf("dup-pkg-checkout-%d", runID)
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        4,
+			"session_id":      sessionID,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
+
+		rec := h.doJSON(t, http.MethodPost,
+			"/checkouts/confirm?session_id="+sessionID,
+			nil, map[string]any{
+				"value_paid":         "12.00",
+				"external_reference": fmt.Sprintf("EXT-REF-DUP-%d", runID),
+				"items": []map[string]any{{
+					"product_id":     productID,
+					"consignment_id": dupConsignmentID,
+					"quantity":       4,
+				}},
+			})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		if asString(t, body["status"]) != "paid" {
+			t.Fatalf("expected status 'paid', got %v", body["status"])
+		}
+	})
+
 	t.Run("list_clients", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/clientes", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
