@@ -20,7 +20,7 @@ func (s *ShopGate) Dispatch(
 		if r.EndPoint("/checkouts") {
 			return s.Checkouts(u, r)
 		}
-		if r.EndPoint("/saques") {
+		if r.EndPoint("/saques") || r.EndPoint("/saques/:saque") {
 			return s.Saques(u, r)
 		}
 		if id == "" {
@@ -37,10 +37,16 @@ func (s *ShopGate) Dispatch(
 	}
 
 	if r.Method == "PUT" {
+		if r.EndPoint("/saques/:saque") {
+			return s.Saques(u, r)
+		}
 		return s.Modify(u, r)
 	}
 
 	if r.Method == "DELETE" {
+		if r.EndPoint("/saques/:saque") {
+			return s.Saques(u, r)
+		}
 		return s.Delete(u, r)
 	}
 

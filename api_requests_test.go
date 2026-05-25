@@ -1393,6 +1393,117 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", nil, "", nil)
 		assertStatus(t, rec, http.StatusUnauthorized)
 	})
+
+	t.Run("view_saque", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		saqueID := asInt(t, asMap(t, saques[0])["id"])
+
+		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body = decodeJSON(t, rec)
+		saque := asMap(t, body["saque"])
+		if asString(t, saque["description"]) != "Saque de teste" {
+			t.Fatalf("expected description 'Saque de teste', got %q", asString(t, saque["description"]))
+		}
+		if asString(t, saque["status"]) != "pending" {
+			t.Fatalf("expected status 'pending', got %q", asString(t, saque["status"]))
+		}
+	})
+
+	t.Run("view_saque_unauthorized", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		saqueID := asInt(t, asMap(t, saques[0])["id"])
+
+		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), nil, "", nil)
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("view_saque_not_found", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques/99999", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusNotFound)
+	})
+
+	t.Run("update_saque_status", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		saqueID := asInt(t, asMap(t, saques[0])["id"])
+
+		rec = h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), &shopSession, map[string]any{
+			"status": "approved",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		saque := asMap(t, body["saque"])
+		if asString(t, saque["status"]) != "approved" {
+			t.Fatalf("expected status 'approved', got %q", asString(t, saque["status"]))
+		}
+	})
+
+	t.Run("update_saque_status_unauthorized", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		saqueID := asInt(t, asMap(t, saques[0])["id"])
+
+		rec = h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), nil, map[string]any{
+			"status": "cancelled",
+		})
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("update_saque_status_invalid", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPut, "/estabelecimentos/saques/1", &shopSession, map[string]any{
+			"status": "invalid",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("delete_saque", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		saqueID := asInt(t, asMap(t, saques[0])["id"])
+
+		rec = h.doRequest(t, http.MethodDelete, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		rec = h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusNotFound)
+	})
+
+	t.Run("delete_saque_unauthorized", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", &shopSession, map[string]any{
+			"description": "saque para deletar",
+			"asked_value": "50.00",
+			"bank_name":   "Inter",
+		})
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saqueID := asInt(t, asMap(t, body["saque"])["id"])
+
+		rec = h.doRequest(t, http.MethodDelete, fmt.Sprintf("/estabelecimentos/saques/%d", saqueID), nil, "", nil)
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("delete_saque_not_found", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodDelete, "/estabelecimentos/saques/99999", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+	})
 }
 
 func newAPIHarness(t *testing.T) *apiHarness {
