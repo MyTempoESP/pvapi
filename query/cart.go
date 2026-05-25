@@ -124,13 +124,13 @@ SELECT
 	pl.name AS pickup_name,
 	pl.pickup_at AS pickup_date,
 
-	a.addrstreet,
-	a.addrnumber,
-	a.addrcity,
-	a.addrstate,
-	a.addrcep,
-	a.addrneigh,
-	a.addrcomplement
+	COALESCE(a.addrstreet, '') AS addrstreet,
+	COALESCE(a.addrnumber::text, '') AS addrnumber,
+	COALESCE(a.addrcity, '')    AS addrcity,
+	COALESCE(a.addrstate, '')   AS addrstate,
+	COALESCE(a.addrcep, '')     AS addrcep,
+	COALESCE(a.addrneigh, '')   AS addrneigh,
+	COALESCE(a.addrcomplement, '') AS addrcomplement
 FROM cart_product cp
 JOIN carts cart ON cart.id = cp.cart_id
 JOIN products p ON p.id = cp.product_id
