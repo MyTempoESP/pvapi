@@ -24,12 +24,12 @@ SKILL_DIR="$(dirname "$(readlink -f "$0")")"
 "$SKILL_DIR/scripts/checkout.sh"
 ```
 
-**Default behavior**: uses product ID `1`, quantity `1`, auto-selects the first available package, and generates a unique session ID.
+**Default behavior**: uses product ID `1`, quantity `1`, auto-selects the first package with stock > 0 (displays all packages with stock info), and generates a unique session ID.
 
 **Custom options**:
 
 ```bash
-"$SKILL_DIR/scripts/checkout.sh" --product-id 1 --quantity 2 --base-url https://pvauto.linhazero.com
+"$SKILL_DIR/scripts/checkout.sh" --product-id 1 --quantity 2 --package-id 4 --base-url https://pvauto.linhazero.com
 ```
 
 **Parameters:**
@@ -38,9 +38,10 @@ SKILL_DIR="$(dirname "$(readlink -f "$0")")"
 |------|---------|-------------|
 | `--product-id` | `1` | Product ID to add to cart |
 | `--quantity` | `1` | Quantity to add |
+| `--package-id` | auto (first in-stock) | Specific package ID to use for checkout |
 | `--base-url` | `https://pvauto.linhazero.com` | API base URL |
 | `--session-id` | auto-generated | Cart session identifier |
-| `--value-paid` | derived from package | Amount paid (auto-derived from first package price × quantity) |
+| `--value-paid` | derived from package | Amount paid (auto-derived from package price × quantity) |
 | `--external-ref` | auto-generated | External payment reference |
 
 ### 3. Manual Steps (Step by Step)
