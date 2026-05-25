@@ -86,9 +86,9 @@ worker: test-db go
 
 
 [group('target')]
-@go *flags="-v":
+@go *flags="-v .":
 	printf "{{BOLD + WHITE}}go test {{flags}} .{{NORMAL}}\n"
-	go test {{flags}} ..
+	cd .. && go test {{flags}}
 
 
 [group('util')]
