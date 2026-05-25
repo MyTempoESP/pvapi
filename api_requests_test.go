@@ -610,7 +610,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				{
 					"productId":   productID,
 					"productName": updatedProductName,
-					"quantity":    1,
+					"quantity":    2,
 					"price":       3,
 					"color":       "#000000",
 					"description": "produto atualizado",
@@ -1236,6 +1236,70 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			},
 		})
 		assertStatus(t, rec, http.StatusUnprocessableEntity)
+	})
+
+	t.Run("checkout_reserved_reflected_in_package_options", func(t *testing.T) {
+		preSession := fmt.Sprintf("pre-checkout-pkg-stock-%d", runID)
+
+		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      preSession,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec, http.StatusOK)
+
+		optsRec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/carrinho/pacotes?session_id=%s", preSession),
+			nil, "", nil)
+		assertStatus(t, optsRec, http.StatusOK)
+
+		optsBody := decodeJSON(t, optsRec)
+		preStock := asInt(t, asMap(t, asSlice(t, asMap(t, asSlice(t, optsBody["products"])[0])["packages"])[0])["stock"])
+
+		checkoutSession := fmt.Sprintf("pkg-stock-checkout-%d", runID)
+
+		addRec2 := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      checkoutSession,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec2, http.StatusOK)
+
+		chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+checkoutSession, nil, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-STOCK-%d", runID),
+			"items": []map[string]any{
+				{
+					"package_id": packageID,
+					"quantity":   1,
+				},
+			},
+		})
+		assertStatus(t, chkRec, http.StatusOK)
+
+		postSession := fmt.Sprintf("post-checkout-pkg-stock-%d", runID)
+
+		addRec3 := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+			"product_id":      productID,
+			"quantity":        1,
+			"session_id":      postSession,
+			"personalization": map[string]any{},
+		})
+		assertStatus(t, addRec3, http.StatusOK)
+
+		postOptsRec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/carrinho/pacotes?session_id=%s", postSession),
+			nil, "", nil)
+		assertStatus(t, postOptsRec, http.StatusOK)
+
+		postOptsBody := decodeJSON(t, postOptsRec)
+		postStock := asInt(t, asMap(t, asSlice(t, asMap(t, asSlice(t, postOptsBody["products"])[0])["packages"])[0])["stock"])
+
+		if postStock != preStock-1 {
+			t.Fatalf("expected package stock to decrease by 1 after checkout (pre=%d, post=%d)", preStock, postStock)
+		}
 	})
 
 	t.Run("list_clients", func(t *testing.T) {
