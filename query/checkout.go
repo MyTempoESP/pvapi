@@ -46,14 +46,6 @@ WHERE carts.session_id IN ($1, 'FINISHED-' || $2)
 
 	CheckPackageAvailabilityQuery = `
 SELECT
-	pkg.id AS package_id,
-	pkg.quantity AS total_allocated,
-	COALESCE(
-		(SELECT SUM(pr.quantity)
-		 FROM package_reserved pr
-		 WHERE pr.package_id = pkg.id),
-		0
-	) AS already_reserved,
 	pkg.quantity - COALESCE(
 		(SELECT SUM(pr.quantity)
 		 FROM package_reserved pr
@@ -61,8 +53,7 @@ SELECT
 		0
 	) AS available
 FROM packages pkg
-WHERE pkg.product_id = $1
-  AND pkg.consignment_id = $2
+WHERE pkg.id = $1
 FOR UPDATE OF pkg
 `
 
