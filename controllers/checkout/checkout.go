@@ -39,7 +39,7 @@ func ConfirmHandler(
 			case errors.Is(err, checkoutmodel.ErrCartNotFound):
 				util.Handle404(c, err)
 			case errors.Is(err, checkoutmodel.ErrCartEmpty),
-				errors.Is(err, checkoutmodel.ErrProductNotInConsignment):
+				errors.Is(err, checkoutmodel.ErrPackageNotFound):
 				c.AbortWithStatusJSON(422, gin.H{
 					"success": false,
 					"message": err.Error(),

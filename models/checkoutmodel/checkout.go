@@ -15,9 +15,8 @@ import (
 )
 
 type ConfirmItem struct {
-	ProductID     int `json:"product_id" binding:"required"`
-	ConsignmentID int `json:"consignment_id" binding:"required"`
-	Quantity      int `json:"quantity" binding:"required,min=1"`
+	PackageID int `json:"package_id" binding:"required"`
+	Quantity  int `json:"quantity" binding:"required,min=1"`
 }
 
 type ConfirmRequest struct {
@@ -27,10 +26,7 @@ type ConfirmRequest struct {
 }
 
 type PackageStock struct {
-	PackageID       int `db:"package_id"`
-	TotalAllocated  int `db:"total_allocated"`
-	AlreadyReserved int `db:"already_reserved"`
-	Available       int `db:"available"`
+	Available int `db:"available"`
 }
 
 type ConfirmResponse struct {
@@ -42,7 +38,7 @@ type ConfirmResponse struct {
 var (
 	ErrCartNotFound      = errors.New("cart not found or already checked out")
 	ErrCartEmpty         = errors.New("cart has no items")
-	ErrProductNotInConsignment = errors.New("product not available in consignment")
+	ErrPackageNotFound   = errors.New("package not found")
 	ErrInsufficientStock = errors.New("insufficient stock")
 )
 
@@ -75,8 +71,7 @@ func Confirm(
 		return resp, err
 	}
 
-	packageMap, err := validateStock(ctx, tx, req.Items)
-	if err != nil {
+	if err := validateStock(ctx, tx, req.Items); err != nil {
 		return resp, err
 	}
 
@@ -85,7 +80,6 @@ func Confirm(
 		return resp, fmt.Errorf("invalid value_paid: %w", err)
 	}
 
-	// Persist checkout, reservations and finish cart
 	uniqueID, err = writeCheckout(
 		ctx, tx,
 		cartID,
@@ -94,7 +88,6 @@ func Confirm(
 		value,
 		itemCount,
 		req.Items,
-		packageMap,
 	)
 	if err != nil {
 		return resp, err
@@ -171,53 +164,33 @@ func validateStock(
 	ctx context.Context,
 	tx pgx.Tx,
 	items []ConfirmItem,
-) (map[int]int, error) {
-	packageMap := make(map[int]int) // product_id -> package_id
-
+) error {
 	for _, item := range items {
-		// TODO: duplicate packages for the same (product, consignment)
-		// is a known data bug. As a workaround, pick the package
-		// with the most available stock.
-		candidates, err := util.WithCollect[PackageStock](
+		result, err := util.WithCollectExactlyOneRow[PackageStock](
 			ctx, tx,
 			query.CheckPackageAvailabilityQuery,
-			item.ProductID,
-			item.ConsignmentID,
+			item.PackageID,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check stock: %w", err)
-		}
-
-		if len(candidates) == 0 {
-			return nil, fmt.Errorf(
-				"%w: product %d in consignment %d",
-				ErrProductNotInConsignment,
-				item.ProductID,
-				item.ConsignmentID,
+			return fmt.Errorf(
+				"%w: package %d",
+				ErrPackageNotFound,
+				item.PackageID,
 			)
 		}
 
-		best := candidates[0]
-		for i := 1; i < len(candidates); i++ {
-			if candidates[i].Available > best.Available {
-				best = candidates[i]
-			}
-		}
-
-		if best.Available < item.Quantity {
-			return nil, fmt.Errorf(
-				"%w: product %d (need %d, have %d)",
+		if result.Available < item.Quantity {
+			return fmt.Errorf(
+				"%w: package %d (need %d, have %d)",
 				ErrInsufficientStock,
-				item.ProductID,
+				item.PackageID,
 				item.Quantity,
-				best.Available,
+				result.Available,
 			)
 		}
-
-		packageMap[item.ProductID] = best.PackageID
 	}
 
-	return packageMap, nil
+	return nil
 }
 
 func writeCheckout(
@@ -228,7 +201,6 @@ func writeCheckout(
 	value decimal.Decimal,
 	itemCount int,
 	items []ConfirmItem,
-	packageMap map[int]int,
 ) (string, error) {
 	description := fmt.Sprintf(
 		"Checkout for session %s — %d items",
@@ -265,7 +237,7 @@ func writeCheckout(
 	for _, item := range items {
 		batch.Queue(
 			query.InsertPackageReservedQuery,
-			packageMap[item.ProductID],
+			item.PackageID,
 			checkoutID,
 			item.Quantity,
 		)

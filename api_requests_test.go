@@ -1062,15 +1062,16 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 	})
 
+	packageID := getPackageID(t, h, productID, runID)
+
 	t.Run("checkout_confirm_missing_session", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-NOSESSION-%d", runID),
 			"items": []map[string]any{
 				{
-					"product_id":     productID,
-					"consignment_id": consignmentID,
-					"quantity":       1,
+					"package_id": packageID,
+					"quantity":   1,
 				},
 			},
 		})
@@ -1102,9 +1103,8 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
 			"items": []map[string]any{
 				{
-					"product_id":     productID,
-					"consignment_id": consignmentID,
-					"quantity":       1,
+					"package_id": packageID,
+					"quantity":   1,
 				},
 			},
 		})
@@ -1129,9 +1129,8 @@ func TestAPIRequestsImplemented(t *testing.T) {
 				"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
 				"items": []map[string]any{
 					{
-						"product_id":     productID,
-						"consignment_id": consignmentID,
-						"quantity":       1,
+						"package_id": packageID,
+						"quantity":   1,
 					},
 				},
 			})
@@ -1150,9 +1149,8 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"external_reference": fmt.Sprintf("EXT-REF-INVALID-%d", runID),
 			"items": []map[string]any{
 				{
-					"product_id":     productID,
-					"consignment_id": consignmentID,
-					"quantity":       1,
+					"package_id": packageID,
+					"quantity":   1,
 				},
 			},
 		})
@@ -1184,9 +1182,8 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"external_reference": fmt.Sprintf("EXT-REF-EMPTY-%d", runID),
 			"items": []map[string]any{
 				{
-					"product_id":     productID,
-					"consignment_id": consignmentID,
-					"quantity":       1,
+					"package_id": packageID,
+					"quantity":   1,
 				},
 			},
 		})
@@ -1198,7 +1195,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 			"product_id":      productID,
-			"quantity":        999,
+			"quantity":        1,
 			"session_id":      sessionID,
 			"personalization": map[string]any{},
 		})
@@ -1209,17 +1206,16 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			"external_reference": fmt.Sprintf("EXT-REF-OVER-%d", runID),
 			"items": []map[string]any{
 				{
-					"product_id":     productID,
-					"consignment_id": consignmentID,
-					"quantity":       999,
+					"package_id": packageID,
+					"quantity":   999,
 				},
 			},
 		})
 		assertStatus(t, rec, http.StatusConflict)
 	})
 
-	t.Run("checkout_confirm_product_not_in_consignment", func(t *testing.T) {
-		sessionID := fmt.Sprintf("wrong-consignment-%d", runID)
+	t.Run("checkout_confirm_bad_package", func(t *testing.T) {
+		sessionID := fmt.Sprintf("bad-pkg-%d", runID)
 
 		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
 			"product_id":      productID,
@@ -1231,88 +1227,15 @@ func TestAPIRequestsImplemented(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-WRONG-%d", runID),
+			"external_reference": fmt.Sprintf("EXT-REF-BADPKG-%d", runID),
 			"items": []map[string]any{
 				{
-					"product_id":     productID,
-					"consignment_id": 99999,
-					"quantity":       1,
+					"package_id": 99999,
+					"quantity":   1,
 				},
 			},
 		})
 		assertStatus(t, rec, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("checkout_confirm_duplicate_packages_picks_most_stock", func(t *testing.T) {
-		dupConsignment := h.doJSON(t, http.MethodPost, "/remessas", &shopSession, map[string]any{
-			"destinationId": pickupID,
-			"monitorId":     consigneeID,
-			"status":        "RASCUNHO",
-			"monitorProfit": 3,
-		})
-		assertStatus(t, dupConsignment, http.StatusOK)
-		dupConsignmentID := asInt(t, decodeJSON(t, dupConsignment)["id"])
-
-		addSmall := h.doJSON(t, http.MethodPost,
-			fmt.Sprintf("/remessas/%d/produtos", dupConsignmentID),
-			&shopSession, map[string]any{
-				"products": []map[string]any{{
-					"productId":   productID,
-					"productName": updatedProductName,
-					"quantity":    2,
-					"price":       3,
-					"color":       "#000000",
-					"description": "produto",
-					"category":    "n/a",
-					"discount":    0,
-					"featured":    false,
-				}},
-			})
-		assertStatus(t, addSmall, http.StatusOK)
-
-		addLarge := h.doJSON(t, http.MethodPost,
-			fmt.Sprintf("/remessas/%d/produtos", dupConsignmentID),
-			&shopSession, map[string]any{
-				"products": []map[string]any{{
-					"productId":   productID,
-					"productName": updatedProductName,
-					"quantity":    5,
-					"price":       3,
-					"color":       "#000000",
-					"description": "produto",
-					"category":    "n/a",
-					"discount":    0,
-					"featured":    false,
-				}},
-			})
-		assertStatus(t, addLarge, http.StatusOK)
-
-		sessionID := fmt.Sprintf("dup-pkg-checkout-%d", runID)
-		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-			"product_id":      productID,
-			"quantity":        4,
-			"session_id":      sessionID,
-			"personalization": map[string]any{},
-		})
-		assertStatus(t, addRec, http.StatusOK)
-
-		rec := h.doJSON(t, http.MethodPost,
-			"/checkouts/confirm?session_id="+sessionID,
-			nil, map[string]any{
-				"value_paid":         "12.00",
-				"external_reference": fmt.Sprintf("EXT-REF-DUP-%d", runID),
-				"items": []map[string]any{{
-					"product_id":     productID,
-					"consignment_id": dupConsignmentID,
-					"quantity":       4,
-				}},
-			})
-		assertStatus(t, rec, http.StatusOK)
-
-		body := decodeJSON(t, rec)
-		if asString(t, body["status"]) != "paid" {
-			t.Fatalf("expected status 'paid', got %v", body["status"])
-		}
 	})
 
 	t.Run("list_clients", func(t *testing.T) {
@@ -1570,6 +1493,39 @@ func asInt(t *testing.T, value any) int {
 		t.Fatalf("expected number, got %T", value)
 		return 0
 	}
+}
+
+func getPackageID(t *testing.T, h *apiHarness, productID int, runID int64) int {
+	t.Helper()
+
+	sessionID := fmt.Sprintf("pkg-lookup-%d", runID)
+
+	addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
+		"product_id":      productID,
+		"quantity":        1,
+		"session_id":      sessionID,
+		"personalization": map[string]any{},
+	})
+	assertStatus(t, addRec, http.StatusOK)
+
+	optsRec := h.doRequest(t, http.MethodGet,
+		fmt.Sprintf("/carrinho/pacotes?session_id=%s", sessionID),
+		nil, "", nil)
+	assertStatus(t, optsRec, http.StatusOK)
+
+	body := decodeJSON(t, optsRec)
+	products := asSlice(t, body["products"])
+	if len(products) == 0 {
+		t.Fatal("no products in package options")
+	}
+
+	pkg := asMap(t, products[0])
+	packages := asSlice(t, pkg["packages"])
+	if len(packages) == 0 {
+		t.Fatal("no packages in options")
+	}
+
+	return asInt(t, asMap(t, packages[0])["package_id"])
 }
 
 func containsID(items []any, want int) bool {
