@@ -4,6 +4,7 @@ set -euo pipefail
 PRODUCT_ID=1
 QUANTITY=1
 BASE_URL="https://pvauto.linhazero.com"
+PACKAGE_ID=""
 
 usage() {
   cat <<EOF
@@ -12,6 +13,7 @@ Usage: $0 [options]
 Options:
   --product-id N      Product ID (default: $PRODUCT_ID)
   --quantity N        Quantity (default: $QUANTITY)
+  --package-id N      Specific package to use (default: auto-select first with stock > 0)
   --base-url URL      API base URL (default: $BASE_URL)
   --session-id ID     Cart session ID (default: auto-generated)
   --value-paid AMOUNT Override value_paid (default: derived from package price)
@@ -25,6 +27,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --product-id)   PRODUCT_ID="$2"; shift 2 ;;
     --quantity)     QUANTITY="$2"; shift 2 ;;
+    --package-id)   PACKAGE_ID="$2"; shift 2 ;;
     --base-url)     BASE_URL="$2"; shift 2 ;;
     --session-id)   SESSION_ID="$2"; shift 2 ;;
     --value-paid)   VALUE_PAID_OVERRIDE="$2"; shift 2 ;;
@@ -59,7 +62,7 @@ log "PKG"  "Fetching package options"
 
 PKG_RESP=$(curl -s "$BASE_URL/carrinho/pacotes?session_id=$SESSION_ID")
 
-PACKAGES=$(echo "$PKG_RESP" | python3 -c "
+ALL_PACKAGES=$(echo "$PKG_RESP" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 products = d.get('products', [])
@@ -68,24 +71,58 @@ if not products:
 pkgs = products[0].get('packages', [])
 if not pkgs:
     sys.exit(1)
-print(json.dumps(pkgs[0]))
+for p in pkgs:
+    print(f\"{p['package_id']}|{p['price']}|{p['stock']}|{p['pickup']['name']}\")
 ") || {
   echo "FAILED: no packages available:"
   dump "$PKG_RESP"
   exit 1
 }
 
-PACKAGE_ID=$(echo "$PACKAGES" | python3 -c "import sys,json; print(json.load(sys.stdin)['package_id'])")
-PACKAGE_PRICE=$(echo "$PACKAGES" | python3 -c "import sys,json; print(json.load(sys.stdin)['price'])")
-PICKUP_NAME=$(echo "$PACKAGES" | python3 -c "import sys,json; print(json.load(sys.stdin)['pickup']['name'])")
+# Display available packages
+echo ""
+echo "  Available packages for product #$PRODUCT_ID:"
+echo "  ┌────┬─────────┬───────┬──────────┐"
+echo "  │ ID │  Price   │ Stock │ Pickup   │"
+echo "  ├────┼─────────┼───────┼──────────┤"
+while IFS='|' read -r pid price stock pickup; do
+  printf "  │ %-2s │ R\$%5s │  %-4s │ %-8s │\n" "$pid" "$price" "$stock" "$pickup"
+done <<< "$ALL_PACKAGES"
+echo "  └────┴─────────┴───────┴──────────┘"
+echo ""
 
-log "OK"   "Package #$PACKAGE_ID — price: $PACKAGE_PRICE — pickup: $PICKUP_NAME"
+# Select package
+if [[ -n "$PACKAGE_ID" ]]; then
+  # User specified a package — validate it exists and has stock
+  SELECTED=$(echo "$ALL_PACKAGES" | awk -F'|' -v pid="$PACKAGE_ID" '$1 == pid')
+  if [[ -z "$SELECTED" ]]; then
+    echo "ERROR: package #$PACKAGE_ID not found"
+    exit 1
+  fi
+  pkg_stock=$(echo "$SELECTED" | cut -d'|' -f3)
+  if [[ "$pkg_stock" -eq 0 ]]; then
+    echo "ERROR: package #$PACKAGE_ID has no stock"
+    exit 1
+  fi
+else
+  # Auto-select first package with stock > 0
+  SELECTED=$(echo "$ALL_PACKAGES" | awk -F'|' '$3 > 0 {print; exit}')
+  if [[ -z "$SELECTED" ]]; then
+    echo "ERROR: no packages with available stock"
+    exit 1
+  fi
+fi
+
+PACKAGE_ID=$(echo "$SELECTED"    | cut -d'|' -f1)
+PACKAGE_PRICE=$(echo "$SELECTED" | cut -d'|' -f2)
+PICKUP_NAME=$(echo "$SELECTED"   | cut -d'|' -f4)
+
+log "OK"   "Using package #$PACKAGE_ID — price: $PACKAGE_PRICE — pickup: $PICKUP_NAME"
 
 # ── Step 3: Confirm checkout ─────────────────────────────────────────────────
 if [[ -n "${VALUE_PAID_OVERRIDE:-}" ]]; then
   VALUE_PAID="$VALUE_PAID_OVERRIDE"
 else
-  # price is in R$ (e.g. 600 = R$600.00), multiply by quantity
   VALUE_PAID=$(python3 -c "print(f'{$PACKAGE_PRICE * $QUANTITY:.2f}')")
 fi
 
