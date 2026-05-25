@@ -120,7 +120,12 @@ SELECT
 	pkg.product_id,
 	pkg.id              AS package_id,
 	pkg.price           AS package_price,
-	pkg.quantity        AS package_stock,
+	pkg.quantity - COALESCE(
+		(SELECT SUM(pr.quantity)
+		 FROM package_reserved pr
+		 WHERE pr.package_id = pkg.id),
+		0
+	) AS package_stock,
 	pkg.discount        AS package_discount,
 	c.id                AS consignment_id,
 	pl.id               AS pickup_id,
