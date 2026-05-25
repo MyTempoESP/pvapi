@@ -22,18 +22,35 @@ RETURNING unique_id
 `
 
 	InsertPackageReservedQuery = `
+-- $3 arrives as integer (item.Quantity), but the tax/commission
+-- arithmetic requires numeric. The CTE coerces $3 to numeric
+-- once so it can be used in both the integer quantity column
+-- (via ::integer cast) and the numeric multiplications below.
+WITH params(qty) AS (VALUES ($3::numeric))
 INSERT INTO package_reserved
 	(
 		package_id,
 		checkout_id,
-		quantity
+		quantity,
+		tax,
+		commission
 	)
-VALUES
-	(
-		$1,
-		$2,
-		$3
-	)
+SELECT
+	$1,
+	$2,
+	qty::integer,
+	(p.platform_cut / 100.0) * pkg.price * qty,
+	CASE
+		-- matches consignmentmodel.ComissionPercent / ComissionFixed
+		WHEN c.comission_type = 'PERCENT'
+			THEN (c.comission_value / 100.0) * pkg.price * qty
+		ELSE c.comission_value + (pkg.price * qty)
+	END
+FROM packages pkg
+JOIN products p ON p.id = pkg.product_id
+JOIN consignments c ON c.id = pkg.consignment_id
+CROSS JOIN params
+WHERE pkg.id = $1
 `
 
 	FindCheckoutBySessionRefQuery = `
@@ -75,5 +92,22 @@ SELECT COUNT(*) FROM cart_product WHERE cart_id = $1
 
 	FindCheckoutIDByUniqueIDQuery = `
 SELECT id FROM checkouts WHERE unique_id = $1
+`
+
+	ShopCheckoutsQuery = `
+SELECT
+	chk.id              AS checkout_id,
+	chk.unique_id::text AS checkout_unique_id,
+	chk.description     AS checkout_description,
+	chk.value           AS checkout_value,
+	SUM(pr.tax)         AS checkout_tax,
+	SUM(pr.commission)  AS checkout_commission
+FROM checkouts chk
+JOIN package_reserved pr ON pr.checkout_id = chk.id
+JOIN packages pkg ON pkg.id = pr.package_id
+JOIN consignments con ON con.id = pkg.consignment_id
+WHERE con.shop_id = $1
+GROUP BY chk.id
+ORDER BY chk.processed_at DESC
 `
 )

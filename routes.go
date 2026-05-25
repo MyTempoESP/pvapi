@@ -53,6 +53,7 @@ func setupRoutes(
 	shops := t.Group("/estabelecimentos", withAuth)
 	{
 		shops.GET("/all", shop.ListRestrictedHandler(pool))
+		shops.GET("/checkouts", shop.CheckoutsReportHandler(pool))
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
 		shops.DELETE(":shop", shop.DeactivateHandler(pool))
