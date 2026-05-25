@@ -2,7 +2,6 @@ package cartmodel
 
 import (
 	"context"
-	"time"
 
 	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/address"
@@ -11,21 +10,21 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
-type CartPackageOption struct {
+type CartPackageProduct struct {
 	ProductID   int    `db:"product_id"`
 	ProductName string `db:"product_name"`
+}
 
-	PackageID       *int             `db:"package_id"`
-	PackagePrice    *decimal.Decimal `db:"package_price"`
-	PackageStock    *int             `db:"package_stock"`
-	PackageDiscount *decimal.Decimal `db:"package_discount"`
-
-	ConsignmentID *int `db:"consignment_id"`
-
-	PickupID   *int       `db:"pickup_id"`
-	PickupName *string    `db:"pickup_name"`
-	PickupDate *time.Time `db:"pickup_date"`
-
+type PackageOption struct {
+	ProductID     int             `db:"product_id"`
+	PackageID     int             `db:"package_id"`
+	PackagePrice  decimal.Decimal `db:"package_price"`
+	PackageStock  int             `db:"package_stock"`
+	Discount      decimal.Decimal `db:"package_discount"`
+	ConsignmentID int             `db:"consignment_id"`
+	PickupID      int             `db:"pickup_id"`
+	PickupName    string          `db:"pickup_name"`
+	PickupDate    string          `db:"pickup_date"`
 	address.Address
 }
 
@@ -51,54 +50,92 @@ type ProductPackageOptions struct {
 	Packages    []PackageOptionResource `json:"packages"`
 }
 
-func FindPackageOptions(
+func findCartProducts(
 	ctx context.Context,
 	base db.Queryable,
 	sessionID string,
-) ([]CartPackageOption, error) {
-	return util.WithCollect[CartPackageOption](
+) ([]CartPackageProduct, error) {
+	return util.WithCollect[CartPackageProduct](
 		ctx, base,
-		query.ListCartPackageOptions,
+		query.CartProductsForPackages,
 		sessionID,
 	)
 }
 
-func GroupByProduct(rows []CartPackageOption) []ProductPackageOptions {
-	groups := make(map[int]*ProductPackageOptions)
+func findAvailablePackages(
+	ctx context.Context,
+	base db.Queryable,
+	sessionID string,
+) ([]PackageOption, error) {
+	return util.WithCollect[PackageOption](
+		ctx, base,
+		query.AvailablePackages,
+		sessionID,
+	)
+}
 
-	for _, row := range rows {
-		group, exists := groups[row.ProductID]
-		if !exists {
-			group = &ProductPackageOptions{
-				ProductID:   row.ProductID,
-				ProductName: row.ProductName,
-				Packages:    make([]PackageOptionResource, 0),
-			}
-			groups[row.ProductID] = group
-		}
+func FindPackageOptions(
+	ctx context.Context,
+	base db.Queryable,
+	sessionID string,
+) ([]ProductPackageOptions, error) {
+	products, err := findCartProducts(ctx, base, sessionID)
+	if err != nil {
+		return nil, err
+	}
 
-		if row.PackageID == nil {
+	packages, err := findAvailablePackages(ctx, base, sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return groupByProduct(products, packages), nil
+}
+
+func groupByProduct(
+	products []CartPackageProduct,
+	packages []PackageOption,
+) []ProductPackageOptions {
+	pkgByProduct := make(map[int][]PackageOptionResource)
+	for _, pkg := range packages {
+
+		// append new option if already exists
+		pkgByProduct[pkg.ProductID] = append(
+			pkgByProduct[pkg.ProductID],
+			PackageOptionResource{
+				PackageID:     pkg.PackageID,
+				ConsignmentID: pkg.ConsignmentID,
+				Price:         pkg.PackagePrice,
+				Discount:      pkg.Discount,
+				Stock:         pkg.PackageStock,
+				Pickup: PickupResource{
+					ID:      pkg.PickupID,
+					Name:    pkg.PickupName,
+					Date:    pkg.PickupDate,
+					Address: pkg.Address,
+				},
+			},
+		)
+	}
+
+	result := make([]ProductPackageOptions, 0, len(products))
+	for _, p := range products {
+		pkgs := pkgByProduct[p.ProductID]
+
+		if len(pkgs) == 0 {
+			result = append(result, ProductPackageOptions{
+				ProductID:   p.ProductID,
+				ProductName: p.ProductName,
+				Packages:    []PackageOptionResource{},
+			})
 			continue
 		}
 
-		group.Packages = append(group.Packages, PackageOptionResource{
-			PackageID:     *row.PackageID,
-			ConsignmentID: *row.ConsignmentID,
-			Price:         *row.PackagePrice,
-			Discount:      *row.PackageDiscount,
-			Stock:         *row.PackageStock,
-			Pickup: PickupResource{
-				ID:      *row.PickupID,
-				Name:    *row.PickupName,
-				Date:    row.PickupDate.Format("2006-01-02T15:04:05"),
-				Address: row.Address,
-			},
+		result = append(result, ProductPackageOptions{
+			ProductID:   p.ProductID,
+			ProductName: p.ProductName,
+			Packages:    pkgs,
 		})
-	}
-
-	result := make([]ProductPackageOptions, 0, len(groups))
-	for _, group := range groups {
-		result = append(result, *group)
 	}
 
 	return result
