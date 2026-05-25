@@ -65,12 +65,12 @@ func (c Comission) defineComissionType() (
 	err error,
 ) {
 	if c.CutPCT != nil {
-		comissionType = "PERCENT"
+		comissionType = ComissionPercent
 		comissionValue = *c.CutPCT
 	}
 
 	if c.CutFixed != nil {
-		comissionType = "FIXED"
+		comissionType = ComissionFixed
 		comissionValue = *c.CutFixed
 	}
 

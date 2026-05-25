@@ -17,6 +17,9 @@ func (s *ShopGate) Dispatch(
 	r.Metadata["id"] = id
 
 	if r.Method == "GET" {
+		if r.EndPoint("/checkouts") {
+			return s.Checkouts(u, r)
+		}
 		if id == "" {
 			return s.List(u, r)
 		}
@@ -52,6 +55,10 @@ func (s *ShopGate) List(u User, r Resource) (bool, error) {
 
 func (s *ShopGate) Modify(u User, r Resource) (bool, error) {
 	return u.Role == "admin", nil
+}
+
+func (s *ShopGate) Checkouts(u User, r Resource) (bool, error) {
+	return u.Role == "shop", nil
 }
 
 func (s *ShopGate) Delete(u User, r Resource) (bool, error) {

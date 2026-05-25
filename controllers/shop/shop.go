@@ -5,8 +5,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
@@ -175,6 +176,24 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			"estabelecimento criado com sucesso",
 			"shop", shopmodel.SummarizeRequest(shopID, shop),
 		)
+	}
+}
+
+func CheckoutsReportHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		user := authmodel.GetUserFromContext(c)
+
+		report, err := shopmodel.BuildCheckoutReport(
+			c.Request.Context(),
+			pool,
+			user.ActiveRoleID,
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		c.JSON(200, report)
 	}
 }
 
