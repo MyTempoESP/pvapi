@@ -2,10 +2,10 @@ package shopmodel
 
 import (
 	"context"
-	"time"
 
 	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/models/saquemodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 )
@@ -17,20 +17,6 @@ type ShopCheckoutRow struct {
 	Value       decimal.Decimal `db:"checkout_value"`
 	Tax         decimal.Decimal `db:"checkout_tax"`
 	Commission  decimal.Decimal `db:"checkout_commission"`
-}
-
-type SaqueRow struct {
-	ID              int             `db:"id"`
-	Description     string          `db:"description"`
-	AskedValue      decimal.Decimal `db:"asked_value"`
-	BankName        string          `db:"bank_name"`
-	PixCPF          *string         `db:"pix_cpf"`
-	PixTitular      *string         `db:"pix_titular"`
-	TransferDetails []byte          `db:"transfer_details"`
-	Status          string          `db:"status"`
-	CreatedAt       time.Time       `db:"created_at"`
-	UserName        string          `db:"user_name"`
-	ShopName        string          `db:"shop_name"`
 }
 
 func BuildCheckoutReport(
@@ -49,9 +35,8 @@ func BuildCheckoutReport(
 		return report, err
 	}
 
-	saqueRows, err := util.WithCollect[SaqueRow](
+	saqueRows, err := saquemodel.ListByShop(
 		ctx, base,
-		query.ListSaquesByShopQuery,
 		shopID,
 	)
 	if err != nil {
