@@ -563,7 +563,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/remessas", &shopSession, map[string]any{
 			"destinationId": pickupID,
 			"monitorId":     consigneeID,
-			"status":        "RASCUNHO",
+			"status":        "CONFERIR - DEVOLUCAO",
 			"monitorProfit": 3,
 		})
 		assertStatus(t, rec, http.StatusOK)

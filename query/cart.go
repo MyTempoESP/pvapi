@@ -139,8 +139,7 @@ SELECT
 	a.addrneigh,
 	a.addrcomplement
 FROM packages pkg
-JOIN consignments c ON c.id = pkg.consignment_id
-	AND c.status NOT IN ('ARQUIVADO', 'RASCUNHO')
+JOIN consignments_active c ON c.id = pkg.consignment_id
 JOIN pickup_locations pl ON pl.id = c.pickup_location_id
 JOIN aliased_addresses_view a ON a.address_id = pl.address_id
 WHERE pkg.product_id IN (
