@@ -85,8 +85,8 @@ log "OK"   "Package #$PACKAGE_ID — price: $PACKAGE_PRICE — pickup: $PICKUP_N
 if [[ -n "${VALUE_PAID_OVERRIDE:-}" ]]; then
   VALUE_PAID="$VALUE_PAID_OVERRIDE"
 else
-  # price is in centavos (e.g. 600 = R$6.00), multiply by quantity
-  VALUE_PAID=$(python3 -c "print(f'{$PACKAGE_PRICE * $QUANTITY / 100:.2f}')")
+  # price is in R$ (e.g. 600 = R$600.00), multiply by quantity
+  VALUE_PAID=$(python3 -c "print(f'{$PACKAGE_PRICE * $QUANTITY:.2f}')")
 fi
 
 log "CHK"  "Confirming checkout — value_paid=$VALUE_PAID — ref=$EXTERNAL_REF"
