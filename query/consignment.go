@@ -47,7 +47,7 @@ SELECT
 	pickup_location_name
 FROM consignments_listing_view
 WHERE shop_id = $1
-  AND consignment_status != 'ARQUIVADO'
+  AND consignment_id IN (SELECT id FROM consignments_active)
 `
 
 	FindConsignmentQuery = `
