@@ -137,7 +137,7 @@ func ViewHandler(
 	}
 }
 
-func ConsignmentOptionsHandler(
+func PackageOptionsHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -147,7 +147,7 @@ func ConsignmentOptionsHandler(
 			return
 		}
 
-		rows, err := cartmodel.FindConsignmentOptions(
+		rows, err := cartmodel.FindPackageOptions(
 			c.Request.Context(), pool,
 			sessionID,
 		)
@@ -160,7 +160,7 @@ func ConsignmentOptionsHandler(
 		grouped := cartmodel.GroupByProduct(rows)
 
 		util.WrapLabeled(
-			c, "opções de remessa listadas com sucesso",
+			c, "opções de pacote listadas com sucesso",
 			"products", grouped,
 		)
 	}

@@ -634,7 +634,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
-	t.Run("cart_consignment_options", func(t *testing.T) {
+	t.Run("cart_package_options", func(t *testing.T) {
 		sessionID := fmt.Sprintf("test-cart-%d", runID)
 
 		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
@@ -646,7 +646,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, addRec, http.StatusOK)
 
 		rec := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/carrinho/remessas?session_id=%s", sessionID),
+			fmt.Sprintf("/carrinho/pacotes?session_id=%s", sessionID),
 			nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
@@ -666,17 +666,17 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatal("expected product_name field")
 		}
 
-		consignments := asSlice(t, product["consignments"])
-		if len(consignments) == 0 {
-			t.Fatal("expected at least one consignment option")
+		packages := asSlice(t, product["packages"])
+		if len(packages) == 0 {
+			t.Fatal("expected at least one package option")
 		}
 
-		first := asMap(t, consignments[0])
+		first := asMap(t, packages[0])
 		if asInt(t, first["consignment_id"]) != consignmentID {
 			t.Fatalf("expected consignment_id %d, got %v", consignmentID, first["consignment_id"])
 		}
 
-		for _, field := range []string{"price_in_consignment", "discount", "consignment_stock"} {
+		for _, field := range []string{"price", "discount", "stock", "package_id"} {
 			if _, ok := first[field]; !ok {
 				t.Fatalf("expected %s field", field)
 			}
@@ -700,12 +700,12 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		}
 	})
 
-	t.Run("cart_consignment_options_missing_session", func(t *testing.T) {
-		rec := h.doRequest(t, http.MethodGet, "/carrinho/remessas", nil, "", nil)
+	t.Run("cart_package_options_missing_session", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/carrinho/pacotes", nil, "", nil)
 		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
-	t.Run("cart_consignment_options_empty_cart", func(t *testing.T) {
+	t.Run("cart_package_options_empty_cart", func(t *testing.T) {
 		sessionID := fmt.Sprintf("empty-cart-%d", runID)
 
 		addRec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
@@ -726,7 +726,7 @@ func TestAPIRequestsImplemented(t *testing.T) {
 		assertStatus(t, delRec, http.StatusOK)
 
 		rec := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/carrinho/remessas?session_id=%s", sessionID),
+			fmt.Sprintf("/carrinho/pacotes?session_id=%s", sessionID),
 			nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 

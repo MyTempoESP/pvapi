@@ -107,18 +107,17 @@ JOIN carts c ON c.id = cart_product.cart_id
 WHERE cart_product.id = $1 AND c.session_id = $2
 `
 
-	ListCartConsignmentOptions = `
+	ListCartPackageOptions = `
 SELECT
 	cp.product_id,
 	p.name AS product_name,
 
-	c.id AS consignment_id,
-	c.status AS consignment_status,
-	c.code AS consignment_code,
+	pkg.id AS package_id,
+	pkg.price AS package_price,
+	pkg.quantity AS package_stock,
+	pkg.discount AS package_discount,
 
-	pkg.price AS consignment_price,
-	pkg.quantity AS consignment_stock,
-	pkg.discount AS consignment_discount,
+	c.id AS consignment_id,
 
 	pl.id AS pickup_id,
 	pl.name AS pickup_name,
@@ -140,7 +139,7 @@ LEFT JOIN consignments c ON c.id = pkg.consignment_id
 LEFT JOIN pickup_locations pl ON pl.id = c.pickup_location_id
 LEFT JOIN aliased_addresses_view a ON a.address_id = pl.address_id
 WHERE cart.session_id = $1
-ORDER BY cp.product_id, c.id
+ORDER BY cp.product_id, pkg.id
 `
 
 	// freeze prices & hold stock
