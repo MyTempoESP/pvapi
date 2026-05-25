@@ -621,6 +621,31 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			},
 		})
 		assertStatus(t, rec, http.StatusOK)
+
+		t.Run("product_stock_from_package_quantities", func(t *testing.T) {
+			rec := h.doRequest(t, http.MethodGet, "/produtos", nil, "", nil)
+			assertStatus(t, rec, http.StatusOK)
+			body := decodeJSON(t, rec)
+			products := asSlice(t, body["produtos"])
+			if len(products) == 0 {
+				t.Fatal("expected at least one product in listing")
+			}
+			found := false
+			for _, p := range products {
+				pm := asMap(t, p)
+				if asInt(t, pm["id"]) != productID {
+					continue
+				}
+				found = true
+				stock := asInt(t, pm["stock"])
+				if stock != 2 {
+					t.Fatalf("expected product stock 2 (from package quantity), got %d", stock)
+				}
+			}
+			if !found {
+				t.Fatalf("product %d not found in listing", productID)
+			}
+		})
 	})
 
 	t.Run("list_consignment_products", func(t *testing.T) {
