@@ -1,6 +1,14 @@
 package query
 
 const (
+	CreateSaqueQuery = `
+INSERT INTO saques
+	(shop_id, user_id, description, asked_value, bank_name, pix_cpf, pix_titular, transfer_details)
+VALUES
+	($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id
+`
+
 	ListSaquesByShopQuery = `
 SELECT
 	sq.id,

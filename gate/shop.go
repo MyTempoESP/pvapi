@@ -20,6 +20,9 @@ func (s *ShopGate) Dispatch(
 		if r.EndPoint("/checkouts") {
 			return s.Checkouts(u, r)
 		}
+		if r.EndPoint("/saques") {
+			return s.Saques(u, r)
+		}
 		if id == "" {
 			return s.List(u, r)
 		}
@@ -27,6 +30,9 @@ func (s *ShopGate) Dispatch(
 	}
 
 	if r.Method == "POST" {
+		if r.EndPoint("/saques") {
+			return s.Saques(u, r)
+		}
 		return s.Create(u, r)
 	}
 
@@ -58,6 +64,10 @@ func (s *ShopGate) Modify(u User, r Resource) (bool, error) {
 }
 
 func (s *ShopGate) Checkouts(u User, r Resource) (bool, error) {
+	return u.Role == "shop", nil
+}
+
+func (s *ShopGate) Saques(u User, r Resource) (bool, error) {
 	return u.Role == "shop", nil
 }
 

@@ -2,6 +2,7 @@ package shopmodel
 
 import (
 	"context"
+	"time"
 
 	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
@@ -27,7 +28,7 @@ type SaqueRow struct {
 	PixTitular      *string         `db:"pix_titular"`
 	TransferDetails []byte          `db:"transfer_details"`
 	Status          string          `db:"status"`
-	CreatedAt       string          `db:"created_at"`
+	CreatedAt       time.Time       `db:"created_at"`
 	UserName        string          `db:"user_name"`
 	ShopName        string          `db:"shop_name"`
 }
