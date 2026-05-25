@@ -2,6 +2,7 @@ package shopmodel
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
@@ -63,7 +64,7 @@ func (r SaqueRow) ToResource() SaqueResource {
 		UserName:    r.UserName,
 		ShopName:    r.ShopName,
 		BankName:    r.BankName,
-		CreatedAt:   r.CreatedAt,
+		CreatedAt:   r.CreatedAt.Format(time.RFC3339),
 		ID:          r.ID,
 		Status:      r.Status,
 	}

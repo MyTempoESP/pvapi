@@ -1336,6 +1336,63 @@ func TestAPIRequestsImplemented(t *testing.T) {
 			t.Fatalf("expected 'clients' field in response, got %s", rec.Body.String())
 		}
 	})
+
+	t.Run("create_saque_missing_fields", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", &shopSession, map[string]any{
+			"description": "missing asked_value and bank_name",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("create_saque_unauthorized", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", nil, map[string]any{
+			"description": "saque sem autenticação",
+			"asked_value": "100.00",
+			"bank_name":   "Nubank",
+		})
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("create_saque", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", &shopSession, map[string]any{
+			"description": "Saque de teste",
+			"asked_value": "250.00",
+			"bank_name":   "Nubank",
+			"pix_cpf":     "12345678900",
+			"pix_titular": "Loja Teste",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		saque := asMap(t, body["saque"])
+		if asString(t, saque["status"]) != "pending" {
+			t.Fatal("expected saque status 'pending'")
+		}
+	})
+
+	t.Run("list_saques", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		if len(saques) == 0 {
+			t.Fatal("expected at least one saque in list")
+		}
+
+		first := asMap(t, saques[0])
+		if asString(t, first["description"]) != "Saque de teste" {
+			t.Fatalf("expected description 'Saque de teste', got %q", asString(t, first["description"]))
+		}
+		if asString(t, first["status"]) != "pending" {
+			t.Fatalf("expected status 'pending', got %q", asString(t, first["status"]))
+		}
+	})
+
+	t.Run("list_saques_unauthorized", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", nil, "", nil)
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
 }
 
 func newAPIHarness(t *testing.T) *apiHarness {

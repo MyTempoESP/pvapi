@@ -14,6 +14,7 @@ import (
 	"linhazero.com/pvapi/controllers/pickups"
 	"linhazero.com/pvapi/controllers/product"
 	"linhazero.com/pvapi/controllers/report"
+	"linhazero.com/pvapi/controllers/saque"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
 	"linhazero.com/pvapi/middleware/auth"
@@ -54,6 +55,8 @@ func setupRoutes(
 	{
 		shops.GET("/all", shop.ListRestrictedHandler(pool))
 		shops.GET("/checkouts", shop.CheckoutsReportHandler(pool))
+		shops.POST("/saques", saque.CreateHandler(pool))
+		shops.GET("/saques", saque.ListHandler(pool))
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
 		shops.DELETE(":shop", shop.DeactivateHandler(pool))
