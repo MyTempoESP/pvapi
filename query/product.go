@@ -137,7 +137,7 @@ SELECT
 	product_platform_cut_type,
 	product_shop_id,
 	product_shop_name
-FROM product_catalog_view
+FROM product_catalog_shop_view
 WHERE product_shop_id = $1
 `
 

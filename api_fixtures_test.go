@@ -37,6 +37,7 @@ type productFixtureResult struct {
 	ID         int
 	Name       string
 	CategoryID int
+	Stock      int
 }
 
 type consignmentFixtureResult struct {
@@ -199,8 +200,9 @@ func (h *apiHarness) createProduct(t *testing.T, session *apiSession, name strin
 	products := asSlice(t, body["data"])
 	obj := findObjectByStringField(t, products, "name", name)
 	id := asInt(t, obj["id"])
+	stock := asInt(t, obj["stock"])
 
-	return productFixtureResult{ID: id, Name: name, CategoryID: categoryID}
+	return productFixtureResult{ID: id, Name: name, CategoryID: categoryID, Stock: stock}
 }
 
 func (h *apiHarness) approveProduct(t *testing.T, admin *apiSession, productID int) {

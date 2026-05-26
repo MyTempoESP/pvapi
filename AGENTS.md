@@ -64,18 +64,10 @@ Note: `pgx` batch results are idempotent; multiple closes are safe and require n
 
 ## 5. Verification & Quality Gates
 
-**Continuous Validation:**
-Run the verification pipeline immediately after any code modifications:
-
-```sh
-golangci-lint run --fix
-```
-
-- ALWAYS run the test suite with after done with code changes:
-
-```sh
-just t
-```
+- Use the **test-code** skill for all verification. It manages the full lifecycle: lint → start ephemeral DB → test → close DB.
+- After each code change, run the skill with the relevant `-r` pattern to target affected tests.
+- When all changes are complete (or explicitly requested), run the skill with no flags for the full suite. Make sure that all tests pass before declaring the task done.
+- If a specific test fails for something unrelated to your changes, you must not continue, alert the user of the failing test.
 
 **Zero-Tolerance Policy:**
 - Treat any non-zero exit code or lint warning as a blocker.
