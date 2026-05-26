@@ -29,6 +29,9 @@ func TestProduct(t *testing.T) {
 		if prd.ID == 0 {
 			t.Fatal("expected non-zero product ID")
 		}
+		if prd.Stock <= 0 {
+			t.Fatalf("expected stock > 0, got %d", prd.Stock)
+		}
 	})
 
 	t.Run("list_shop_products", func(t *testing.T) {
@@ -40,9 +43,16 @@ func TestProduct(t *testing.T) {
 		if len(products) < 1 {
 			t.Fatal("expected shop to contain at least one product")
 		}
+
+		obj := findObjectByIntField(t, products, "id", prd.ID)
+		listStock := asInt(t, obj["stock"])
+		if listStock != prd.Stock {
+			t.Fatalf("list endpoint stock %d does not match registered stock %d", listStock, prd.Stock)
+		}
 	})
 
 	t.Run("update_product_form", func(t *testing.T) {
+		// TODO: should be a fixture
 		rec := h.doMultipart(t, http.MethodPut, fmt.Sprintf("/produtos/%d", prd.ID), &shopSession, map[string]string{
 			"name":                      updatedName,
 			"description":               "produto atualizado",
@@ -105,6 +115,18 @@ func TestProduct(t *testing.T) {
 		product := asMap(t, body["data"])
 		if asInt(t, product["id"]) != prd.ID {
 			t.Fatalf("expected product id %d, got body %s", prd.ID, rec.Body.String())
+		}
+
+		viewStock := asInt(t, product["stock"])
+		/*
+			Reasoning: in the public view, the product stock
+			MUST be calculated by the sum of stock in all
+			the consignments. In this case, it must be 0
+			because this product was not assigned to any
+			consignment.
+		*/
+		if viewStock != 0 {
+			t.Fatalf("view endpoint stock %d doesn't match sum of consignments (0)", viewStock)
 		}
 
 		category := asString(t, product["category"])
