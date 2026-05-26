@@ -254,9 +254,13 @@ func Find(
 	ctx context.Context,
 	base db.Queryable,
 	product int,
-) (p Product, err error) {
-	err = base.QueryRow(ctx, query.FindProductQuery, product).Scan(&p)
-	return
+) (Product, error) {
+	return util.WithCollectExactlyOneRow[Product](
+		ctx,
+		base,
+		query.FindProductQuery,
+		product,
+	)
 }
 
 /*func Take(

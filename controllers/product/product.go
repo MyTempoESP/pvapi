@@ -336,6 +336,18 @@ func UpdateHandler(
 			return
 		}
 
-		util.OK(c, "Produto editado com sucesso!")
+		updatedProduct, err := productmodel.Find(
+			c.Request.Context(), pool, productID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.Wrap(
+			c, "Produto editado com sucesso!",
+			updatedProduct.ToResource(),
+		)
 	}
 }
