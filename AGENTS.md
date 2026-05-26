@@ -29,3 +29,17 @@ This codebase uses the **test-code** skill for all verification.
 - Do not declare task completion if compilation, linting, or tests fail.
 - If a specific test fails for something unrelated to your changes, stop execution and alert the user of the failing test.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live as "beans" managed by the `beans` CLI (local markdown-based issue tracker). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage state mapped to beans statuses: `needs-triage` → new/unset, `needs-info` → `draft`, `ready-for-agent` / `ready-for-human` → `todo` (distinguished by body tag), `wontfix` → `scrapped`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout. See `docs/agents/domain.md`.
+
