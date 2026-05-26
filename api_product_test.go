@@ -74,6 +74,12 @@ func TestProduct(t *testing.T) {
 			},
 		})
 		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		data := asMap(t, body["data"])
+		if asInt(t, data["id"]) != prd.ID {
+			t.Fatalf("expected product id %d in response, got body %s", prd.ID, rec.Body.String())
+		}
 	})
 
 	t.Run("pending_moderation_list", func(t *testing.T) {
