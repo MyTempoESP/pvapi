@@ -18,31 +18,31 @@ func TestSaque(t *testing.T) {
 	shopEmail := fmt.Sprintf("api-saque-shop-%d@example.com", runID)
 	shop := h.createShop(t, &admin, shopName, shopEmail, "11988887777")
 	shopSession := h.login(t, shopEmail, "11988887777")
+	ba := h.createBankAccount(t, &shopSession, "Conta Principal", "Nubank")
 	_ = shop
 
 	t.Run("create_missing_fields", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", &shopSession, map[string]any{
-			"description": "missing asked_value and bank_name",
+			"description": "missing asked_value",
 		})
 		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
 	t.Run("create_unauthorized", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", nil, map[string]any{
-			"description": "saque sem autenticação",
-			"asked_value": "100.00",
-			"bank_name":   "Nubank",
+			"description":  "saque sem autenticação",
+			"asked_value":  "100.00",
+			"bank_account": ba.ID,
 		})
 		assertStatus(t, rec, http.StatusUnauthorized)
 	})
 
 	t.Run("create_saque", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque de teste", "250.00", "Nubank")
+		result := h.createSaque(t, &shopSession, "Saque de teste", "250.00", ba.ID)
 		if result.ID == 0 {
 			t.Fatal("expected non-zero saque ID")
 		}
 
-		// Verify status via view
 		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
@@ -50,10 +50,14 @@ func TestSaque(t *testing.T) {
 		if asString(t, saque["status"]) != "pending" {
 			t.Fatal("expected saque status 'pending'")
 		}
+		if asString(t, saque["bank_name"]) != "Nubank" {
+			t.Fatalf("expected bank_name 'Nubank', got %q", asString(t, saque["bank_name"]))
+		}
 	})
 
 	t.Run("list_saques", func(t *testing.T) {
-		h.createSaque(t, &shopSession, "Saque de listagem", "250.00", "Nubank")
+		ba2 := h.createBankAccount(t, &shopSession, "Conta Secundária", "Inter")
+		h.createSaque(t, &shopSession, "Saque de listagem", "250.00", ba2.ID)
 
 		rec := h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -68,6 +72,9 @@ func TestSaque(t *testing.T) {
 		if asString(t, obj["status"]) != "pending" {
 			t.Fatalf("expected status 'pending', got %q", asString(t, obj["status"]))
 		}
+		if asString(t, obj["bank_name"]) != "Inter" {
+			t.Fatalf("expected bank_name 'Inter', got %q", asString(t, obj["bank_name"]))
+		}
 	})
 
 	t.Run("list_unauthorized", func(t *testing.T) {
@@ -76,7 +83,7 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("view_saque", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque para visualizar", "300.00", "Nubank")
+		result := h.createSaque(t, &shopSession, "Saque para visualizar", "300.00", ba.ID)
 
 		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -89,7 +96,7 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("view_unauthorized", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque view unauthorized", "300.00", "Nubank")
+		result := h.createSaque(t, &shopSession, "Saque view unauthorized", "300.00", ba.ID)
 
 		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), nil, "", nil)
 		assertStatus(t, rec, http.StatusUnauthorized)
@@ -101,7 +108,7 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("update_status", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque para atualizar", "250.00", "Nubank")
+		result := h.createSaque(t, &shopSession, "Saque para atualizar", "250.00", ba.ID)
 
 		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, map[string]any{
 			"status": "approved",
@@ -118,7 +125,7 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("update_unauthorized", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque update unauthorized", "250.00", "Nubank")
+		result := h.createSaque(t, &shopSession, "Saque update unauthorized", "250.00", ba.ID)
 
 		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), nil, map[string]any{
 			"status": "cancelled",
@@ -127,7 +134,7 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("update_invalid_status", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque invalid status", "250.00", "Nubank")
+		result := h.createSaque(t, &shopSession, "Saque invalid status", "250.00", ba.ID)
 
 		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, map[string]any{
 			"status": "invalid",
@@ -136,7 +143,8 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("delete_saque", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "saque para deletar", "50.00", "Inter")
+		ba2 := h.createBankAccount(t, &shopSession, "Conta Delete", "Inter")
+		result := h.createSaque(t, &shopSession, "saque para deletar", "50.00", ba2.ID)
 
 		rec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -146,7 +154,8 @@ func TestSaque(t *testing.T) {
 	})
 
 	t.Run("delete_unauthorized", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "saque delete unauthorized", "50.00", "Inter")
+		ba2 := h.createBankAccount(t, &shopSession, "Conta Delete Unauthorized", "Inter")
+		result := h.createSaque(t, &shopSession, "saque delete unauthorized", "50.00", ba2.ID)
 
 		rec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), nil, "", nil)
 		assertStatus(t, rec, http.StatusUnauthorized)

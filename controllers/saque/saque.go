@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/saquemodel"
+	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
 
@@ -19,6 +20,21 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		err := c.ShouldBindJSON(&req)
 		if err != nil {
 			util.HandleBadRequest(c, err)
+			return
+		}
+
+		ok, err := shopmodel.HasBankAccount(
+			c.Request.Context(),
+			pool,
+			user.ActiveRoleID,
+			req.BankAccountID,
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+		if !ok {
+			util.Handle404(c, nil)
 			return
 		}
 

@@ -23,6 +23,9 @@ func (s *ShopGate) Dispatch(
 		if r.EndPoint("/saques") || r.EndPoint("/saques/:saque") {
 			return s.Saques(u, r)
 		}
+		if r.EndPoint("/contasbancarias") {
+			return s.BankAccounts(u, r)
+		}
 		if id == "" {
 			return s.List(u, r)
 		}
@@ -33,6 +36,9 @@ func (s *ShopGate) Dispatch(
 		if r.EndPoint("/saques") {
 			return s.Saques(u, r)
 		}
+		if r.EndPoint("/contasbancarias") {
+			return s.BankAccounts(u, r)
+		}
 		return s.Create(u, r)
 	}
 
@@ -40,12 +46,18 @@ func (s *ShopGate) Dispatch(
 		if r.EndPoint("/saques/:saque") {
 			return s.Saques(u, r)
 		}
+		if r.EndPoint("/contasbancarias/:id") {
+			return s.BankAccounts(u, r)
+		}
 		return s.Modify(u, r)
 	}
 
 	if r.Method == "DELETE" {
 		if r.EndPoint("/saques/:saque") {
 			return s.Saques(u, r)
+		}
+		if r.EndPoint("/contasbancarias/:id") {
+			return s.BankAccounts(u, r)
 		}
 		return s.Delete(u, r)
 	}
@@ -79,6 +91,10 @@ func (s *ShopGate) Saques(u User, r Resource) (bool, error) {
 
 func (s *ShopGate) Delete(u User, r Resource) (bool, error) {
 	return u.Role == "admin", nil
+}
+
+func (s *ShopGate) BankAccounts(u User, r Resource) (bool, error) {
+	return u.Role == "shop", nil
 }
 
 func NewShop(base db.Queryable) policymodel.Gate {

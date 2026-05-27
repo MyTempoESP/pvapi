@@ -15,8 +15,9 @@ type SaqueRow struct {
 	ID              int             `db:"id"`
 	Description     string          `db:"description"`
 	AskedValue      decimal.Decimal `db:"asked_value"`
-	BankName        string          `db:"bank_name"`
-	PixCPF          *string         `db:"pix_cpf"`
+	BankAccountID   *int            `db:"bank_account_id"`
+	BankName        *string         `db:"bank_name"`
+	PixKey          *string         `db:"pix_key"`
 	PixTitular      *string         `db:"pix_titular"`
 	TransferDetails []byte          `db:"transfer_details"`
 	Status          string          `db:"status"`
@@ -32,11 +33,6 @@ func Create(
 	userID int,
 	req CreateSaqueRequest,
 ) (int, error) {
-	var transferJSON any
-	if req.TransferDetails != nil {
-		transferJSON = []byte(*req.TransferDetails)
-	}
-
 	return model.Create(
 		ctx,
 		base,
@@ -45,10 +41,7 @@ func Create(
 		userID,
 		req.Description,
 		req.AskedValue,
-		req.BankName,
-		req.PixCPF,
-		req.PixTitular,
-		transferJSON,
+		req.BankAccountID,
 	)
 }
 

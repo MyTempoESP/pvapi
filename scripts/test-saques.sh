@@ -17,7 +17,7 @@ CREATE_RESP=$(curl -s -X POST "$BASE_URL/estabelecimentos/saques" \
     "description": "Teste de saque via script",
     "asked_value": "100.00",
     "bank_name": "Banco do Brasil",
-    "pix_cpf": "123.456.789-00",
+    "pix_key": "123.456.789-00",
     "pix_titular": "Fulano de Tal",
     "transfer_details": {"agency": "1234", "account": "56789-0"}
   }')
