@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/consignmentmodel"
 	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
@@ -36,6 +37,41 @@ func DeactivateHandler(
 		}
 
 		util.OK(c, "loja desativada com sucesso")
+	}
+}
+
+func PublicListConsignmentsHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		slug := c.Param("shop")
+
+		shop, err := shopmodel.Resolve(
+			c.Request.Context(), pool,
+			slug,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		consignments, err := consignmentmodel.List(
+			c.Request.Context(), pool,
+			shop.ID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(consignments)
+
+		util.Wrap(
+			c, "remessas listadas com sucesso",
+			collection,
+		)
 	}
 }
 

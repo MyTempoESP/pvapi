@@ -72,6 +72,8 @@ func setupRoutes(
 		public.GET("/estabelecimentos", shop.ListHandler(pool))
 		public.GET("/estabelecimentos/:shop/produtos",
 			shop.PublicListProductsHandler(pool))
+		public.GET("/estabelecimentos/:shop/remessas",
+			shop.PublicListConsignmentsHandler(pool))
 
 		public.POST("/estabelecimentos", shop.CreateHandler(pool))
 	}
@@ -115,6 +117,8 @@ func setupRoutes(
 		consignees.GET("", consignee.ListHandler(pool))
 		consignees.DELETE(":consignee", consignee.DeleteHandler(pool))
 	}
+
+	public.GET("/remessas-publicas", consignment.PublicListHandler(pool))
 
 	consignments := t.Group("/remessas", withAuth)
 	{
