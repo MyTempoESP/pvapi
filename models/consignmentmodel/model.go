@@ -2,6 +2,7 @@ package consignmentmodel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -18,13 +19,31 @@ func (a AddProductAction) Exec(
 	ctx context.Context,
 	tx pgx.Tx,
 ) (err error) {
+	for _, p := range a.Products {
+		var exists int
+		err = tx.QueryRow(
+			ctx, query.ProductCheckExistsInConsignmentQuery,
+			p.ID, a.ConsignmentID,
+		).Scan(&exists)
+
+		if err == nil {
+			return fmt.Errorf(
+				"product %d already exists in consignment %d: %w",
+				p.ID, a.ConsignmentID,
+				util.ErrDuplicatedResource,
+			)
+		}
+
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf(
+				"could not check product %d in consignment %d: %w",
+				p.ID, a.ConsignmentID, err,
+			)
+		}
+	}
+
 	batch := &pgx.Batch{}
 
-	// TODO: if product already exists in consignment,
-	// add to the quantity of the existing package.
-	// Thinking about it, it doesn't make much sense, since
-	// the same product could be in the same consignment but with
-	// different name/color etc.
 	for _, p := range a.Products {
 		product := p.Prepare()
 
