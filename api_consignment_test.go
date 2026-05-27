@@ -143,4 +143,55 @@ func TestConsignment(t *testing.T) {
 			t.Fatalf("consignment %d not found in public listing: %s", cons.ID, rec.Body.String())
 		}
 	})
+
+	t.Run("public_list_by_shop_endpoint", func(t *testing.T) {
+		// Create a second shop with its own consignment to verify isolation.
+		runID := time.Now().UnixNano()
+		otherShopName := fmt.Sprintf("Outra Loja %d", runID)
+		otherShopEmail := fmt.Sprintf("api-listby-shop-%d@example.com", runID)
+		otherShop := h.createShop(t, &admin, otherShopName, otherShopEmail, "11988887777")
+		otherSession := h.login(t, otherShopEmail, "11988887777")
+
+		otherMonitor := h.createMonitor(t, &otherSession,
+			fmt.Sprintf("Monitor OB %d", runID),
+			fmt.Sprintf("api-listby-monitor-%d@example.com", runID),
+			"27998209673")
+
+		otherPickup := h.createPickup(t, &otherSession)
+		otherCons := h.createConsignment(t, &otherSession, otherPickup.ID, otherMonitor.ID)
+
+		// Hit the per-shop endpoint for the original shop.
+		path := fmt.Sprintf("/estabelecimentos/%s/remessas", shop.Slug)
+		rec := h.doRequest(t, http.MethodGet, path, nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+
+		// Must contain the original shop's consignment.
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("original consignment %d not found in shop listing: %s", cons.ID, rec.Body.String())
+		}
+
+		// Must NOT contain the other shop's consignment.
+		if containsID(consignments, otherCons.ID) {
+			t.Fatalf("other shop's consignment %d should NOT appear in shop listing: %s", otherCons.ID, rec.Body.String())
+		}
+
+		// Also verify the other shop's own endpoint returns its consignment.
+		otherPath := fmt.Sprintf("/estabelecimentos/%s/remessas", otherShop.Slug)
+		otherRec := h.doRequest(t, http.MethodGet, otherPath, nil, "", nil)
+		assertStatus(t, otherRec, http.StatusOK)
+
+		otherBody := decodeJSON(t, otherRec)
+		otherConsignments := asSlice(t, otherBody["data"])
+		if !containsID(otherConsignments, otherCons.ID) {
+			t.Fatalf("other shop's consignment %d should appear in its own listing: %s", otherCons.ID, otherRec.Body.String())
+		}
+
+		// Must NOT contain the original shop's consignment.
+		if containsID(otherConsignments, cons.ID) {
+			t.Fatalf("original consignment %d should NOT appear in other shop listing: %s", cons.ID, otherRec.Body.String())
+		}
+	})
 }
