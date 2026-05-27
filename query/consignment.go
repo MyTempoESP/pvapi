@@ -107,4 +107,10 @@ WHERE id = $1
 SELECT quantity FROM packages
 WHERE product_id = $1 AND consignment_id = $2
 `
+
+	ProductCheckExistsInConsignmentQuery = `
+SELECT 1 FROM packages
+WHERE product_id = $1 AND consignment_id = $2
+LIMIT 1
+`
 )

@@ -106,6 +106,30 @@ func TestConsignment(t *testing.T) {
 		}
 	})
 
+	t.Run("reject_duplicate_product_in_consignment", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": productName,
+					"quantity":    1,
+					"price":       5,
+					"color":       "#000000",
+					"description": "produto duplicado",
+					"category":    "porta-medalhas",
+					"discount":    0,
+					"featured":    false,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusConflict)
+
+		body := decodeJSON(t, rec)
+		if code := asString(t, body["code"]); code != "duplicated_resource" {
+			t.Fatalf("expected code 'duplicated_resource', got %q", code)
+		}
+	})
+
 	t.Run("product_stock_reflects_package_quantities", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/produtos", nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
