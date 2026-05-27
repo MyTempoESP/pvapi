@@ -5,6 +5,7 @@ import (
 
 	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/models/financemodel"
 	"linhazero.com/pvapi/models/saquemodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
@@ -56,14 +57,10 @@ func BuildCheckoutReport(
 		total = total.Add(c.Value)
 	}
 
-	saquesTotal := decimal.NewFromInt(0)
-	for _, s := range saqueRows {
-		if s.Status == "approved" {
-			saquesTotal = saquesTotal.Add(s.AskedValue)
-		}
-	}
+	saqueTotals := financemodel.ComputeSaqueTotals(saqueRows)
+	saquesCombined := saqueTotals.Sum()
 
-	actual := total.Sub(taxes).Sub(commissions).Sub(saquesTotal)
+	actual := total.Sub(taxes).Sub(commissions).Sub(saquesCombined)
 
 	report.Checkouts = checkouts
 	report.Saques = saques
@@ -71,7 +68,7 @@ func BuildCheckoutReport(
 		Taxes:       taxes,
 		Commissions: commissions,
 		Total:       total,
-		Saques:      saquesTotal,
+		Saques:      saquesCombined,
 		Actual:      actual,
 	}
 

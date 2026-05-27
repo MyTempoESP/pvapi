@@ -318,6 +318,50 @@ func (h *apiHarness) createBankAccount(t *testing.T, session *apiSession, name, 
 	}
 }
 
+func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *apiSession, shop shopFixtureResult, runID int64) int {
+	t.Helper()
+
+	monitor := h.createMonitor(t, session,
+		fmt.Sprintf("Monitor E %d", runID),
+		fmt.Sprintf("api-earnings-monitor-%d@example.com", runID),
+		"27998209673")
+	pickup := h.createPickup(t, session)
+
+	cat := h.createCategory(t, session, fmt.Sprintf("cat-earnings-%d", runID))
+	productName := fmt.Sprintf("Produto E %d", runID)
+	prd := h.createProduct(t, session, productName, cat.ID)
+	h.approveProduct(t, admin, prd.ID)
+
+	// Use PERCENT comission so net earnings are positive
+	rec := h.doJSON(t, http.MethodPost, "/remessas", session, map[string]any{
+		"destinationId":           pickup.ID,
+		"monitorId":               monitor.ID,
+		"status":                  "CONFERIR - DEVOLUCAO",
+		"monitorProfitPercentage": 1,
+	})
+	assertStatus(t, rec, http.StatusOK)
+	body := decodeJSON(t, rec)
+	cons := consignmentFixtureResult{ID: asInt(t, body["id"])}
+
+	h.addProductToConsignment(t, session, cons.ID, prd.ID, productName)
+
+	packageID := h.getPackageID(t, prd.ID, runID)
+
+	sessionID := fmt.Sprintf("earnings-checkout-%d", runID)
+	h.createCartItem(t, sessionID, prd.ID, 1)
+
+	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+		"value_paid":         "3.00",
+		"external_reference": fmt.Sprintf("EXT-REF-EARN-%d", runID),
+		"items": []map[string]any{
+			{"package_id": packageID, "quantity": 1},
+		},
+	})
+	assertStatus(t, chkRec, http.StatusOK)
+
+	return packageID
+}
+
 func (h *apiHarness) createSaque(t *testing.T, session *apiSession, description, askedValue string, bankAccountID int) saqueFixtureResult {
 	t.Helper()
 

@@ -1,11 +1,16 @@
 package saque
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
+	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/financemodel"
 	"linhazero.com/pvapi/models/saquemodel"
 	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
@@ -20,6 +25,11 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		err := c.ShouldBindJSON(&req)
 		if err != nil {
 			util.HandleBadRequest(c, err)
+			return
+		}
+
+		if req.AskedValue.LessThanOrEqual(decimal.NewFromInt(0)) {
+			util.HandleBadRequest(c, fmt.Errorf("valor do saque deve ser positivo"))
 			return
 		}
 
@@ -38,14 +48,45 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			return
 		}
 
-		id, err := saquemodel.Create(
+		var id int
+
+		err = util.Transaction(
 			c.Request.Context(),
 			pool,
-			user.ActiveRoleID,
-			user.UserID,
-			req,
+			func(ctx context.Context, tx db.Queryable) error {
+				// AvailableBalance acquires a FOR UPDATE lock on the shop row
+				available, err := financemodel.AvailableBalance(ctx, tx, user.ActiveRoleID)
+				if err != nil {
+					return err
+				}
+
+				if req.AskedValue.GreaterThan(available) {
+					c.AbortWithStatusJSON(400, gin.H{
+						"message": "saldo insuficiente para saque",
+						"saque": gin.H{
+							"asked_value":       req.AskedValue.String(),
+							"available_balance": available.String(),
+						},
+					})
+					return fmt.Errorf("insufficient balance: asked=%s, available=%s", req.AskedValue, available)
+				}
+
+				id, err = saquemodel.Create(
+					ctx,
+					tx,
+					user.ActiveRoleID,
+					user.UserID,
+					req,
+				)
+				return err
+			},
 		)
+
 		if err != nil {
+			// If the transaction already sent a response via AbortWithStatusJSON, don't double-respond
+			if c.IsAborted() {
+				return
+			}
 			util.Handle500(c, err)
 			return
 		}
