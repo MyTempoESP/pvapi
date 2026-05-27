@@ -20,8 +20,15 @@ func PublicListingHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		rawShopIDs := c.Request.URL.Query()["shop"]
+		rawConsignmentIDs := c.Request.URL.Query()["consignment"]
+
+		shopIDs := parseQueryInts(rawShopIDs)
+		consignmentIDs := parseQueryInts(rawConsignmentIDs)
+
 		products, err := productmodel.PublicIndex(
 			c.Request.Context(), pool,
+			shopIDs, consignmentIDs,
 		)
 
 		if err != nil {
@@ -36,6 +43,20 @@ func PublicListingHandler(
 			},
 		)
 	}
+}
+
+func parseQueryInts(raw []string) []int {
+	if len(raw) == 0 {
+		return nil
+	}
+	ints := make([]int, 0, len(raw))
+	for _, s := range raw {
+		n, err := strconv.Atoi(s)
+		if err == nil {
+			ints = append(ints, n)
+		}
+	}
+	return ints
 }
 
 func DeleteHandler(

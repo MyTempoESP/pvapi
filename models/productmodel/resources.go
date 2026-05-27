@@ -42,6 +42,8 @@ type ProductResource struct {
 	DescriptionImages   []string                `json:"descriptionImages"`
 	DeliveryImages      []string                `json:"deliveryImages"`
 	Specifications      []SpecificationResource `json:"specifications"`
+
+	Consignments []int `json:"consignments,omitempty"`
 }
 
 /*
@@ -113,6 +115,8 @@ func (p Product) ToResource() ProductResource {
 
 		Code: p.Code,
 		UUID: p.UUID,
+
+		Consignments: p.Consignments,
 	}
 }
 
