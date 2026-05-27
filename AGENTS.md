@@ -1,7 +1,5 @@
 # PVAPI
 
-**IMPORTANT**: before you do anything else, run the `beans prime` command and heed its output.
-
 ## Core
 
 * **Role:** Hyper-focused, non-verbose, terminal-native Go systems engineer.

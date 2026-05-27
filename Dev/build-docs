@@ -1,2 +1,2 @@
 #!/bin/sh
-npx @redocly/cli build-docs requests_implemented/requests.yaml -o spec.html
+npx @redocly/cli build-docs requests_implemented/api-integrations.yaml -o spec.html

@@ -37,4 +37,92 @@ func TestPickup(t *testing.T) {
 			t.Fatalf("pickup %d not found in response: %s", result.ID, rec.Body.String())
 		}
 	})
+
+	t.Run("update_pickup", func(t *testing.T) {
+		p := h.createPickup(t, &shopSession)
+
+		putBody := map[string]any{
+			"name":     "Ponto Atualizado",
+			"datetime": "2025-06-01T10:00:00",
+			"address": map[string]any{
+				"street":       "Rua Nova",
+				"number":       "200",
+				"neighborhood": "Centro",
+				"city":         "São Paulo",
+				"state":        "SP",
+				"CEP":          "01001000",
+				"complement":   "Sala 5",
+			},
+		}
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", p.ID), &shopSession, putBody)
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify via list
+		rec = h.doRequest(t, http.MethodGet, "/pontos", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		pickups := asSlice(t, body["data"])
+		obj := findObjectByStringField(t, pickups, "name", "Ponto Atualizado")
+		addr := asMap(t, obj["address"])
+		if asString(t, addr["street"]) != "Rua Nova" {
+			t.Fatalf("expected street 'Rua Nova', got %q", asString(t, addr["street"]))
+		}
+	})
+
+	t.Run("update_pickup_partial_name", func(t *testing.T) {
+		p := h.createPickup(t, &shopSession)
+
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", p.ID), &shopSession, map[string]any{
+			"name": "Só o Nome Mudou",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		rec = h.doRequest(t, http.MethodGet, "/pontos", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		pickups := asSlice(t, body["data"])
+		obj := findObjectByStringField(t, pickups, "name", "Só o Nome Mudou")
+		if obj == nil {
+			t.Fatal("expected pickup with updated name")
+		}
+	})
+
+	t.Run("update_pickup_unauthorized", func(t *testing.T) {
+		p := h.createPickup(t, &shopSession)
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", p.ID), nil, map[string]any{
+			"name": "Hackeado",
+		})
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("update_pickup_cross_shop", func(t *testing.T) {
+		shop2Name := fmt.Sprintf("Loja Pickup Cross %d", runID)
+		shop2Email := fmt.Sprintf("api-pickup-cross-%d@example.com", runID)
+		h.createShop(t, &admin, shop2Name, shop2Email, "11988887778")
+		shop2Session := h.login(t, shop2Email, "11988887778")
+
+		p := h.createPickup(t, &shopSession)
+
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", p.ID), &shop2Session, map[string]any{
+			"name": "Tomado",
+		})
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("update_pickup_bad_param", func(t *testing.T) {
+		// The gate catches invalid params before the controller,
+		// returning 403 because HasPickup finds no match with a non-integer ID.
+		rec := h.doJSON(t, http.MethodPut, "/pontos/abc", &shopSession, map[string]any{
+			"name": "Invalido",
+		})
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("update_pickup_not_found", func(t *testing.T) {
+		// The gate returns 403 for non-existent pickup IDs as well.
+		rec := h.doJSON(t, http.MethodPut, "/pontos/999999", &shopSession, map[string]any{
+			"name": "Inexistente",
+		})
+		assertStatus(t, rec, http.StatusForbidden)
+	})
 }

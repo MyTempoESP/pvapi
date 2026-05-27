@@ -30,3 +30,9 @@ func (c CreatePickupLocationRequest) Prepare(
 		ShopID:   shopID,
 	}, nil
 }
+
+type UpdatePickupLocationRequest struct {
+	Name     *string               `json:"name"`
+	DateTime *string               `json:"datetime"`
+	Address  *address.AddressRequest `json:"address"`
+}

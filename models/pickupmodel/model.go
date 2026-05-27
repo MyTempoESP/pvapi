@@ -51,4 +51,67 @@ func (p PickupLocationBlueprint) Save(
 	)
 }
 
+func Find(
+	ctx context.Context,
+	base db.Queryable,
+	id int,
+) (PickupLocation, error) {
+	return util.WithCollectExactlyOneRow[PickupLocation](
+		ctx, base,
+		query.FindPickupLocationQuery,
+		id,
+	)
+}
+
+func Update(
+	ctx context.Context,
+	base db.Queryable,
+	pickupID int,
+	req UpdatePickupLocationRequest,
+) error {
+	var name *string = req.Name
+
+	var pickupAt any
+	if req.DateTime != nil {
+		t, err := time.Parse("2006-01-02T15:04:05", *req.DateTime)
+		if err != nil {
+			return err
+		}
+		pickupAt = t
+	}
+
+	_, err := base.Exec(
+		ctx,
+		query.UpdatePickupLocationQuery,
+		pickupID,
+		name,
+		pickupAt,
+	)
+	if err != nil {
+		return err
+	}
+
+	if req.Address != nil {
+		a := req.Address.Prepare()
+
+		_, err = base.Exec(
+			ctx,
+			query.UpdateAddressQuery,
+			pickupID,
+			a.Street,
+			a.Number,
+			a.Neigh,
+			a.City,
+			a.State,
+			a.CEP,
+			a.Complement,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // TODO: View/Delete

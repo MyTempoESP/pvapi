@@ -1,0 +1,511 @@
+# PvAuto Integration API
+
+Base URL: `https://pvauto.linhazero.com`
+
+This is a public, unauthenticated API for integrating with the PvAuto platform. All endpoints accept and return JSON. The API covers four domains: Cart, Checkout, Consignments (remessas), and Products.
+
+---
+
+## Session Management
+
+Every cart operation requires a `session_id` query parameter. This is an opaque string provided by the client. The platform creates or reuses an active cart tied to that `session_id`. Carts already finalized (whose session has the prefix `FINISHED-`) are ignored.
+
+Sessions flow:
+1. Client picks an arbitrary `session_id` string (e.g. `temp_abc123`).
+2. Add products via `POST /carrinho/adicionar`.
+3. Fetch package options via `GET /carrinho/pacotes`.
+4. Confirm checkout via `POST /checkouts/confirm`.
+
+---
+
+## Cart (`/carrinho`)
+
+### POST /carrinho/adicionar - Add product to cart
+
+Creates or reuses an active cart bound to `session_id`. Already-finalized carts are ignored.
+
+Request body (JSON):
+```json
+{
+  "product_id": 1,
+  "quantity": 1,
+  "personalization": {},
+  "session_id": "temp_abc123"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| product_id | integer | yes | Product ID (min 1) |
+| quantity | integer | yes | Desired quantity (min 1, default 1) |
+| personalization | object | no | Arbitrary personalization data (default `{}`) |
+| session_id | string | yes | Client session identifier |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "produto adicionado!"
+}
+```
+
+Errors: 400 with `{"success": false, "message": "..."}`.
+
+---
+
+### GET /carrinho/dados - View cart
+
+Query parameters:
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| session_id | string | yes | Client session identifier |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "Dados do carrinho obtidos com sucesso!",
+  "items": [
+    {
+      "id": 1,
+      "product_id": 1,
+      "shop_id": 1,
+      "product_name": "Nome do produto",
+      "product_image": "https://...",
+      "shop_name": "Nome da loja",
+      "quantity": 1,
+      "price": 100.00,
+      "discount": 0.00,
+      "subtotal": 100.00,
+      "price_with_discount": 100.00,
+      "subtotal_with_discount": 100.00
+    }
+  ],
+  "total": 100.00,
+  "item_count": 1,
+  "total_with_discount": 100.00,
+  "total_discount": 0.00,
+  "session_id": "temp_abc123"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Cart item ID |
+| product_id | integer | Product ID |
+| shop_id | integer | Shop ID |
+| product_name | string | Product name |
+| product_image | string | Product image URL |
+| shop_name | string | Shop name |
+| quantity | integer | Quantity in cart |
+| price | number | Unit price (decimal) |
+| discount | number | Percentage discount (decimal) |
+| subtotal | number | price * quantity |
+| price_with_discount | number | Unit price with discount applied |
+| subtotal_with_discount | number | Subtotal with discount applied |
+| total | number | Cart total value |
+| item_count | integer | Distinct item count |
+| total_with_discount | number | Cart total with discounts |
+| total_discount | number | Total discount value |
+
+Errors: 400, 404.
+
+---
+
+### GET /carrinho/pacotes - List package options
+
+Returns available packages (remessas) grouped by product, including price, stock, and pickup point. Products with no available packages appear with `packages: []`. Each `package_id` is used later in `POST /checkouts/confirm`.
+
+Query parameters:
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| session_id | string | yes | Client session identifier |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "opcoes de pacote listadas com sucesso",
+  "products": [
+    {
+      "product_id": 1,
+      "product_name": "Nome do produto",
+      "packages": [
+        {
+          "package_id": 42,
+          "consignment_id": 10,
+          "price": 100.00,
+          "discount": 0.00,
+          "stock": 5,
+          "pickup": {
+            "id": 1,
+            "name": "Ponto de retirada A",
+            "date": "2025-12-01T10:00:00Z",
+            "address": {
+              "street": "Rua Exemplo",
+              "number": "123",
+              "neighborhood": "Bairro",
+              "city": "Cidade",
+              "state": "SP",
+              "cep": "00000-000",
+              "complement": ""
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| package_id | integer | Package ID for checkout |
+| consignment_id | integer | Remessa ID |
+| price | number | Package price (decimal) |
+| discount | number | Package discount (decimal) |
+| stock | integer | Available stock |
+| pickup.id | integer | Pickup point ID |
+| pickup.name | string | Pickup point name |
+| pickup.date | string | Pickup date/time |
+| pickup.address | object | Address with street, number, neighborhood, city, state, cep, complement |
+
+Errors: 400.
+
+---
+
+### DELETE /carrinho/remover/{item} - Remove cart item
+
+Path parameters:
+
+| Param | Type | Description |
+|-------|------|-------------|
+| item | integer | Cart item ID |
+
+Query parameters:
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| session_id | string | yes | Client session identifier |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "produto removido do carrinho"
+}
+```
+
+Errors: 400.
+
+---
+
+### PUT /carrinho/atualizar/{item} - Update item quantity
+
+Path parameters:
+
+| Param | Type | Description |
+|-------|------|-------------|
+| item | integer | Cart item ID |
+
+Query parameters:
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| session_id | string | yes | Client session identifier |
+
+Request body (JSON):
+```json
+{
+  "quantity": 3
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| quantity | integer | yes | New quantity (min 1) |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "quantidade alterada com sucesso"
+}
+```
+
+Errors: 400.
+
+---
+
+## Checkout (`/checkouts`)
+
+### POST /checkouts/confirm - Confirm checkout
+
+Finalizes the cart, reserves stock, and generates a QR code for pickup. **Idempotent**: the same `(session_id, external_reference)` pair always returns the original `unique_id` without duplicating the transaction.
+
+Package IDs are obtained via `GET /carrinho/pacotes`.
+
+Query parameters:
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| session_id | string | yes | Client session identifier |
+
+Request body (JSON):
+```json
+{
+  "value_paid": "600",
+  "external_reference": "pay_abc123",
+  "items": [
+    {
+      "package_id": 42,
+      "quantity": 1
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| value_paid | string | yes | Amount paid as a decimal string (e.g. "600") |
+| external_reference | string | yes | Unique external reference (idempotency key) |
+| items | array | yes | At least 1 item (minItems: 1) |
+| items[].package_id | integer | yes | Package ID from `/carrinho/pacotes` (min 1) |
+| items[].quantity | integer | yes | Desired quantity for this package (min 1) |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "checkout confirmed",
+  "unique_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "status": "paid",
+  "qr_code": "data:image/png;base64,..."
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| unique_id | string (UUID) | Unique transaction identifier |
+| status | string | Transaction status ("paid") |
+| qr_code | string | QR code as PNG base64 data URI |
+
+Error responses:
+- **400** - Invalid request
+- **404** - Cart not found or already finalized
+- **409** - Insufficient stock
+- **422** - Empty cart or package not found
+
+---
+
+## Consignments / Remessas (`/remessas-publicas`, `/estabelecimentos/{shop}/remessas`)
+
+### GET /remessas-publicas - List active consignments
+
+Returns all active consignments with approved status, including pickup point info and responsible monitor.
+
+No parameters.
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "remessas listadas com sucesso",
+  "data": [
+    {
+      "id": 1,
+      "commission_type": "percentage",
+      "commission_value": 10.00,
+      "code": "REM-001",
+      "slug": "remessa-exemplo",
+      "status": "approved",
+      "destination": "Ponto de retirada A",
+      "responsibleMonitor": "Nome do Monitor",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Remessa ID |
+| commission_type | string | Commission type ("fixed" or "percentage") |
+| commission_value | number | Commission value (decimal) |
+| code | string | Remessa code |
+| slug | string | Identifier slug |
+| status | string | Remessa status |
+| destination | string | Pickup point name |
+| responsibleMonitor | string | Responsible monitor name |
+| created_at | string | Creation date (ISO 8601) |
+
+---
+
+### GET /estabelecimentos/{shop}/remessas - List consignments by shop
+
+Returns consignments linked to a specific shop, identified by its slug.
+
+Path parameters:
+
+| Param | Type | Description |
+|-------|------|-------------|
+| shop | string | Shop slug (textual identifier) |
+
+Response 200: Same structure as `GET /remessas-publicas`.
+
+Error responses:
+- **404** - Shop not found
+
+---
+
+## Products (`/produtos`)
+
+### GET /produtos - List public products with filters
+
+Lists approved products from the public catalog. Supports filtering by shop and/or consignment.
+
+Query parameters (multi-value, repeatable):
+
+| Param | Type | Description |
+|-------|------|-------------|
+| shop | integer[] | Filter by shop ID(s). Example: `?shop=1&shop=2` |
+| consignment | integer[] | Filter by consignment ID(s). Example: `?consignment=3` |
+
+When filtered by `consignment`, each product includes a `consignments` field listing the consignment IDs that contain it. Without filters, returns all approved products.
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "Produtos listados com sucesso!",
+  "produtos": [
+    {
+      "id": 1,
+      "name": "Nome do Produto",
+      "stock": 10,
+      "price": 99.90,
+      "discount": 0.00,
+      "featured": false,
+      "code": "PROD-001",
+      "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "platform_cut": 5.00,
+      "platform_cut_type": "percentage",
+      "colors": ["red", "blue"],
+      "sizes": ["P", "M", "G"],
+      "allowCustomName": false,
+      "allowCustomModality": false,
+      "allowCustomColorSelection": false,
+      "moderation_status": "approved",
+      "category": "Categoria Exemplo",
+      "category_id": 1,
+      "imageUrl": "https://...",
+      "description": "Descricao do produto",
+      "specificationsImages": [],
+      "descriptionImages": [],
+      "deliveryImages": [],
+      "specifications": [
+        {
+          "name": "Material",
+          "value": "Algodao"
+        }
+      ],
+      "consignments": [1, 2, 3]
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Product ID |
+| name | string | Product name |
+| stock | integer | Stock quantity |
+| price | number | Price (decimal) |
+| discount | number | Discount (decimal) |
+| featured | boolean | Whether product is featured |
+| code | string | Product code |
+| uuid | string | Product UUID |
+| platform_cut | number | Platform cut (decimal) |
+| platform_cut_type | string | Cut type ("fixed" or "percentage") |
+| colors | string[] | Available colors |
+| sizes | string[] | Available sizes |
+| allowCustomName | boolean | Custom name allowed |
+| allowCustomModality | boolean | Custom modality allowed |
+| allowCustomColorSelection | boolean | Custom color selection allowed |
+| moderation_status | string | Moderation status |
+| category | string | Category name |
+| category_id | integer | Category ID |
+| imageUrl | string | Product image URL |
+| description | string | Product description |
+| specificationsImages | string[] | Specification image URLs |
+| descriptionImages | string[] | Description image URLs |
+| deliveryImages | string[] | Delivery image URLs |
+| specifications | object[] | Specifications (name/value pairs) |
+| consignments | integer[] | Consignment IDs containing this product (only when filtering by consignment) |
+
+---
+
+### GET /produtos/{product} - View product by ID
+
+Returns details for a specific approved product.
+
+Path parameters:
+
+| Param | Type | Description |
+|-------|------|-------------|
+| product | integer | Product ID |
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "produto encontrado!",
+  "data": {
+    "id": 1,
+    "name": "Nome do Produto",
+    ...
+  }
+}
+```
+
+The `data` field contains a `RecursoProduto` object (same structure as items in the product listing).
+
+Error responses:
+- **404** - Product not found
+
+---
+
+## Common Response Patterns
+
+### Success wrapper
+
+Most endpoints use a consistent success envelope:
+
+```json
+{
+  "success": true,
+  "message": "..."
+}
+```
+
+### Error response
+
+All errors follow the same structure:
+
+```json
+{
+  "success": false,
+  "message": "error description"
+}
+```
+
+HTTP status codes used: 400, 404, 409, 422.
+
+---
+
+## Idempotency
+
+The checkout endpoint (`POST /checkouts/confirm`) guarantees idempotency via the `external_reference` field. Repeating the same `(session_id, external_reference)` pair returns the same `unique_id` without creating duplicate transactions or double-reserving stock.
+

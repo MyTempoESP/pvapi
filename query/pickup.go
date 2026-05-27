@@ -44,4 +44,29 @@ FROM pickup_locations p
 LEFT JOIN aliased_addresses_view a USING (address_id)
 WHERE p.shop_id = $1
 `
+
+	FindPickupLocationQuery = `
+SELECT
+	p.id,
+	p.name,
+	p.pickup_at,
+
+	a.addrstreet,
+	a.addrnumber,
+	a.addrcity,
+	a.addrstate,
+	a.addrcep,
+	a.addrneigh,
+	a.addrcomplement
+FROM pickup_locations p
+LEFT JOIN aliased_addresses_view a USING (address_id)
+WHERE p.id = $1
+`
+
+	UpdatePickupLocationQuery = `
+UPDATE pickup_locations
+SET name   = COALESCE($2::text, name),
+    pickup_at = COALESCE($3::timestamptz, pickup_at)
+WHERE id = $1
+`
 )
