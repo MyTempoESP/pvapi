@@ -50,7 +50,30 @@ WHERE shop_id = $1
   AND consignment_id IN (SELECT id FROM consignments_active)
 `
 
-	ListAllActiveConsignmentsQuery = `
+	ListConsignmentsByConsigneeQuery = `
+SELECT
+	consignment_id,
+	consignment_comission_type,
+	consignment_comission_value,
+	consignment_status,
+	consignment_created_at,
+	consignment_slug,
+	consignment_code,
+
+	consignee_id,
+	consignee_name,
+
+	shop_id,
+	shop_name,
+
+	pickup_location_id,
+	pickup_location_name
+FROM consignments_listing_view
+WHERE consignee_id = $1
+  AND consignment_id IN (SELECT id FROM consignments_active)
+`
+
+ListAllActiveConsignmentsQuery = `
 SELECT
 	consignment_id,
 	consignment_comission_type,

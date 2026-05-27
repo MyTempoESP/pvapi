@@ -208,6 +208,19 @@ func List(
 	)
 }
 
+func ListByConsignee(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID int,
+) ([]Consignment, error) {
+	return util.WithCollect[Consignment](
+		ctx,
+		base,
+		query.ListConsignmentsByConsigneeQuery,
+		consigneeID,
+	)
+}
+
 func PublicList(
 	ctx context.Context,
 	base db.Queryable,

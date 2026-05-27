@@ -34,6 +34,32 @@ func PublicListHandler(
 	}
 }
 
+func ListByConsigneeHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		user := authmodel.GetUserFromContext(c)
+
+		consignments, err := consignmentmodel.ListByConsignee(
+			c.Request.Context(),
+			pool,
+			user.ActiveRoleID,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(consignments)
+
+		util.Wrap(
+			c, "remessas listadas com sucesso",
+			collection,
+		)
+	}
+}
+
 func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
