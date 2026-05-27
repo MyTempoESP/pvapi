@@ -113,4 +113,22 @@ SELECT 1 FROM packages
 WHERE product_id = $1 AND consignment_id = $2
 LIMIT 1
 `
+
+	CheckConsignmentArchivedQuery = `
+SELECT 1 FROM consignments
+WHERE id = $1 AND status = 'ARQUIVADO'
+LIMIT 1
+`
+
+	DeleteProductFromConsignmentQuery = `
+DELETE FROM packages
+WHERE product_id = $1 AND consignment_id = $2
+`
+
+	CheckPackageReservedForProductQuery = `
+SELECT 1 FROM package_reserved pr
+JOIN packages pkg ON pkg.id = pr.package_id
+WHERE pkg.product_id = $1 AND pkg.consignment_id = $2
+LIMIT 1
+`
 )

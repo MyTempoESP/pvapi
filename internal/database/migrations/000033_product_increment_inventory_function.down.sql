@@ -1,0 +1,1 @@
+DROP FUNCTION product_increment_inventory;

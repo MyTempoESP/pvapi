@@ -69,7 +69,7 @@ func Update(
 	pickupID int,
 	req UpdatePickupLocationRequest,
 ) error {
-	var name *string = req.Name
+	var name = req.Name
 
 	var pickupAt any
 	if req.DateTime != nil {

@@ -169,7 +169,6 @@ func TestConsignment(t *testing.T) {
 	})
 
 	t.Run("public_list_by_shop_endpoint", func(t *testing.T) {
-		// Create a second shop with its own consignment to verify isolation.
 		runID := time.Now().UnixNano()
 		otherShopName := fmt.Sprintf("Outra Loja %d", runID)
 		otherShopEmail := fmt.Sprintf("api-listby-shop-%d@example.com", runID)
@@ -184,7 +183,6 @@ func TestConsignment(t *testing.T) {
 		otherPickup := h.createPickup(t, &otherSession)
 		otherCons := h.createConsignment(t, &otherSession, otherPickup.ID, otherMonitor.ID)
 
-		// Hit the per-shop endpoint for the original shop.
 		path := fmt.Sprintf("/estabelecimentos/%s/remessas", shop.Slug)
 		rec := h.doRequest(t, http.MethodGet, path, nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -192,17 +190,14 @@ func TestConsignment(t *testing.T) {
 		body := decodeJSON(t, rec)
 		consignments := asSlice(t, body["data"])
 
-		// Must contain the original shop's consignment.
 		if !containsID(consignments, cons.ID) {
 			t.Fatalf("original consignment %d not found in shop listing: %s", cons.ID, rec.Body.String())
 		}
 
-		// Must NOT contain the other shop's consignment.
 		if containsID(consignments, otherCons.ID) {
 			t.Fatalf("other shop's consignment %d should NOT appear in shop listing: %s", otherCons.ID, rec.Body.String())
 		}
 
-		// Also verify the other shop's own endpoint returns its consignment.
 		otherPath := fmt.Sprintf("/estabelecimentos/%s/remessas", otherShop.Slug)
 		otherRec := h.doRequest(t, http.MethodGet, otherPath, nil, "", nil)
 		assertStatus(t, otherRec, http.StatusOK)
@@ -213,9 +208,62 @@ func TestConsignment(t *testing.T) {
 			t.Fatalf("other shop's consignment %d should appear in its own listing: %s", otherCons.ID, otherRec.Body.String())
 		}
 
-		// Must NOT contain the original shop's consignment.
 		if containsID(otherConsignments, cons.ID) {
 			t.Fatalf("original consignment %d should NOT appear in other shop listing: %s", cons.ID, otherRec.Body.String())
+		}
+	})
+
+	// --- DELETE /remessas/:consignment/produtos/:product tests ---
+
+	t.Run("remove_nonexistent_product_returns_404", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodDelete,
+			fmt.Sprintf("/remessas/%d/produtos/99999", cons.ID),
+			&shopSession, "", nil)
+		assertStatus(t, rec, http.StatusNotFound)
+	})
+
+	t.Run("consignee_cannot_remove_product", func(t *testing.T) {
+		monitorSession := h.login(t, monitor.Email, monitor.Phone)
+		rec := h.doRequest(t, http.MethodDelete,
+			fmt.Sprintf("/remessas/%d/produtos/%d", cons.ID, prd.ID),
+			&monitorSession, "", nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("different_shop_cannot_remove_product", func(t *testing.T) {
+		otherShopEmail := fmt.Sprintf("api-remove-other-%d@example.com", time.Now().UnixNano())
+		_ = h.createShop(t, &admin,
+			"Outra Loja RM", otherShopEmail, "11988887777")
+		otherSession := h.login(t, otherShopEmail, "11988887777")
+
+		rec := h.doRequest(t, http.MethodDelete,
+			fmt.Sprintf("/remessas/%d/produtos/%d", cons.ID, prd.ID),
+			&otherSession, "", nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("remove_product_restores_stock", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodDelete,
+			fmt.Sprintf("/remessas/%d/produtos/%d", cons.ID, prd.ID),
+			&shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		if msg := asString(t, body["message"]); msg != "produto removido da remessa com sucesso" {
+			t.Fatalf("expected success message, got %q", msg)
+		}
+	})
+
+	t.Run("removed_product_not_in_consignment_listing", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/remessas/%d/produtos", cons.ID),
+			&shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		products := asSlice(t, body["products"])
+		if containsID(products, prd.ID) {
+			t.Fatal("product should not be in consignment after removal")
 		}
 	})
 }

@@ -288,4 +288,8 @@ WHERE id = $1;
 DELETE FROM products
 WHERE id = $1
 `
+
+	ProductAddToStock = `
+SELECT product_increment_inventory($1, $2)
+`
 )

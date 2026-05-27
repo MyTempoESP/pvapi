@@ -137,6 +137,50 @@ func AddProductHandler(
 	}
 }
 
+func RemoveProductHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		consignmentID, err := strconv.Atoi(c.Param("consignment"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		productID, err := strconv.Atoi(c.Param("product"))
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		util.LogInfo(
+			c,
+			"Trying to remove product from consignment",
+			"Consignment", consignmentID,
+			"Product", productID,
+		)
+
+		action := consignmentmodel.RemoveProductAction{
+			ProductID:     productID,
+			ConsignmentID: consignmentID,
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			action.Exec,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "produto removido da remessa com sucesso")
+	}
+}
+
 func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
