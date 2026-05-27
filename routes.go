@@ -140,6 +140,10 @@ func setupRoutes(
 		consignments.PUT(
 			":consignment/produtos/:product",
 			consignment.UpdateProductHandler(pool))
+
+		consignments.DELETE(
+			":consignment/produtos/:product",
+			consignment.RemoveProductHandler(pool))
 	}
 
 	pickupLocations := t.Group("/pontos", withAuth)

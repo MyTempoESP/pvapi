@@ -115,6 +115,10 @@ func (c *ConsignmentGate) Dispatch(
 			return c.Modify(u, r)
 		}
 
+		if r.Method == "DELETE" {
+			return c.Modify(u, r)
+		}
+
 		return false, nil
 	}
 

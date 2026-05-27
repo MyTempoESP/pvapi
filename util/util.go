@@ -21,6 +21,8 @@ import (
 var (
 	ErrBadRequest         = errors.New("malformed request")
 	ErrDuplicatedResource = errors.New("trying to create duplicated resource")
+	ErrResourceLocked     = errors.New("resource is locked and cannot be modified")
+	ErrNotFound           = errors.New("resource not found")
 	ErrNotImplemented     = errors.New("function not yet implemented")
 )
 
@@ -116,6 +118,11 @@ func HandleGuess(c *gin.Context, err error) {
 		return
 	}
 
+	if errors.Is(err, ErrNotFound) {
+		Handle404(c, err)
+		return
+	}
+
 	Handle500(c, err)
 }
 
@@ -127,8 +134,23 @@ func HandleGuessFromDBOperation(c *gin.Context, err error) {
 		return
 	}
 
+	if errors.Is(err, ErrBadRequest) {
+		HandleBadRequest(c, err)
+		return
+	}
+
 	if errors.Is(err, ErrDuplicatedResource) {
 		HandleDuplicatedResource(c, err)
+		return
+	}
+
+	if errors.Is(err, ErrResourceLocked) {
+		HandleResourceLocked(c, err)
+		return
+	}
+
+	if errors.Is(err, ErrNotFound) {
+		Handle404(c, err)
 		return
 	}
 
@@ -147,6 +169,20 @@ func HandleDuplicatedResource(c *gin.Context, err error) {
 			"success": false,
 			"message": "resource already exists",
 			"code":    "duplicated_resource",
+		},
+	)
+}
+
+func HandleResourceLocked(c *gin.Context, err error) {
+	logger := logmw.GetLogger(c)
+	logger.Warn("Resource locked", "error", err)
+
+	c.AbortWithStatusJSON(
+		http.StatusConflict,
+		gin.H{
+			"success": false,
+			"message": "não é possível remover: produto possui reservas ativas em checkouts",
+			"code":    "resource_locked",
 		},
 	)
 }
