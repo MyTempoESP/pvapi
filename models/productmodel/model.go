@@ -5,6 +5,7 @@ import (
 	"context"
 	"slices"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -57,16 +58,151 @@ type Product struct {
 	Attributes       ProductAttr     `db:"product_attr"`
 	PlatformCutType  string          `db:"product_platform_cut_type"`
 	PlatformCut      decimal.Decimal `db:"product_platform_cut"`
+	Consignments     []int             `db:"-"`
 }
 
 func PublicIndex(
 	ctx context.Context,
 	base db.Queryable,
+	shopIDs, consignmentIDs []int,
 ) ([]Product, error) {
+	if len(consignmentIDs) > 0 {
+		return publicIndexWithFilters(ctx, base, shopIDs, consignmentIDs)
+	}
+
+	if len(shopIDs) > 0 {
+		q := util.SQL.Select(
+			"product_id",
+			"product_name",
+			"product_price",
+			"product_stock",
+			"product_discount",
+			"product_featured",
+			"product_moderation_status",
+			"product_description",
+			"product_category_id",
+			"product_category",
+			"product_uuid",
+			"product_code",
+			"product_attr",
+			"product_platform_cut",
+			"product_platform_cut_type",
+			"product_shop_id",
+			"product_shop_name",
+		).From("product_catalog_view").
+			Where("product_moderation_status = 'approved'").
+			Where(sq.Eq{"product_shop_id": shopIDs})
+
+		sql, args, err := q.ToSql()
+		if err != nil {
+			return nil, fmt.Errorf("build shop-filter query: %w", err)
+		}
+
+		return util.WithCollect[Product](ctx, base, sql, args...)
+	}
+
 	return util.WithCollect[Product](
 		ctx, base,
 		query.GetAllPublicProducts,
 	)
+}
+
+// productRow is used internally to scan product rows that include the optional
+// product_consignments column. Fields without a db tag are not touched by
+// RowToStructByName, so we keep the original Product struct for that.
+type productRow struct {
+	Product
+	Consignments []int `db:"product_consignments"`
+}
+
+func publicIndexWithFilters(
+	ctx context.Context,
+	base db.Queryable,
+	shopIDs, consignmentIDs []int,
+) ([]Product, error) {
+	cids := make([]any, len(consignmentIDs))
+	for i, id := range consignmentIDs {
+		cids[i] = id
+	}
+
+	cPlaceholders := make([]string, len(consignmentIDs))
+	for i := range consignmentIDs {
+		cPlaceholders[i] = "?"
+	}
+	cList := strings.Join(cPlaceholders, ", ")
+
+	consignmentSubq := fmt.Sprintf(
+		`(SELECT COALESCE(array_agg(DISTINCT p.consignment_id), ARRAY[]::integer[])`+
+			` FROM packages p`+
+			` JOIN consignments_active ca ON ca.id = p.consignment_id`+
+			` WHERE p.product_id = v.product_id`+
+			` AND p.consignment_id IN (%s))`,
+		cList,
+	)
+
+	consignmentWhere := fmt.Sprintf(
+		`EXISTS (SELECT 1 FROM packages p`+
+			` JOIN consignments_active ca ON ca.id = p.consignment_id`+
+			` WHERE p.product_id = v.product_id`+
+			` AND p.consignment_id IN (%s))`,
+		cList,
+	)
+
+	q := util.SQL.Select(
+		"v.product_id",
+		"v.product_name",
+		"v.product_price",
+		"v.product_stock",
+		"v.product_discount",
+		"v.product_featured",
+		"v.product_moderation_status",
+		"v.product_description",
+		"v.product_category_id",
+		"v.product_category",
+		"v.product_uuid",
+		"v.product_code",
+		"v.product_attr",
+		"v.product_platform_cut",
+		"v.product_platform_cut_type",
+		"v.product_shop_id",
+		"v.product_shop_name",
+	).
+		Column(sq.Alias(sq.Expr(consignmentSubq, cids...), "product_consignments")).
+		From("product_catalog_view v").
+		Where("v.product_moderation_status = 'approved'").
+		Where(sq.Expr(consignmentWhere, cids...))
+
+	if len(shopIDs) > 0 {
+		sids := make([]any, len(shopIDs))
+		for i, id := range shopIDs {
+			sids[i] = id
+		}
+		sPlaceholders := make([]string, len(shopIDs))
+		for i := range shopIDs {
+			sPlaceholders[i] = "?"
+		}
+		sList := strings.Join(sPlaceholders, ", ")
+
+		q = q.Where(sq.Expr("v.product_shop_id IN ("+sList+")", sids...))
+	}
+
+	sql, args, err := q.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build consignment-filter query: %w", err)
+	}
+
+	prs, err := util.WithCollect[productRow](ctx, base, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	products := make([]Product, len(prs))
+	for i := range prs {
+		prs[i].Product.Consignments = prs[i].Consignments
+		products[i] = prs[i].Product
+	}
+
+	return products, nil
 }
 
 func (p ProductBlueprint) Save(
