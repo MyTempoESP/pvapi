@@ -189,6 +189,17 @@ func List(
 	)
 }
 
+func PublicList(
+	ctx context.Context,
+	base db.Queryable,
+) ([]Consignment, error) {
+	return util.WithCollect[Consignment](
+		ctx,
+		base,
+		query.ListAllActiveConsignmentsQuery,
+	)
+}
+
 func ListProducts(
 	ctx context.Context,
 	base db.Queryable,

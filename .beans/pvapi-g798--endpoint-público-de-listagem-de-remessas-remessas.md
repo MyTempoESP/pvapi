@@ -1,10 +1,11 @@
 ---
 # pvapi-g798
 title: Endpoint público de listagem de remessas (/remessas-publicas)
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-05-27T06:42:15Z
-updated_at: 2026-05-27T06:42:15Z
+updated_at: 2026-05-27T06:48:20Z
 parent: pvapi-sqf6
 ---
 
