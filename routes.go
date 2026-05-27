@@ -4,6 +4,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"linhazero.com/pvapi/controllers/bankaccount"
 	"linhazero.com/pvapi/controllers/cart"
 	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/controllers/checkout"
@@ -60,6 +61,10 @@ func setupRoutes(
 		shops.GET("/saques/:saque", saque.ViewHandler(pool))
 		shops.PUT("/saques/:saque", saque.UpdateStatusHandler(pool))
 		shops.DELETE("/saques/:saque", saque.DeleteHandler(pool))
+		shops.POST("/contasbancarias", bankaccount.CreateHandler(pool))
+		shops.GET("/contasbancarias", bankaccount.ListHandler(pool))
+		shops.PUT("/contasbancarias/:id", bankaccount.UpdateHandler(pool))
+		shops.DELETE("/contasbancarias/:id", bankaccount.DeleteHandler(pool))
 		shops.GET(":shop", shop.ViewHandler(pool))
 		shops.PUT(":shop", shop.UpdateHandler(pool))
 		shops.DELETE(":shop", shop.DeactivateHandler(pool))

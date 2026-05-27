@@ -325,3 +325,17 @@ func HasReport(
 	)
 }
 
+func HasBankAccount(
+	ctx context.Context,
+	base db.Queryable,
+	shop, bankAccount any,
+) (bool, error) {
+	return model.HasResource(
+		ctx,
+		base,
+		query.ShopHasBankAccountQuery,
+		shop,
+		bankAccount,
+	)
+}
+

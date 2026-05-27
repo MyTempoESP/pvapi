@@ -8,7 +8,7 @@ import (
 )
 
 type PixResource struct {
-	CPF     string `json:"cpf"`
+	Key     string `json:"key"`
 	Titular string `json:"titular"`
 }
 
@@ -32,15 +32,18 @@ func (r SaqueRow) ToResource() SaqueResource {
 		AskedValue:  r.AskedValue,
 		UserName:    r.UserName,
 		ShopName:    r.ShopName,
-		BankName:    r.BankName,
 		Status:      r.Status,
 		CreatedAt:   r.CreatedAt.Format(time.RFC3339),
 	}
 
-	if r.PixCPF != nil || r.PixTitular != nil {
+	if r.BankName != nil {
+		sr.BankName = *r.BankName
+	}
+
+	if r.PixKey != nil || r.PixTitular != nil {
 		sr.Pix = &PixResource{}
-		if r.PixCPF != nil {
-			sr.Pix.CPF = *r.PixCPF
+		if r.PixKey != nil {
+			sr.Pix.Key = *r.PixKey
 		}
 		if r.PixTitular != nil {
 			sr.Pix.Titular = *r.PixTitular

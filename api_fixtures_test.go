@@ -49,6 +49,10 @@ type saqueFixtureResult struct {
 	Description string
 }
 
+type bankAccountFixtureResult struct {
+	ID int
+}
+
 type reportFixture struct {
 	OrderID      any
 	Monitor      string
@@ -296,15 +300,31 @@ func (h *apiHarness) getPackageID(t *testing.T, productID int, runID int64) int 
 	return asInt(t, asMap(t, packages[0])["package_id"])
 }
 
-func (h *apiHarness) createSaque(t *testing.T, session *apiSession, description, askedValue, bankName string) saqueFixtureResult {
+func (h *apiHarness) createBankAccount(t *testing.T, session *apiSession, name, bankName string) bankAccountFixtureResult {
+	t.Helper()
+
+	rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/contasbancarias", session, map[string]any{
+		"name":      name,
+		"bank_name": bankName,
+		"pix_key":   "12345678900",
+		"pix_titular": "Loja Teste",
+	})
+	assertStatus(t, rec, http.StatusOK)
+
+	body := decodeJSON(t, rec)
+	conta := asMap(t, body["conta"])
+	return bankAccountFixtureResult{
+		ID: asInt(t, conta["id"]),
+	}
+}
+
+func (h *apiHarness) createSaque(t *testing.T, session *apiSession, description, askedValue string, bankAccountID int) saqueFixtureResult {
 	t.Helper()
 
 	rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", session, map[string]any{
-		"description": description,
-		"asked_value": askedValue,
-		"bank_name":   bankName,
-		"pix_cpf":     "12345678900",
-		"pix_titular": "Loja Teste",
+		"description":  description,
+		"asked_value":  askedValue,
+		"bank_account": bankAccountID,
 	})
 	assertStatus(t, rec, http.StatusOK)
 

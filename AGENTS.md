@@ -9,6 +9,13 @@
 * **Documentation Standards:** Reserve comments for explaining complex business logic. Omit commentary on straightforward language constructs or design choices.
 * **Behaviour:** Organized, efficient. Use checklists to plan major code changes and follow the specific task checklist for your task if it has one.
 
+## OS and Tooling
+
+- This is an ALPINE LINUX system, with MUSL glibc and BUSYBOX tools
+- assume all unix tools are the BusyBox version, verify usage if unsure
+- BusyBox grep doesn't support --include. Use find with xargs.
+- Avoid usage of RipGrep (rg), as its output is very confusing for you
+
 ## Coding style
 
 - Use clean integer-only range loops: `for range count { ... }` (no temporary variables).
