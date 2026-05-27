@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,19 +17,53 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+var (
+	ErrInsufficientFunds = errors.New("saldo indisponivel para saque")
+)
+
+func createSaqueGuarded(
+	ctx context.Context,
+	tx db.Queryable,
+	user authmodel.AuthUser,
+	request saquemodel.CreateSaqueRequest,
+) (int, error) {
+	available, err := financemodel.AvailableBalance(
+		ctx, tx,
+		user.ActiveRoleID,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if request.AskedValue.GreaterThan(available) {
+		return 0, ErrInsufficientFunds
+	}
+
+	id, err := saquemodel.Create(
+		ctx, tx,
+		user.ActiveRoleID,
+		user.UserID,
+		request,
+	)
+
+	return id, err
+}
+
 func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var req saquemodel.CreateSaqueRequest
+		var request saquemodel.CreateSaqueRequest
 
 		user := authmodel.GetUserFromContext(c)
 
-		err := c.ShouldBindJSON(&req)
+		err := c.ShouldBindJSON(&request)
+
 		if err != nil {
 			util.HandleBadRequest(c, err)
 			return
 		}
 
-		if req.AskedValue.LessThanOrEqual(decimal.NewFromInt(0)) {
+		if request.AskedValue.LessThanOrEqual(decimal.NewFromInt(0)) {
 			util.HandleBadRequest(c, fmt.Errorf("valor do saque deve ser positivo"))
 			return
 		}
@@ -37,64 +72,48 @@ func CreateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 			c.Request.Context(),
 			pool,
 			user.ActiveRoleID,
-			req.BankAccountID,
+			request.BankAccountID,
 		)
+
 		if err != nil {
 			util.Handle500(c, err)
 			return
 		}
+
 		if !ok {
 			util.Handle404(c, nil)
 			return
 		}
 
-		var id int
-
-		err = util.Transaction(
-			c.Request.Context(),
-			pool,
-			func(ctx context.Context, tx db.Queryable) error {
-				// AvailableBalance acquires a FOR UPDATE lock on the shop row
-				available, err := financemodel.AvailableBalance(ctx, tx, user.ActiveRoleID)
-				if err != nil {
-					return err
-				}
-
-				if req.AskedValue.GreaterThan(available) {
-					c.AbortWithStatusJSON(400, gin.H{
-						"message": "saldo insuficiente para saque",
-						"saque": gin.H{
-							"asked_value":       req.AskedValue.String(),
-							"available_balance": available.String(),
-						},
-					})
-					return fmt.Errorf("insufficient balance: asked=%s, available=%s", req.AskedValue, available)
-				}
-
-				id, err = saquemodel.Create(
-					ctx,
-					tx,
-					user.ActiveRoleID,
-					user.UserID,
-					req,
+		id, err := util.TransactionReturn(
+			c.Request.Context(), pool,
+			func (
+				ctx context.Context,
+				tx db.Queryable,
+			) (int, error) {
+				return createSaqueGuarded(
+					ctx, tx,
+					user, request,
 				)
-				return err
 			},
 		)
 
 		if err != nil {
-			// If the transaction already sent a response via AbortWithStatusJSON, don't double-respond
-			if c.IsAborted() {
+			if errors.Is(err, ErrInsufficientFunds) {
+				util.HandleBadRequest(c, err)
 				return
 			}
+
 			util.Handle500(c, err)
 			return
 		}
 
-		util.WrapLabeled(c, "saque solicitado com sucesso", "saque", gin.H{
-			"id":     id,
-			"status": "pending",
-		})
+		util.WrapLabeled(c, "saque solicitado com sucesso",
+			"saque", gin.H{
+				"id":     id,
+				"status": "pending",
+			},
+		)
 	}
 }
 
