@@ -132,4 +132,15 @@ func TestConsignment(t *testing.T) {
 			t.Fatalf("product %d not found in listing", prd.ID)
 		}
 	})
+
+	t.Run("public_list_endpoint", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/remessas-publicas", nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("consignment %d not found in public listing: %s", cons.ID, rec.Body.String())
+		}
+	})
 }
