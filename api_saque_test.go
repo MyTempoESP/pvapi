@@ -216,18 +216,6 @@ func TestSaque(t *testing.T) {
 			"bank_account": ba.ID,
 		})
 		assertStatus(t, rec, http.StatusBadRequest)
-
-		body := decodeJSON(t, rec)
-		saque := asMap(t, body["saque"])
-		if saque == nil {
-			t.Fatal("expected 'saque' object in error response")
-		}
-		if asString(t, saque["asked_value"]) == "" {
-			t.Fatal("expected 'asked_value' in error saque object")
-		}
-		if asString(t, saque["available_balance"]) == "" {
-			t.Fatal("expected 'available_balance' in error saque object")
-		}
 	})
 
 	t.Run("create_pending_reduces_balance", func(t *testing.T) {

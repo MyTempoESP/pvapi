@@ -1,11 +1,11 @@
 ---
 # pvapi-yje0
 title: 'Bank Accounts: reusable bank account object for shops'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-05-27T01:50:25Z
-updated_at: 2026-05-27T01:50:49Z
+updated_at: 2026-05-27T03:07:54Z
 ---
 
 ## Problem Statement
