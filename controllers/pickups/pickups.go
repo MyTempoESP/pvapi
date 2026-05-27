@@ -1,6 +1,8 @@
 package pickups
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
@@ -70,5 +72,36 @@ func ListHandler(
 			"pontos de entrega listados com sucesso",
 			collection,
 		)
+	}
+}
+
+func UpdateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("pickup"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		var req pickupmodel.UpdatePickupLocationRequest
+
+		err = c.ShouldBindJSON(&req)
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = pickupmodel.Update(
+			c.Request.Context(),
+			pool,
+			id,
+			req,
+		)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "ponto de entrega atualizado com sucesso")
 	}
 }

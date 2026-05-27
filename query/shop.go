@@ -148,7 +148,7 @@ WHERE s.id = $1 AND p.id = $2
 	ShopHasPickupQuery = `
 SELECT (p.id IS NOT NULL) AS hasPickup
 FROM shops s
-LEFT JOIN pickups p ON p.shop_id = s.id
+LEFT JOIN pickup_locations p ON p.shop_id = s.id
 WHERE s.id = $1 AND p.id = $2
 `
 

@@ -146,6 +146,7 @@ func setupRoutes(
 	{
 		pickupLocations.POST("", pickups.CreateHandler(pool))
 		pickupLocations.GET("", pickups.ListHandler(pool))
+		pickupLocations.PUT(":pickup", pickups.UpdateHandler(pool))
 	}
 
 	reports := t.Group("/ocorrencias", withAuth)

@@ -1,0 +1,800 @@
+openapi: "3.0.3"
+info:
+  title: PvAuto — API de Integração
+  version: "1.0.0"
+  license:
+    name: Proprietary
+    url: https://pvauto.linhazero.com
+  description: |
+    Rotas públicas para integração com a plataforma PvAuto:
+    fluxo de carrinho e checkout, listagem de remessas públicas,
+    remessas por loja e produtos com filtros.
+
+    **Fluxo principal:**
+    1. Obter `session_id` (string opaca fornecida pelo cliente).
+    2. Adicionar produtos via `POST /carrinho/adicionar`.
+    3. Consultar opções de pacote via `GET /carrinho/pacotes`.
+    4. Confirmar checkout via `POST /checkouts/confirm`.
+security: []
+
+servers:
+  - url: https://pvauto.linhazero.com
+    description: Produção
+tags:
+  - name: Carrinho
+    description: Gerenciamento do carrinho de compras
+  - name: Checkout
+    description: Finalização da compra
+  - name: Remessas
+    description: Consulta de remessas públicas
+  - name: Produtos
+    description: Catálogo de produtos com filtros
+paths:
+  # ═══════════════════════════════════════════════════════════════
+  # Carrinho
+  # ═══════════════════════════════════════════════════════════════
+  /carrinho/adicionar:
+    post:
+      tags: [Carrinho]
+      summary: Adiciona produto ao carrinho
+      description: |
+        Cria ou reutiliza um carrinho ativo vinculado ao `session_id`.
+        Carrinhos já finalizados (prefixo `FINISHED-` no session) são ignorados.
+      operationId: adicionarAoCarrinho
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdicionarCarrinhoRequest"
+      responses:
+        "200":
+          description: Produto adicionado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaOk"
+        "400":
+          $ref: "#/components/responses/ErroRequisicao"
+
+  /carrinho/dados:
+    get:
+      tags: [Carrinho]
+      summary: Visualiza dados do carrinho
+      operationId: verCarrinho
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Identificador de sessão do carrinho
+      responses:
+        "200":
+          description: Dados do carrinho com itens e totais
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaCarrinho"
+        "400":
+          $ref: "#/components/responses/ErroRequisicao"
+        "404":
+          description: Carrinho não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+
+  /carrinho/pacotes:
+    get:
+      tags: [Carrinho]
+      summary: Lista opções de pacote (remessa) para os itens do carrinho
+      description: |
+        Retorna, agrupado por produto, os pacotes disponíveis com
+        preço, estoque e ponto de retirada. Produtos sem pacotes
+        disponíveis aparecem com `packages: []`.
+        Cada `package_id` será utilizado no `POST /checkouts/confirm`.
+      operationId: listarPacotesCarrinho
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Identificador de sessão do carrinho
+      responses:
+        "200":
+          description: Opções de pacote agrupadas por produto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaPacotes"
+        "400":
+          $ref: "#/components/responses/ErroRequisicao"
+
+  /carrinho/remover/{item}:
+    delete:
+      tags: [Carrinho]
+      summary: Remove item do carrinho
+      operationId: removerItemCarrinho
+      parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID do item no carrinho
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Identificador de sessão do carrinho
+      responses:
+        "200":
+          description: Item removido com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaOk"
+        "400":
+          $ref: "#/components/responses/ErroRequisicao"
+
+  /carrinho/atualizar/{item}:
+    put:
+      tags: [Carrinho]
+      summary: Altera quantidade de item no carrinho
+      operationId: atualizarQuantidadeItem
+      parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID do item no carrinho
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Identificador de sessão do carrinho
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: Nova quantidade desejada
+      responses:
+        "200":
+          description: Quantidade alterada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaOk"
+        "400":
+          $ref: "#/components/responses/ErroRequisicao"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Checkout
+  # ═══════════════════════════════════════════════════════════════
+  /checkouts/confirm:
+    post:
+      tags: [Checkout]
+      summary: Confirma checkout do carrinho
+      description: |
+        Finaliza o carrinho, reserva estoque e gera QR code para retirada.
+        **Idempotente** — a mesma combinação `(session_id, external_reference)`
+        retorna o `unique_id` original sem duplicar a transação.
+
+        Os `package_id` são obtidos via `GET /carrinho/pacotes`.
+      operationId: confirmarCheckout
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Identificador de sessão do carrinho
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmarCheckoutRequest"
+      responses:
+        "200":
+          description: Checkout confirmado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaCheckout"
+        "400":
+          $ref: "#/components/responses/ErroRequisicao"
+        "404":
+          description: Carrinho não encontrado ou já finalizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+        "409":
+          description: Estoque insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+        "422":
+          description: Carrinho vazio ou pacote não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Remessas públicas
+  # ═══════════════════════════════════════════════════════════════
+  /remessas-publicas:
+    get:
+      tags: [Remessas]
+      summary: Lista todas as remessas ativas
+      description: |
+        Retorna a lista de remessas/consignments ativas com status
+        aprovado, incluindo informações de ponto de retirada e
+        monitor responsável.
+      operationId: listarRemessasPublicas
+      responses:
+        "200":
+          description: Lista de remessas ativas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaListaRemessas"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Remessas por loja
+  # ═══════════════════════════════════════════════════════════════
+  /estabelecimentos/{shop}/remessas:
+    get:
+      tags: [Remessas]
+      summary: Lista remessas de uma loja específica
+      description: |
+        Retorna todas as remessas/consignments vinculadas a uma loja
+        específica, identificada pelo slug.
+      operationId: listarRemessasPorLoja
+      parameters:
+        - name: shop
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Slug da loja (identificador textual)
+      responses:
+        "200":
+          description: Lista de remessas da loja
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaListaRemessas"
+        "404":
+          description: Loja não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Produtos com filtros
+  # ═══════════════════════════════════════════════════════════════
+  /produtos:
+    get:
+      tags: [Produtos]
+      summary: Lista produtos públicos com filtros
+      description: |
+        Lista produtos aprovados do catálogo público. Suporta filtros
+        por loja e por remessa.
+
+        **Filtros disponíveis (query params, multivalorados):**
+        - `shop` — filtra por ID(s) de loja (ex: `?shop=1&shop=2`)
+        - `consignment` — filtra por ID(s) de remessa (ex: `?consignment=3`)
+
+        Quando filtrado por `consignment`, a resposta inclui o campo
+        `consignments` em cada produto, listando os IDs das remessas
+        que possuem aquele produto.
+
+        Sem filtros, retorna todos os produtos aprovados.
+      operationId: listarProdutos
+      parameters:
+        - name: shop
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          description: ID da loja (pode ser repetido para múltiplas lojas)
+          example: [1]
+        - name: consignment
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          description: ID da remessa (pode ser repetido para múltiplas remessas)
+          example: [3]
+      responses:
+        "200":
+          description: Lista de produtos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaListaProdutos"
+
+  /produtos/{product}:
+    get:
+      tags: [Produtos]
+      summary: Visualiza produto público por ID
+      description: Retorna os detalhes de um produto específico aprovado.
+      operationId: verProduto
+      parameters:
+        - name: product
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID do produto
+      responses:
+        "200":
+          description: Detalhes do produto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaProduto"
+        "404":
+          description: Produto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+
+# ═════════════════════════════════════════════════════════════════
+# Componentes
+# ═════════════════════════════════════════════════════════════════
+components:
+  schemas:
+    # ── Genéricos ───────────────────────────────────────────────
+    RespostaOk:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "produto adicionado!"
+
+    RespostaErro:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+    # ── Endereço ────────────────────────────────────────────────
+    Endereco:
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        cep:
+          type: string
+        complement:
+          type: string
+
+    # ── Carrinho ────────────────────────────────────────────────
+    AdicionarCarrinhoRequest:
+      type: object
+      required: [product_id, quantity, session_id]
+      properties:
+        product_id:
+          type: integer
+          minimum: 1
+          description: ID do produto
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Quantidade desejada
+        personalization:
+          type: object
+          additionalProperties: true
+          default: {}
+          description: Dados de personalização (opcional)
+        session_id:
+          type: string
+          description: Identificador de sessão do cliente
+      example:
+        product_id: 1
+        quantity: 1
+        personalization: {}
+        session_id: "temp_abc123"
+
+    ItemCarrinho:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID do item no carrinho
+        product_id:
+          type: integer
+          description: ID do produto
+        shop_id:
+          type: integer
+          description: ID da loja
+        product_name:
+          type: string
+          description: Nome do produto
+        product_image:
+          type: string
+          description: URL da imagem do produto
+        shop_name:
+          type: string
+          description: Nome da loja
+        quantity:
+          type: integer
+          description: Quantidade no carrinho
+        price:
+          type: number
+          description: Preço unitário (decimal)
+        discount:
+          type: number
+          description: Desconto percentual (decimal)
+        subtotal:
+          type: number
+          description: Subtotal (preço × quantidade)
+        price_with_discount:
+          type: number
+          description: Preço unitário com desconto aplicado
+        subtotal_with_discount:
+          type: number
+          description: Subtotal com desconto aplicado
+
+    RespostaCarrinho:
+      type: object
+      required:
+        - success
+        - message
+        - items
+        - total
+        - item_count
+        - total_with_discount
+        - total_discount
+        - session_id
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemCarrinho"
+        total:
+          type: number
+          description: Valor total do carrinho
+        item_count:
+          type: integer
+          description: Quantidade de itens distintos
+        total_with_discount:
+          type: number
+          description: Valor total com descontos aplicados
+        total_discount:
+          type: number
+          description: Valor total dos descontos
+        session_id:
+          type: string
+          description: Identificador de sessão
+
+    # ── Pacotes / Opções de remessa ─────────────────────────────
+    PontoRetirada:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID do ponto de retirada
+        name:
+          type: string
+          description: Nome do ponto de retirada
+        date:
+          type: string
+          description: Data/hora do ponto de retirada
+        address:
+          $ref: "#/components/schemas/Endereco"
+
+    OpcaoPacote:
+      type: object
+      properties:
+        package_id:
+          type: integer
+          description: ID do pacote (usado no checkout)
+        consignment_id:
+          type: integer
+          description: ID da remessa
+        price:
+          type: number
+          description: Preço do pacote (decimal)
+        discount:
+          type: number
+          description: Desconto do pacote (decimal)
+        stock:
+          type: integer
+          description: Estoque disponível neste pacote
+        pickup:
+          $ref: "#/components/schemas/PontoRetirada"
+
+    PacotesPorProduto:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          description: ID do produto
+        product_name:
+          type: string
+          description: Nome do produto
+        packages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpcaoPacote"
+
+    RespostaPacotes:
+      type: object
+      required: [success, message, products]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/PacotesPorProduto"
+
+    # ── Checkout ────────────────────────────────────────────────
+    ItemCheckout:
+      type: object
+      required: [package_id, quantity]
+      properties:
+        package_id:
+          type: integer
+          minimum: 1
+          description: ID do pacote (obtido via GET /carrinho/pacotes)
+        quantity:
+          type: integer
+          minimum: 1
+          description: Quantidade desejada deste pacote
+
+    ConfirmarCheckoutRequest:
+      type: object
+      required: [value_paid, external_reference, items]
+      properties:
+        value_paid:
+          type: string
+          description: "Valor pago (string decimal, ex: \"600\")"
+        external_reference:
+          type: string
+          description: Referência externa única (chave de idempotência). Mesmo par (session_id, external_reference) sempre retorna o mesmo unique_id.
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ItemCheckout"
+      example:
+        value_paid: "600"
+        external_reference: "pay_abc123"
+        items:
+          - package_id: 42
+            quantity: 1
+
+    RespostaCheckout:
+      type: object
+      required: [success, message, unique_id, status]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "checkout confirmed"
+        unique_id:
+          type: string
+          format: uuid
+          description: Identificador único da transação
+        status:
+          type: string
+          example: paid
+          description: Status da transação
+        qr_code:
+          type: string
+          description: QR code em data URI (PNG base64)
+
+    # ── Remessa / Consignment ───────────────────────────────────
+    RecursoRemessa:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID da remessa
+        commission_type:
+          type: string
+          description: Tipo de comissão (fixed / percentage)
+        commission_value:
+          type: number
+          description: Valor da comissão (decimal)
+        code:
+          type: string
+          description: Código da remessa
+        slug:
+          type: string
+          description: Slug identificador
+        status:
+          type: string
+          description: Status da remessa
+        destination:
+          type: string
+          description: Nome do ponto de retirada
+        responsibleMonitor:
+          type: string
+          description: Nome do monitor responsável
+        created_at:
+          type: string
+          format: date-time
+          description: Data de criação
+
+    RespostaListaRemessas:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: "remessas listadas com sucesso"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecursoRemessa"
+
+    # ── Produto ─────────────────────────────────────────────────
+    EspecificacaoProduto:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+    RecursoProduto:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        stock:
+          type: integer
+        price:
+          type: number
+          description: Preço (decimal)
+        discount:
+          type: number
+          description: Desconto (decimal)
+        featured:
+          type: boolean
+          description: Produto em destaque
+        code:
+          type: string
+        uuid:
+          type: string
+        platform_cut:
+          type: number
+          description: Repasse da plataforma (decimal)
+        platform_cut_type:
+          type: string
+          description: Tipo de repasse (fixed / percentage)
+        colors:
+          type: array
+          items:
+            type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        allowCustomName:
+          type: boolean
+        allowCustomModality:
+          type: boolean
+        allowCustomColorSelection:
+          type: boolean
+        moderation_status:
+          type: string
+        category:
+          type: string
+        category_id:
+          type: integer
+        imageUrl:
+          type: string
+        description:
+          type: string
+        specificationsImages:
+          type: array
+          items:
+            type: string
+        descriptionImages:
+          type: array
+          items:
+            type: string
+        deliveryImages:
+          type: array
+          items:
+            type: string
+        specifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/EspecificacaoProduto"
+        consignments:
+          type: array
+          items:
+            type: integer
+          description: |
+            IDs das remessas que contêm este produto.
+            Presente apenas quando a listagem é filtrada
+            pelo parâmetro `consignment`.
+
+    RespostaListaProdutos:
+      type: object
+      required: [success, message, produtos]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: "Produtos listados com sucesso!"
+        produtos:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecursoProduto"
+
+    RespostaProduto:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: "produto encontrado!"
+        data:
+          $ref: "#/components/schemas/RecursoProduto"
+
+  responses:
+    ErroRequisicao:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RespostaErro"
