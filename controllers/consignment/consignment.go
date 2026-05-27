@@ -11,6 +11,29 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func PublicListHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		consignments, err := consignmentmodel.PublicList(
+			c.Request.Context(),
+			pool,
+		)
+
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		collection := util.ResourceCollection(consignments)
+
+		util.Wrap(
+			c, "remessas listadas com sucesso",
+			collection,
+		)
+	}
+}
+
 func ListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
