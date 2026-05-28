@@ -67,15 +67,7 @@ func TestMonitor(t *testing.T) {
 		if len(data) == 0 {
 			t.Fatal("expected at least one remessa in the list")
 		}
-		found := false
-		for _, item := range data {
-			m := asMap(t, item)
-			if asInt(t, m["id"]) == consignment.ID {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !containsID(data, consignment.ID) {
 			t.Fatalf("expected remessa %d in the list", consignment.ID)
 		}
 	})
