@@ -49,9 +49,36 @@ func (a RemoveProductAction) Exec(
 	ctx context.Context,
 	tx pgx.Tx,
 ) (err error) {
-	// 1. Check consignment not archived
+	if err = a.checkConsignmentNotArchived(ctx, tx); err != nil {
+		return err
+	}
+
+	if err = a.checkNoActiveReservations(ctx, tx); err != nil {
+		return err
+	}
+
+	currentQty, err := a.readPackageQuantity(ctx, tx)
+	if err != nil {
+		return err
+	}
+
+	if err = a.incrementProductStock(ctx, tx, currentQty); err != nil {
+		return err
+	}
+
+	if err = a.removeFromPackages(ctx, tx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a RemoveProductAction) checkConsignmentNotArchived(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	var archived int
-	err = tx.QueryRow(
+	err := tx.QueryRow(
 		ctx, query.CheckConsignmentArchivedQuery,
 		a.ConsignmentID,
 	).Scan(&archived)
@@ -70,9 +97,15 @@ func (a RemoveProductAction) Exec(
 		)
 	}
 
-	// 2. Check no active reservations
+	return nil
+}
+
+func (a RemoveProductAction) checkNoActiveReservations(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	var reserved int
-	err = tx.QueryRow(
+	err := tx.QueryRow(
 		ctx, query.CheckPackageReservedForProductQuery,
 		a.ProductID, a.ConsignmentID,
 	).Scan(&reserved)
@@ -92,15 +125,21 @@ func (a RemoveProductAction) Exec(
 		)
 	}
 
-	// 3. Read current package quantity
+	return nil
+}
+
+func (a RemoveProductAction) readPackageQuantity(
+	ctx context.Context,
+	tx pgx.Tx,
+) (int, error) {
 	var currentQty int
-	err = tx.QueryRow(
+	err := tx.QueryRow(
 		ctx, query.VerifyPackageQuantity,
 		a.ProductID, a.ConsignmentID,
 	).Scan(&currentQty)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf(
+		return 0, fmt.Errorf(
 			"product %d not found in consignment %d: %w",
 			a.ProductID, a.ConsignmentID,
 			util.ErrNotFound,
@@ -108,16 +147,23 @@ func (a RemoveProductAction) Exec(
 	}
 
 	if err != nil {
-		return fmt.Errorf(
+		return 0, fmt.Errorf(
 			"could not read package quantity for product %d in consignment %d: %w",
 			a.ProductID, a.ConsignmentID, err,
 		)
 	}
 
-	// 4. Increment product stock
-	_, err = tx.Exec(
+	return currentQty, nil
+}
+
+func (a RemoveProductAction) incrementProductStock(
+	ctx context.Context,
+	tx pgx.Tx,
+	qty int,
+) error {
+	_, err := tx.Exec(
 		ctx, query.ProductAddToStock,
-		a.ProductID, currentQty,
+		a.ProductID, qty,
 	)
 
 	if err != nil {
@@ -127,8 +173,14 @@ func (a RemoveProductAction) Exec(
 		)
 	}
 
-	// 5. Remove from packages
-	_, err = tx.Exec(
+	return nil
+}
+
+func (a RemoveProductAction) removeFromPackages(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
+	_, err := tx.Exec(
 		ctx, query.DeleteProductFromConsignmentQuery,
 		a.ProductID, a.ConsignmentID,
 	)
