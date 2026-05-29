@@ -189,6 +189,16 @@ func setupRoutes(
 			"/moderacao/produtos/:product/rejeitar",
 			product.ModerationHandler(pool, "rejected"),
 		)
+
+		admin.POST(
+			"/moderacao/saques/:id/aprovar",
+			saque.AdminApproveHandler(pool),
+		)
+
+		admin.POST(
+			"/moderacao/saques/:id/rejeitar",
+			saque.AdminRejectHandler(pool),
+		)
 	}
 
 	carts := t.Group("/carrinho")

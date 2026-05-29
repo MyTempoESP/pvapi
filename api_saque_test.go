@@ -111,11 +111,11 @@ func TestSaque(t *testing.T) {
 		assertStatus(t, rec, http.StatusNotFound)
 	})
 
-	t.Run("update_status", func(t *testing.T) {
-		result := h.createSaque(t, &shopSession, "Saque para atualizar", "0.01", ba.ID)
+	t.Run("cancel_saque", func(t *testing.T) {
+		result := h.createSaque(t, &shopSession, "Saque para cancelar", "0.01", ba.ID)
 
 		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, map[string]any{
-			"status": "approved",
+			"status": "cancelled",
 		})
 		assertStatus(t, rec, http.StatusOK)
 
@@ -123,9 +123,27 @@ func TestSaque(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
 		saque := asMap(t, body["saque"])
-		if asString(t, saque["status"]) != "approved" {
-			t.Fatalf("expected status 'approved', got %q", asString(t, saque["status"]))
+		if asString(t, saque["status"]) != "cancelled" {
+			t.Fatalf("expected status 'cancelled', got %q", asString(t, saque["status"]))
 		}
+	})
+
+	t.Run("shop_cannot_approve", func(t *testing.T) {
+		result := h.createSaque(t, &shopSession, "Saque cannot approve", "0.01", ba.ID)
+
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, map[string]any{
+			"status": "approved",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("shop_cannot_reject", func(t *testing.T) {
+		result := h.createSaque(t, &shopSession, "Saque cannot reject", "0.01", ba.ID)
+
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/estabelecimentos/saques/%d", result.ID), &shopSession, map[string]any{
+			"status": "rejected",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
 	t.Run("update_unauthorized", func(t *testing.T) {
@@ -367,5 +385,226 @@ func TestAdminListSaques(t *testing.T) {
 	t.Run("admin_list_blocked_for_shop", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/admin/saques", &shop1Session, "", nil)
 		assertStatus(t, rec, http.StatusForbidden)
+	})
+}
+
+func TestAdminSaqueModeration(t *testing.T) {
+	h := newAPIHarness(t)
+
+	runID := time.Now().UnixNano()
+	admin := h.login(t, "sistemas@lzero.org", "TestingPassword")
+
+	shopName := fmt.Sprintf("Loja Mod Saque %d", runID)
+	shopEmail := fmt.Sprintf("api-mod-saque-%d@example.com", runID)
+	shop := h.createShop(t, &admin, shopName, shopEmail, "11988887777")
+	shopSession := h.login(t, shopEmail, "11988887777")
+	h.generateEarnings(t, &shopSession, &admin, shop, runID)
+	h.generateEarnings(t, &shopSession, &admin, shop, runID+1)
+	h.generateEarnings(t, &shopSession, &admin, shop, runID+2)
+	ba := h.createBankAccount(t, &shopSession, "Conta Mod", "Nubank")
+
+	createPending := func(desc string) int {
+		result := h.createSaque(t, &shopSession, desc, "1.00", ba.ID)
+		return result.ID
+	}
+
+	t.Run("admin_approve", func(t *testing.T) {
+		saqueID := createPending("Aprovar teste")
+
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", saqueID),
+			&admin, nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify status changed to approved
+		rec = h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/estabelecimentos/saques/%d", saqueID),
+			&shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saque := asMap(t, body["saque"])
+		if asString(t, saque["status"]) != "approved" {
+			t.Fatalf("expected status 'approved', got %q", asString(t, saque["status"]))
+		}
+		// Motivo should be empty for approved saques
+		if asString(t, saque["motivo"]) != "" {
+			t.Fatalf("expected empty motivo, got %q", asString(t, saque["motivo"]))
+		}
+	})
+
+	t.Run("admin_reject", func(t *testing.T) {
+		saqueID := createPending("Rejeitar teste")
+
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/rejeitar", saqueID),
+			&admin, map[string]any{
+				"motivo": "saldo insuficiente nas contas da loja",
+			})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify status changed to rejected with motivo
+		rec = h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/estabelecimentos/saques/%d", saqueID),
+			&shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saque := asMap(t, body["saque"])
+		if asString(t, saque["status"]) != "rejected" {
+			t.Fatalf("expected status 'rejected', got %q", asString(t, saque["status"]))
+		}
+		if asString(t, saque["motivo"]) != "saldo insuficiente nas contas da loja" {
+			t.Fatalf("expected motivo 'saldo insuficiente nas contas da loja', got %q", asString(t, saque["motivo"]))
+		}
+	})
+
+	t.Run("admin_reject_missing_motivo", func(t *testing.T) {
+		saqueID := createPending("Rejeitar sem motivo")
+
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/rejeitar", saqueID),
+			&admin, map[string]any{})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("admin_approve_not_pending", func(t *testing.T) {
+		saqueID := createPending("Aprovar ja aprovado")
+
+		// First approve
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", saqueID),
+			&admin, nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		// Second approve should fail — not pending
+		rec = h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", saqueID),
+			&admin, nil)
+		assertStatus(t, rec, http.StatusBadRequest)
+		body := decodeJSON(t, rec)
+		if asString(t, body["message"]) != "saque não está pendente" {
+			t.Fatalf("expected 'saque não está pendente', got %q", asString(t, body["message"]))
+		}
+	})
+
+	t.Run("admin_reject_not_pending", func(t *testing.T) {
+		saqueID := createPending("Rejeitar ja cancelado")
+
+		// Cancel via shop
+		rec := h.doJSON(t, http.MethodPut,
+			fmt.Sprintf("/estabelecimentos/saques/%d", saqueID),
+			&shopSession, map[string]any{"status": "cancelled"})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Reject should fail — not pending
+		rec = h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/rejeitar", saqueID),
+			&admin, map[string]any{"motivo": "motivo"})
+		assertStatus(t, rec, http.StatusBadRequest)
+		body := decodeJSON(t, rec)
+		if asString(t, body["message"]) != "saque não está pendente" {
+			t.Fatalf("expected 'saque não está pendente', got %q", asString(t, body["message"]))
+		}
+	})
+
+	t.Run("admin_approve_forbidden_shop", func(t *testing.T) {
+		saqueID := createPending("Aprovar como shop")
+
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", saqueID),
+			&shopSession, nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("admin_reject_forbidden_shop", func(t *testing.T) {
+		saqueID := createPending("Rejeitar como shop")
+
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/rejeitar", saqueID),
+			&shopSession, map[string]any{"motivo": "motivo"})
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("admin_approve_insufficient_balance", func(t *testing.T) {
+		// Create a shop with exact balance and exhaust it
+		balRunID := time.Now().UnixNano()
+		balShopName := fmt.Sprintf("Loja Bal Mod %d", balRunID)
+		balShopEmail := fmt.Sprintf("api-bal-mod-%d@example.com", balRunID)
+		balShop := h.createShop(t, &admin, balShopName, balShopEmail, "11988887777")
+		balSession := h.login(t, balShopEmail, "11988887777")
+		h.generateEarnings(t, &balSession, &admin, balShop, balRunID)
+		balBA := h.createBankAccount(t, &balSession, "Conta Bal Mod", "Nubank")
+
+		// Earnings = 2.82, create a saque for 2.82 (exact balance)
+		result := h.createSaque(t, &balSession, "Saque balanço exato", "2.82", balBA.ID)
+		saqueID := result.ID
+
+		// Approve should succeed since balance >= 0
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", saqueID),
+			&admin, nil)
+		assertStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("rejected_saque_frees_balance", func(t *testing.T) {
+		balRunID := time.Now().UnixNano()
+		balShopName := fmt.Sprintf("Loja Free Bal %d", balRunID)
+		balShopEmail := fmt.Sprintf("api-free-bal-%d@example.com", balRunID)
+		balShop := h.createShop(t, &admin, balShopName, balShopEmail, "11988887777")
+		balSession := h.login(t, balShopEmail, "11988887777")
+		h.generateEarnings(t, &balSession, &admin, balShop, balRunID)
+		balBA := h.createBankAccount(t, &balSession, "Conta Free", "Nubank")
+
+		// Earnings = 2.82, create a saque for 2.82
+		result := h.createSaque(t, &balSession, "Saque free", "2.82", balBA.ID)
+
+		// Reject it
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/rejeitar", result.ID),
+			&admin, map[string]any{"motivo": "documentação pendente"})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Now create another saque with same value — should succeed because balance is freed
+		result2 := h.createSaque(t, &balSession, "Saque after free", "2.82", balBA.ID)
+		if result2.ID == 0 {
+			t.Fatal("expected non-zero saque ID after rejection frees balance")
+		}
+	})
+
+	t.Run("admin_list_includes_motivo", func(t *testing.T) {
+		rejectedID := createPending("Lista motivo rejeitado")
+
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/rejeitar", rejectedID),
+			&admin, map[string]any{"motivo": "motivo de teste"})
+		assertStatus(t, rec, http.StatusOK)
+
+		approvedID := createPending("Lista motivo aprovado")
+		rec = h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", approvedID),
+			&admin, nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		// Admin list should include motivo
+		rec = h.doRequest(t, http.MethodGet, "/admin/saques", &admin, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+
+		rejected := findObjectByIntField(t, saques, "id", rejectedID)
+		if asString(t, rejected["motivo"]) != "motivo de teste" {
+			t.Fatalf("expected motivo 'motivo de teste', got %q", asString(t, rejected["motivo"]))
+		}
+
+		approved := findObjectByIntField(t, saques, "id", approvedID)
+		if asString(t, approved["motivo"]) != "" {
+			t.Fatalf("expected empty motivo for approved saque, got %q", asString(t, approved["motivo"]))
+		}
+	})
+
+	t.Run("admin_approve_not_found", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost,
+			fmt.Sprintf("/admin/moderacao/saques/%d/aprovar", saqueNotFoundID),
+			&admin, nil)
+		assertStatus(t, rec, http.StatusNotFound)
 	})
 }

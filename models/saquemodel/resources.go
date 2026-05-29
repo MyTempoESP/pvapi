@@ -22,6 +22,7 @@ type SaqueResource struct {
 	Pix             *PixResource     `json:"pix,omitempty"`
 	TransferDetails *json.RawMessage `json:"transfer_details,omitempty"`
 	Status          string           `json:"status"`
+	Motivo          string           `json:"motivo"`
 	CreatedAt       string           `json:"created_at"`
 }
 
@@ -33,6 +34,7 @@ func (r SaqueRow) ToResource() SaqueResource {
 		UserName:    r.UserName,
 		ShopName:    r.ShopName,
 		Status:      r.Status,
+		Motivo:      r.Motivo,
 		CreatedAt:   r.CreatedAt.Format(time.RFC3339),
 	}
 
