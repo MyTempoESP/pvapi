@@ -263,7 +263,9 @@ Request body (JSON):
       "package_id": 42,
       "quantity": 1
     }
-  ]
+  ],
+  "client_email": "cliente@email.com",
+  "client_name": "Nome do Cliente"
 }
 ```
 
@@ -274,6 +276,8 @@ Request body (JSON):
 | items | array | yes | At least 1 item (minItems: 1) |
 | items[].package_id | integer | yes | Package ID from `/carrinho/pacotes` (min 1) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
+| client_email | string | no | Email to auto-create a client account after checkout |
+| client_name | string | no | Name for the client account (derived from email if omitted) |
 
 Response 200:
 ```json
@@ -508,4 +512,13 @@ HTTP status codes used: 400, 404, 409, 422.
 ## Idempotency
 
 The checkout endpoint (`POST /checkouts/confirm`) guarantees idempotency via the `external_reference` field. Repeating the same `(session_id, external_reference)` pair returns the same `unique_id` without creating duplicate transactions or double-reserving stock.
+
+## Client Account Auto-Creation
+
+When `client_email` is provided in the checkout request, the platform auto-creates a client account (best-effort, after the checkout response is sent). A random password is generated and, if an SMTP mailer is configured, a welcome email is dispatched to the client's address.
+
+- `client_name` is optional — when omitted, a name is derived from the email prefix (e.g. `usuario-cliente`).
+- If the email already belongs to an existing client, the existing account is associated to the cart.
+- If the email belongs to a non-client user, the account is not created.
+- Account creation is independent of the checkout transaction and does not affect the checkout response.
 

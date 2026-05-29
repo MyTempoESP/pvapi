@@ -231,4 +231,70 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			t.Fatalf("expected status 'paid' even if client creation fails, got %v", body["status"])
 		}
 	})
+
+	t.Run("welcome_email_sent_on_client_creation", func(t *testing.T) {
+		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
+		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
+
+		runID := baseRunID + 6
+		fx := setupChkCliFixtures(t, h, "email", runID)
+		sessionID := fmt.Sprintf("chkcli-email-%d", runID)
+		h.createCartItem(t, sessionID, fx.productID, 1)
+
+		clientEmail := fmt.Sprintf("chkcli-email-%d@example.com", runID)
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-EMAIL-%d", runID),
+			"items": []map[string]any{
+				{"package_id": fx.packageID, "quantity": 1},
+			},
+			"client_email": clientEmail,
+			"client_name":  "Maria Oliveira",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		if len(h.mailer.SentEmails) != 1 {
+			t.Fatalf("expected exactly 1 welcome email sent, got %d", len(h.mailer.SentEmails))
+		}
+
+		email := h.mailer.SentEmails[0]
+		if email.To != clientEmail {
+			t.Errorf("expected email To=%q, got %q", clientEmail, email.To)
+		}
+		if email.Name != "Maria Oliveira" {
+			t.Errorf("expected email Name='Maria Oliveira', got %q", email.Name)
+		}
+		if email.LoginURL != "https://pvaauto.example.com/login" {
+			t.Errorf("expected LoginURL=https://pvaauto.example.com/login, got %q", email.LoginURL)
+		}
+		if email.ResetURL != "https://pvaauto.example.com/reset" {
+			t.Errorf("expected ResetURL=https://pvaauto.example.com/reset, got %q", email.ResetURL)
+		}
+	})
+
+	t.Run("no_welcome_email_without_client_email", func(t *testing.T) {
+		// Ensure env vars are set so the mailer would send if called
+		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
+		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
+
+		runID := baseRunID + 7
+		fx := setupChkCliFixtures(t, h, "noemail2", runID)
+		sessionID := fmt.Sprintf("chkcli-noemail2-%d", runID)
+		h.createCartItem(t, sessionID, fx.productID, 1)
+
+		prevCount := len(h.mailer.SentEmails)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-REF-NOEMAIL2-%d", runID),
+			"items": []map[string]any{
+				{"package_id": fx.packageID, "quantity": 1},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		if len(h.mailer.SentEmails) != prevCount {
+			t.Fatalf("expected no new emails sent, got %d new", len(h.mailer.SentEmails)-prevCount)
+		}
+	})
 }

@@ -1,11 +1,11 @@
 ---
 # pvapi-63xz
 title: Welcome email via go-mail on client account creation
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-05-29T23:12:39Z
-updated_at: 2026-05-29T23:14:26Z
+updated_at: 2026-05-29T23:33:10Z
 blocked_by:
     - pvapi-7vz8
 ---
@@ -104,3 +104,45 @@ This PRD is blocked by "Client account auto-creation during checkout". The mail 
 
 
 Triage: ready-for-agent
+
+
+
+## Summary of Changes
+
+### New files
+- **mail/client.go**: Mailer interface, Config struct, Client (production implementation backed by go-mail), NoopMailer, SpyMailer, NewClient.
+- **mail/template.go**: Go html/template for the welcome email, embedded via //go:embed welcome.html.
+- **mail/welcome.html**: HTML email template for welcome emails (PVAuto-branded, Portuguese).
+- **mail/mail_test.go**: Unit tests for template rendering (name, email, password, URLs, XSS escaping), NoopMailer and SpyMailer.
+
+### Modified files
+
+- **env/env.go**: Added SMTP environment variables: HOST, PORT, USER, PASS, FROM, LOGIN_LINK, PASSWORD_RESET_LINK, SKIP_VERIFY (boolean).
+
+- **docs/email.html**: Rewritten as a Go html/template with welcome-email content (greeting, login credentials, login/reset action links). Removed PHP-specific syntax.
+
+- **controllers/checkout/checkout.go**: 
+  - ConfirmHandler now accepts a mail.Mailer parameter.
+  - createClientAfterCheckout accepts and calls the mailer after client creation succeeds (best-effort, logs errors).
+  - Reads PV_API_LOGIN_LINK and PV_API_PASSWORD_RESET_LINK from env. Skips sending if either is empty.
+
+- **routes.go**: setupRoutes accepts a mail.Mailer parameter, passes it to the checkout handler.
+
+- **main.go**: 
+  - Added createMailer function that reads SMTP env vars, validates config, and creates a mail.Client (returns nil if SMTP_HOST unset — mail silently disabled).
+  - Passes mailer to setupRoutes.
+
+- **api_harness_test.go**: New apiHarness.Mailer field (SpyMailer), passed to setupRoutes in newAPIHarness.
+
+- **api_checkout_client_test.go**: Added two test cases:
+  - welcome_email_sent_on_client_creation — verifies SpyMailer records exactly one email with correct recipient, name, login URL, and reset URL.
+  - no_welcome_email_without_client_email — verifies no email sent when client_email is absent.
+
+### go.mod
+- Added dependency: github.com/wneessen/go-mail v0.6.0
+
+### TLS policy
+- Port 465 → implicit SSL/TLS (WithSSL)
+- Port 587 → STARTTLS (WithTLSPolicy TLSMandatory)
+- Other ports → no TLS
+- PV_API_SMTP_SKIP_VERIFY → TLS config with InsecureSkipVerify
