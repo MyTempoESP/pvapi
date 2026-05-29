@@ -15,5 +15,14 @@ type ClientResource struct {
 }
 
 func (c Client) ToResource() ClientResource {
-	return ClientResource(c)
+	phone := ""
+	if c.Phone != nil {
+		phone = *c.Phone
+	}
+	return ClientResource{
+		ID:    c.ID,
+		Name:  c.Name,
+		Email: c.Email,
+		Phone: phone,
+	}
 }
