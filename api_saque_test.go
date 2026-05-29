@@ -386,6 +386,47 @@ func TestAdminListSaques(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/admin/saques", &shop1Session, "", nil)
 		assertStatus(t, rec, http.StatusForbidden)
 	})
+
+	t.Run("admin_list_excludes_cancelled", func(t *testing.T) {
+		shop3Name := fmt.Sprintf("Loja Admin Cancelled %d", time.Now().UnixNano())
+		shop3Email := fmt.Sprintf("api-admin-canc-%d@example.com", time.Now().UnixNano())
+		shop3 := h.createShop(t, &admin, shop3Name, shop3Email, "11988887773")
+		shop3Session := h.login(t, shop3Email, "11988887773")
+		h.generateEarnings(t, &shop3Session, &admin, shop3, time.Now().UnixNano())
+		ba3 := h.createBankAccount(t, &shop3Session, "Conta Cancelled", "Nubank")
+
+		// Create a saque, then cancel it
+		cancelled := h.createSaque(t, &shop3Session, "Saque cancelled", "0.10", ba3.ID)
+		rec := h.doJSON(t, http.MethodPut,
+			fmt.Sprintf("/estabelecimentos/saques/%d", cancelled.ID),
+			&shop3Session, map[string]any{"status": "cancelled"})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Create another pending saque
+		pending := h.createSaque(t, &shop3Session, "Saque pending", "0.20", ba3.ID)
+
+		// Admin list should include the pending saque but not the cancelled one
+		rec = h.doRequest(t, http.MethodGet, "/admin/saques", &admin, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+
+		if containsID(saques, cancelled.ID) {
+			t.Fatal("cancelled saque should NOT appear in admin list")
+		}
+		if !containsID(saques, pending.ID) {
+			t.Fatal("pending saque should appear in admin list")
+		}
+
+		// Shop-scoped list should still include the cancelled saque
+		rec = h.doRequest(t, http.MethodGet, "/estabelecimentos/saques", &shop3Session, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		shopSaques := asSlice(t, body["saques"])
+		if !containsID(shopSaques, cancelled.ID) {
+			t.Fatal("cancelled saque should still appear in shop-scoped list")
+		}
+	})
 }
 
 func TestAdminSaqueModeration(t *testing.T) {

@@ -193,7 +193,7 @@ func UpdateStatusHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 
 func AdminListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		rows, err := saquemodel.ListAll(
+		rows, err := saquemodel.ListForAdmin(
 			c.Request.Context(),
 			pool,
 		)
