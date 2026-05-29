@@ -23,6 +23,8 @@ type ConfirmRequest struct {
 	ValuePaid         string        `json:"value_paid" binding:"required"`
 	ExternalReference string        `json:"external_reference" binding:"required"`
 	Items             []ConfirmItem `json:"items" binding:"required,min=1,dive"`
+	ClientEmail       string        `json:"client_email"`
+	ClientName        string        `json:"client_name"`
 }
 
 type PackageStock struct {
@@ -33,6 +35,7 @@ type ConfirmResponse struct {
 	UniqueID string `json:"unique_id"`
 	Status   string `json:"status"`
 	QrCode   string `json:"qr_code"`
+	CartID   int    `json:"-"`
 }
 
 var (
@@ -70,6 +73,7 @@ func Confirm(
 	if err != nil {
 		return resp, err
 	}
+	resp.CartID = cartID
 
 	if err := validateStock(ctx, tx, req.Items); err != nil {
 		return resp, err
@@ -102,7 +106,10 @@ func Confirm(
 		return resp, fmt.Errorf("failed to generate qr code: %w", err)
 	}
 
-	return ConfirmResponse{UniqueID: uniqueID, Status: "paid", QrCode: qr}, nil
+	resp.UniqueID = uniqueID
+	resp.Status = "paid"
+	resp.QrCode = qr
+	return resp, nil
 }
 
 func checkIdempotency(

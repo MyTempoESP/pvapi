@@ -1,12 +1,14 @@
 package checkout
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"linhazero.com/pvapi/models/checkoutmodel"
+	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
 )
 
@@ -62,5 +64,59 @@ func ConfirmHandler(
 			"status":    resp.Status,
 			"qr_code":   resp.QrCode,
 		})
+
+		// Best-effort client creation after response is sent
+		if req.ClientEmail != "" {
+			createClientAfterCheckout(c, pool, req, resp)
+		}
 	}
+}
+
+func createClientAfterCheckout(
+	c *gin.Context,
+	pool *pgxpool.Pool,
+	req checkoutmodel.ConfirmRequest,
+	resp checkoutmodel.ConfirmResponse,
+) {
+	clientName := req.ClientName
+	if clientName == "" {
+		clientName = util.DeriveClientName(req.ClientEmail)
+	}
+
+	plaintext, err := util.GenerateRandomPassword(16)
+	if err != nil {
+		util.LogError(c, "failed to generate random password", "error", err)
+		return
+	}
+
+	hash, err := util.HashPassword(plaintext)
+	if err != nil {
+		util.LogError(c, "failed to hash password", "error", err)
+		return
+	}
+
+	ctx := context.Background()
+
+	err = clientmodel.CreateAndAssociate(
+		ctx, pool,
+		clientName, req.ClientEmail,
+		hash,
+		resp.CartID,
+	)
+	if err != nil {
+		util.LogError(c, "failed to create client from checkout",
+			"error", err,
+			"email", req.ClientEmail,
+			"cart_id", resp.CartID,
+		)
+		return
+	}
+
+	util.LogInfo(c, "client created from checkout",
+		"email", req.ClientEmail,
+		"cart_id", resp.CartID,
+	)
+
+	// TODO: delegate to mail module to send welcome email
+	_ = plaintext
 }

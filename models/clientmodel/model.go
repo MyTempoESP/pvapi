@@ -6,22 +6,23 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/usermodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
-	"linhazero.com/pvapi/util/userutils"
 )
 
-
 type Client struct {
-	ID    int    `db:"user_id"`
-	Name  string `db:"user_name"`
-	Email string `db:"user_email"`
-	Phone string `db:"user_phone"`
+	ID    int     `db:"user_id"`
+	Name  string  `db:"user_name"`
+	Email string  `db:"user_email"`
+	Phone *string `db:"user_phone"`
 }
 
+// AssociateToCart sets the client_id on a cart and marks the session as finished.
+// This is the original consignment-flow association.
 func AssociateToCart(
 	ctx context.Context,
 	tx pgx.Tx,
@@ -36,65 +37,95 @@ func AssociateToCart(
 	return err
 }
 
-func CreateForCart(
+// SetCartClientID sets only the client_id on a cart without touching session_id.
+// Used for post-checkout client association.
+func SetCartClientID(
+	ctx context.Context,
+	tx pgx.Tx,
+	clientID,
+	cartID int,
+) error {
+	_, err := tx.Exec(
+		ctx, query.UpdateCartClientIDQuery,
+		clientID,
+		cartID,
+	)
+	return err
+}
+
+// Create creates a user and client record in a single transaction.
+// - If the email already belongs to a client, returns the existing client ID.
+// - If the email belongs to a non-client user, returns ErrDuplicatedResource.
+// - The password hash is pre-computed (bcrypt is heavy — hash outside the tx).
+func Create(
 	ctx context.Context,
 	tx pgx.Tx,
 	clientName,
-	clientEmail,
-	clientPhone string, // password
-	cartID int,
-) (err error) {
+	clientEmail string,
+	passwordHash []byte,
+) (clientID int, err error) {
 	userID, err := usermodel.FindByEmail(ctx, tx, clientEmail)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		user, err := userutils.NewUser(
-			clientName,
-			clientEmail,
-			clientPhone,
-		)
-		if err != nil {
-			return err
-		}
-
 		userID, err = usermodel.Create(
 			ctx, tx,
 			clientName,
 			clientEmail,
-			user.PasswordHash,
+			passwordHash,
 		)
 		if err != nil {
-			return fmt.Errorf("error creating user: %w", err)
+			return 0, fmt.Errorf("error creating user: %w", err)
 		}
 
-		var clientID int
 		err = tx.QueryRow(
 			ctx, query.CreateClientQuery,
 			userID,
-			clientPhone,
+			nil, // telephone is not captured during checkout
 		).Scan(&clientID)
 		if err != nil {
-			return fmt.Errorf("error creating client: %w", err)
+			return 0, fmt.Errorf("error creating client: %w", err)
 		}
 
-		return AssociateToCart(ctx, tx, clientID, cartID)
+		return clientID, nil
 	}
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	var clientID int
+	// email belongs to an existing user — check if they are a client
 	err = tx.QueryRow(ctx, query.FindClientByUserQuery, userID).Scan(&clientID)
-
 	if errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("user is not a client: %w", util.ErrDuplicatedResource)
+		return 0, fmt.Errorf("user is not a client: %w", util.ErrDuplicatedResource)
 	}
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return AssociateToCart(ctx, tx, clientID, cartID)
+	return clientID, nil
+}
+
+// CreateAndAssociate wraps Create plus setting the cart's client_id.
+// It opens its own transaction, independent of any caller transaction.
+func CreateAndAssociate(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	clientName,
+	clientEmail string,
+	passwordHash []byte,
+	cartID int,
+) error {
+	return util.TransactionAware(ctx, pool,
+		func(ctx context.Context, tx pgx.Tx) error {
+			clientID, err := Create(ctx, tx, clientName, clientEmail, passwordHash)
+			if err != nil {
+				return err
+			}
+
+			return SetCartClientID(ctx, tx, clientID, cartID)
+		},
+	)
 }
 
 func List(

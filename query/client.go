@@ -15,6 +15,10 @@ UPDATE carts SET
 WHERE id = $2
 `
 
+	UpdateCartClientIDQuery = `
+UPDATE carts SET client_id = $1 WHERE id = $2
+`
+
 	ListShopClientsQuery = `
 SELECT DISTINCT
 	u.id AS user_id,
