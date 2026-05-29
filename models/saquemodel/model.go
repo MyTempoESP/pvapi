@@ -69,6 +69,16 @@ func ListAll(
 	)
 }
 
+func ListForAdmin(
+	ctx context.Context,
+	base db.Queryable,
+) ([]SaqueRow, error) {
+	return util.WithCollect[SaqueRow](
+		ctx, base,
+		query.ListAdminSaquesQuery,
+	)
+}
+
 func FindByID(
 	ctx context.Context,
 	base db.Queryable,
