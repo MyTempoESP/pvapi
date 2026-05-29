@@ -58,6 +58,12 @@ func TestMonitor(t *testing.T) {
 		pickup := h.createPickup(t, &shopSession)
 		consignment := h.createConsignment(t, &shopSession, pickup.ID, monitorResult.ID)
 
+		// Add a product to the consignment so totalProducts is non-zero
+		cat := h.createCategory(t, &shopSession, "Cat Remessa Stats")
+		prod := h.createProduct(t, &shopSession, "Prod Remessa Stats", cat.ID)
+		h.approveProduct(t, &admin, prod.ID)
+		h.addProductToConsignment(t, &shopSession, consignment.ID, prod.ID, prod.Name)
+
 		monitorSession := h.login(t, monitorResult.Email, monitorResult.Phone)
 		rec := h.doRequest(t, http.MethodGet, "/monitores/me/remessas", &monitorSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -67,8 +73,27 @@ func TestMonitor(t *testing.T) {
 		if len(data) == 0 {
 			t.Fatal("expected at least one remessa in the list")
 		}
-		if !containsID(data, consignment.ID) {
+		item := findObjectByIntField(t, data, "id", consignment.ID)
+		if item == nil {
 			t.Fatalf("expected remessa %d in the list", consignment.ID)
+		}
+
+		// Assert new aggregate fields
+		totalProducts := asInt(t, item["totalProducts"])
+		soldProducts := asInt(t, item["soldProducts"])
+		if totalProducts != 2 {
+			t.Fatalf("expected totalProducts=2, got %d", totalProducts)
+		}
+		if soldProducts != 0 {
+			t.Fatalf("expected soldProducts=0, got %d", soldProducts)
+		}
+
+		// Assert camelCase fields match frontend contract
+		if _, ok := item["createdAt"]; !ok {
+			t.Fatal("expected createdAt field")
+		}
+		if _, ok := item["destination"]; !ok {
+			t.Fatal("expected destination field")
 		}
 	})
 
