@@ -208,6 +208,19 @@ func List(
 	)
 }
 
+func ListAllByShop(
+	ctx context.Context,
+	base db.Queryable,
+	shopID int,
+) ([]Consignment, error) {
+	return util.WithCollect[Consignment](
+		ctx,
+		base,
+		query.ListAllConsignmentsByShopQuery,
+		shopID,
+	)
+}
+
 func ListByConsignee(
 	ctx context.Context,
 	base db.Queryable,
@@ -230,6 +243,19 @@ func ListByConsigneeWithStats(
 		ctx,
 		base,
 		query.ListConsignmentsByConsigneeQuery,
+		consigneeID,
+	)
+}
+
+func ListAllByConsigneeWithStats(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID int,
+) ([]ConsignmentWithStats, error) {
+	return util.WithCollect[ConsignmentWithStats](
+		ctx,
+		base,
+		query.ListAllConsignmentsByConsigneeQuery,
 		consigneeID,
 	)
 }
