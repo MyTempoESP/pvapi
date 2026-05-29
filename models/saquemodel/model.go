@@ -57,6 +57,16 @@ func ListByShop(
 	)
 }
 
+func ListAll(
+	ctx context.Context,
+	base db.Queryable,
+) ([]SaqueRow, error) {
+	return util.WithCollect[SaqueRow](
+		ctx, base,
+		query.ListAllSaquesQuery,
+	)
+}
+
 func FindByID(
 	ctx context.Context,
 	base db.Queryable,
