@@ -190,6 +190,23 @@ func UpdateStatusHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	}
 }
 
+func AdminListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		rows, err := saquemodel.ListAll(
+			c.Request.Context(),
+			pool,
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		saques := util.ResourceCollection(rows)
+
+		util.WrapLabeled(c, "saques listados com sucesso", "saques", saques)
+	}
+}
+
 func DeleteHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("saque"))

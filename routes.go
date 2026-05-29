@@ -174,6 +174,8 @@ func setupRoutes(
 
 	admin := t.Group("/admin", withAuth)
 	{
+		admin.GET("/saques", saque.AdminListHandler(pool))
+
 		admin.GET(
 			"/moderacao/pendentes",
 			product.ListPendingModerationHandler(pool))

@@ -295,3 +295,77 @@ func TestSaque(t *testing.T) {
 			totalStr, taxesStr, commissionsStr, saques, actual)
 	})
 }
+
+func TestAdminListSaques(t *testing.T) {
+	h := newAPIHarness(t)
+
+	runID := time.Now().UnixNano()
+	admin := h.login(t, "sistemas@lzero.org", "TestingPassword")
+
+	// Create two shops with saques
+	shop1Name := fmt.Sprintf("Loja Admin Saques 1 %d", runID)
+	shop1Email := fmt.Sprintf("api-admin-saque1-%d@example.com", runID)
+	shop1 := h.createShop(t, &admin, shop1Name, shop1Email, "11988887771")
+	shop1Session := h.login(t, shop1Email, "11988887771")
+	h.generateEarnings(t, &shop1Session, &admin, shop1, runID)
+	ba1 := h.createBankAccount(t, &shop1Session, "Conta Admin 1", "Nubank")
+
+	shop2Name := fmt.Sprintf("Loja Admin Saques 2 %d", runID)
+	shop2Email := fmt.Sprintf("api-admin-saque2-%d@example.com", runID)
+	shop2 := h.createShop(t, &admin, shop2Name, shop2Email, "11988887772")
+	shop2Session := h.login(t, shop2Email, "11988887772")
+	h.generateEarnings(t, &shop2Session, &admin, shop2, runID+1)
+	ba2 := h.createBankAccount(t, &shop2Session, "Conta Admin 2", "Inter")
+
+	s1 := h.createSaque(t, &shop1Session, "Admin list saque shop1", "0.50", ba1.ID)
+	s2 := h.createSaque(t, &shop2Session, "Admin list saque shop2", "0.30", ba2.ID)
+
+	t.Run("admin_list_all", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/admin/saques", &admin, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		saques := asSlice(t, body["saques"])
+		if len(saques) < 2 {
+			t.Fatalf("expected at least 2 saques, got %d", len(saques))
+		}
+
+		// Verify both shop saques are present
+		if !containsID(saques, s1.ID) {
+			t.Fatal("expected saque from shop1 in admin list")
+		}
+		if !containsID(saques, s2.ID) {
+			t.Fatal("expected saque from shop2 in admin list")
+		}
+
+		// Verify expected fields on the first saque
+		obj := findObjectByIntField(t, saques, "id", s1.ID)
+		if asString(t, obj["description"]) != "Admin list saque shop1" {
+			t.Fatalf("unexpected description: %q", asString(t, obj["description"]))
+		}
+		if asString(t, obj["status"]) != "pending" {
+			t.Fatalf("unexpected status: %q", asString(t, obj["status"]))
+		}
+		if asString(t, obj["bank_name"]) != "Nubank" {
+			t.Fatalf("unexpected bank_name: %q", asString(t, obj["bank_name"]))
+		}
+		if asString(t, obj["shop_name"]) != shop1Name {
+			t.Fatalf("unexpected shop_name: %q", asString(t, obj["shop_name"]))
+		}
+		if asString(t, obj["user_name"]) == "" {
+			t.Fatal("expected non-empty user_name")
+		}
+		requireField(t, obj, "asked_value")
+		requireField(t, obj, "created_at")
+	})
+
+	t.Run("admin_list_unauthorized", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/admin/saques", nil, "", nil)
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("admin_list_blocked_for_shop", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/admin/saques", &shop1Session, "", nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+}
