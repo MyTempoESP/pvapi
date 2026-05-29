@@ -193,6 +193,11 @@ paths:
         retorna o `unique_id` original sem duplicar a transação.
 
         Os `package_id` são obtidos via `GET /carrinho/pacotes`.
+
+        **Criação automática de cliente:** se `client_email` for informado,
+        uma conta de cliente é criada (best-effort) após o checkout. Um nome
+        é derivado do email caso `client_name` seja omitido. Se SMTP estiver
+        configurado, um email de boas-vindas com a senha gerada é enviado.
       operationId: confirmarCheckout
       parameters:
         - name: session_id
@@ -603,12 +608,20 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/ItemCheckout"
+        client_email:
+          type: string
+          description: Email para criação automática da conta de cliente após o checkout
+        client_name:
+          type: string
+          description: Nome para a conta de cliente (derivado do email se omitido)
       example:
         value_paid: "600"
         external_reference: "pay_abc123"
         items:
           - package_id: 42
             quantity: 1
+        client_email: "cliente@email.com"
+        client_name: "Nome do Cliente"
 
     RespostaCheckout:
       type: object

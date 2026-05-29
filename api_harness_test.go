@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/middleware/auth"
 	"linhazero.com/pvapi/middleware/logmw"
 	"linhazero.com/pvapi/seed"
@@ -35,6 +36,7 @@ type uploadFile struct {
 type apiHarness struct {
 	router *gin.Engine
 	pool   *pgxpool.Pool
+	mailer *mail.SpyMailer
 }
 
 var png1x1 = []byte{
@@ -118,13 +120,15 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	router := gin.New()
 	router.Use(logmw.LogMiddleware(logger))
 	router.Use(gin.Recovery())
-	setupRoutes(router, authMiddleware, pool)
+	spyMailer := mail.NewSpyMailer()
+	setupRoutes(router, authMiddleware, pool, spyMailer)
 
 	t.Cleanup(pool.Close)
 
 	return &apiHarness{
 		router: router,
 		pool:   pool,
+		mailer: spyMailer,
 	}
 }
 

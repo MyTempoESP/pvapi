@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"linhazero.com/pvapi/env"
+	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/models/checkoutmodel"
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
@@ -14,6 +16,7 @@ import (
 
 func ConfirmHandler(
 	pool *pgxpool.Pool,
+	m mail.Mailer,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		sessionID := c.Query("session_id")
@@ -67,7 +70,7 @@ func ConfirmHandler(
 
 		// Best-effort client creation after response is sent
 		if req.ClientEmail != "" {
-			createClientAfterCheckout(c, pool, req, resp)
+			createClientAfterCheckout(c, pool, m, req, resp)
 		}
 	}
 }
@@ -75,6 +78,7 @@ func ConfirmHandler(
 func createClientAfterCheckout(
 	c *gin.Context,
 	pool *pgxpool.Pool,
+	m mail.Mailer,
 	req checkoutmodel.ConfirmRequest,
 	resp checkoutmodel.ConfirmResponse,
 ) {
@@ -117,6 +121,32 @@ func createClientAfterCheckout(
 		"cart_id", resp.CartID,
 	)
 
-	// TODO: delegate to mail module to send welcome email
-	_ = plaintext
+	if m == nil {
+		return
+	}
+
+	loginURL, _ := env.SMTPLoginLink()
+	resetURL, _ := env.SMTPResetLink()
+
+	if loginURL == "" || resetURL == "" {
+		util.LogWarn(c, "mail: login link or reset link not configured, skipping welcome email",
+			"email", req.ClientEmail,
+		)
+		return
+	}
+
+	if err := m.SendWelcome(
+		ctx, req.ClientEmail,
+		clientName, plaintext,
+		loginURL, resetURL,
+	); err != nil {
+		util.LogError(c, "failed to send welcome email",
+			"error", err,
+			"email", req.ClientEmail,
+		)
+	} else {
+		util.LogInfo(c, "welcome email sent",
+			"email", req.ClientEmail,
+		)
+	}
 }

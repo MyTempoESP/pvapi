@@ -70,4 +70,14 @@ var (
 
 	// Test mode
 	TestMode = wrapEnv("PV_API_TEST_MODE")
+
+	// SMTP (mail)
+	SMTPHost       = wrapEnv("PV_API_SMTP_HOST")
+	SMTPPort       = wrapEnv("PV_API_SMTP_PORT")
+	SMTPUser       = wrapEnv("PV_API_SMTP_USER")
+	SMTPPass       = wrapEnv("PV_API_SMTP_PASS")
+	SMTPFrom       = wrapEnv("PV_API_SMTP_FROM")
+	SMTPLoginLink  = wrapEnv("PV_API_LOGIN_LINK")
+	SMTPResetLink  = wrapEnv("PV_API_PASSWORD_RESET_LINK")
+	SMTPSkipVerify = booleanEnv("PV_API_SMTP_SKIP_VERIFY")
 )
