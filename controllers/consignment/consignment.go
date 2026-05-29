@@ -40,7 +40,7 @@ func ListByConsigneeHandler(
 	return func(c *gin.Context) {
 		user := authmodel.GetUserFromContext(c)
 
-		consignments, err := consignmentmodel.ListByConsignee(
+		consignments, err := consignmentmodel.ListByConsigneeWithStats(
 			c.Request.Context(),
 			pool,
 			user.ActiveRoleID,
