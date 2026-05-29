@@ -13,6 +13,7 @@ import (
 
 type SaqueRow struct {
 	ID              int             `db:"id"`
+	ShopID          int             `db:"shop_id"`
 	Description     string          `db:"description"`
 	AskedValue      decimal.Decimal `db:"asked_value"`
 	BankAccountID   *int            `db:"bank_account_id"`
@@ -21,6 +22,7 @@ type SaqueRow struct {
 	PixTitular      *string         `db:"pix_titular"`
 	TransferDetails []byte          `db:"transfer_details"`
 	Status          string          `db:"status"`
+	Motivo          string          `db:"motivo"`
 	CreatedAt       time.Time       `db:"created_at"`
 	UserName        string          `db:"user_name"`
 	ShopName        string          `db:"shop_name"`
@@ -105,4 +107,23 @@ func Delete(
 		id,
 	)
 	return err
+}
+
+func AdminApprove(
+	ctx context.Context,
+	base db.Queryable,
+	id int,
+) (int64, error) {
+	ct, err := base.Exec(ctx, query.AdminApproveSaqueQuery, id)
+	return ct.RowsAffected(), err
+}
+
+func AdminReject(
+	ctx context.Context,
+	base db.Queryable,
+	id int,
+	motivo string,
+) (int64, error) {
+	ct, err := base.Exec(ctx, query.AdminRejectSaqueQuery, id, motivo)
+	return ct.RowsAffected(), err
 }

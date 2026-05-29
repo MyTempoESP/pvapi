@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE IF EXISTS public.saques
+    DROP COLUMN IF EXISTS motivo;
+
+COMMIT;

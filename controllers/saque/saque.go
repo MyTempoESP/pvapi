@@ -19,6 +19,7 @@ import (
 
 var (
 	ErrInsufficientFunds = errors.New("saldo indisponivel para saque")
+	ErrSaqueNotPending  = errors.New("saque não está pendente")
 )
 
 func createSaqueGuarded(
@@ -204,6 +205,100 @@ func AdminListHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 		saques := util.ResourceCollection(rows)
 
 		util.WrapLabeled(c, "saques listados com sucesso", "saques", saques)
+	}
+}
+
+func AdminApproveHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.Transaction(
+			c.Request.Context(), pool,
+			func(ctx context.Context, tx db.Queryable) error {
+				// Fetch saque to get shop_id
+				saque, err := saquemodel.FindByID(ctx, tx, id)
+				if err != nil {
+					return err
+				}
+
+				// Re-verify available balance
+				available, err := financemodel.AvailableBalance(
+					ctx, tx, saque.ShopID,
+				)
+				if err != nil {
+					return err
+				}
+
+				// The saque value is already subtracted from AvailableBalance,
+				// so a negative balance means insufficient funds after approval.
+				if available.IsNegative() {
+					return errors.New("saldo insuficiente para aprovar saque")
+				}
+
+				rows, err := saquemodel.AdminApprove(ctx, tx, id)
+				if err != nil {
+					return err
+				}
+				if rows == 0 {
+					return ErrSaqueNotPending
+				}
+
+				return nil
+			},
+		)
+		if err != nil {
+			if errors.Is(err, ErrSaqueNotPending) {
+				util.HandleBadRequest(c, err)
+				return
+			}
+			if err.Error() == "saldo insuficiente para aprovar saque" {
+				util.HandleBadRequest(c, err)
+				return
+			}
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "saque aprovado com sucesso")
+	}
+}
+
+func AdminRejectHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var req saquemodel.AdminRejectSaqueRequest
+
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = c.ShouldBindJSON(&req)
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		rows, err := saquemodel.AdminReject(
+			c.Request.Context(),
+			pool,
+			id,
+			req.Motivo,
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+		if rows == 0 {
+			util.HandleBadRequest(c, ErrSaqueNotPending)
+			return
+		}
+
+		util.OK(c, "saque rejeitado com sucesso")
 	}
 }
 

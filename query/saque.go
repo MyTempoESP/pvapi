@@ -12,6 +12,7 @@ RETURNING id
 	ListSaquesByShopQuery = `
 SELECT
 	sq.id,
+	sq.shop_id,
 	sq.description,
 	sq.asked_value,
 	sq.bank_account_id,
@@ -19,6 +20,7 @@ SELECT
 	ba.pix_key,
 	ba.pix_titular,
 	ba.transfer_details,
+	sq.motivo,
 	sq.status,
 	sq.created_at,
 	u.name AS user_name,
@@ -34,6 +36,7 @@ ORDER BY sq.created_at DESC
 	ListAllSaquesQuery = `
 SELECT
 	sq.id,
+	sq.shop_id,
 	sq.description,
 	sq.asked_value,
 	sq.bank_account_id,
@@ -41,6 +44,7 @@ SELECT
 	ba.pix_key,
 	ba.pix_titular,
 	ba.transfer_details,
+	sq.motivo,
 	sq.status,
 	sq.created_at,
 	u.name AS user_name,
@@ -55,6 +59,7 @@ ORDER BY sq.created_at DESC
 	FindSaqueByIDQuery = `
 SELECT
 	sq.id,
+	sq.shop_id,
 	sq.description,
 	sq.asked_value,
 	sq.bank_account_id,
@@ -62,6 +67,7 @@ SELECT
 	ba.pix_key,
 	ba.pix_titular,
 	ba.transfer_details,
+	sq.motivo,
 	sq.status,
 	sq.created_at,
 	u.name AS user_name,
@@ -79,5 +85,13 @@ UPDATE saques SET status = $2 WHERE id = $1
 
 	DeleteSaqueQuery = `
 DELETE FROM saques WHERE id = $1
+`
+
+	AdminApproveSaqueQuery = `
+UPDATE saques SET status = 'approved' WHERE id = $1 AND status = 'pending'
+`
+
+	AdminRejectSaqueQuery = `
+UPDATE saques SET status = 'rejected', motivo = $2 WHERE id = $1 AND status = 'pending'
 `
 )

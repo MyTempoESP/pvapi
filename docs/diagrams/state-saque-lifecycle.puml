@@ -1,0 +1,21 @@
+@startuml
+' Saque status lifecycle with admin/shop permission split
+' Shop can only cancel; admin can approve/reject
+' Admin actions only valid from pending state
+
+[*] --> pending : Saque created
+
+state pending : Awaiting admin review
+state approved : Funds committed
+state rejected : Denied by admin\n(motivo stored)
+state cancelled <<end>> : Cancelled by shop
+
+pending --> approved : Admin approve\n(balance re-checked)
+pending --> rejected : Admin reject\n(motivo required)
+pending --> cancelled : Shop cancel
+
+approved --> [*]
+rejected --> [*]
+
+note on link #gray : Shop PUT restricted to cancelled only
+@enduml

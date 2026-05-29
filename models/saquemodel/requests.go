@@ -11,5 +11,9 @@ type CreateSaqueRequest struct {
 }
 
 type UpdateSaqueRequest struct {
-	Status string `json:"status" binding:"required,oneof=approved rejected cancelled"`
+	Status string `json:"status" binding:"required,oneof=cancelled"`
+}
+
+type AdminRejectSaqueRequest struct {
+	Motivo string `json:"motivo" binding:"required"`
 }
