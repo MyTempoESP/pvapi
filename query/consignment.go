@@ -50,6 +50,28 @@ WHERE shop_id = $1
   AND consignment_id IN (SELECT id FROM consignments_active)
 `
 
+	ListAllConsignmentsByShopQuery = `
+SELECT
+	consignment_id,
+	consignment_comission_type,
+	consignment_comission_value,
+	consignment_status,
+	consignment_created_at,
+	consignment_slug,
+	consignment_code,
+
+	consignee_id,
+	consignee_name,
+
+	shop_id,
+	shop_name,
+
+	pickup_location_id,
+	pickup_location_name
+FROM consignments_listing_view
+WHERE shop_id = $1
+`
+
 	ListConsignmentsByConsigneeQuery = `
 SELECT
 	consignment_id,
@@ -74,6 +96,31 @@ SELECT
 FROM consignments_listing_view c
 WHERE consignee_id = $1
   AND consignment_id IN (SELECT id FROM consignments_active)
+`
+
+	ListAllConsignmentsByConsigneeQuery = `
+SELECT
+	consignment_id,
+	consignment_comission_type,
+	consignment_comission_value,
+	consignment_status,
+	consignment_created_at,
+	consignment_slug,
+	consignment_code,
+
+	COALESCE((SELECT SUM(quantity) FROM packages WHERE consignment_id = c.consignment_id), 0) AS total_products,
+	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr JOIN packages pkg ON pkg.id = pr.package_id WHERE pkg.consignment_id = c.consignment_id), 0) AS sold_products,
+
+	consignee_id,
+	consignee_name,
+
+	shop_id,
+	shop_name,
+
+	pickup_location_id,
+	pickup_location_name
+FROM consignments_listing_view c
+WHERE consignee_id = $1
 `
 
 ListAllActiveConsignmentsQuery = `

@@ -266,4 +266,116 @@ func TestConsignment(t *testing.T) {
 			t.Fatal("product should not be in consignment after removal")
 		}
 	})
+
+	// --- status filtering: gated vs public ---
+
+	t.Run("gated_list_includes_rascunho", func(t *testing.T) {
+		h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"status": "RASCUNHO",
+		})
+
+		rec := h.doRequest(t, http.MethodGet, "/remessas", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("gated shop listing should include RASCUNHO consignment %d", cons.ID)
+		}
+	})
+
+	t.Run("public_shop_list_excludes_rascunho", func(t *testing.T) {
+		path := fmt.Sprintf("/estabelecimentos/%s/remessas", shop.Slug)
+		rec := h.doRequest(t, http.MethodGet, path, nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if containsID(consignments, cons.ID) {
+			t.Fatal("public shop listing should exclude RASCUNHO consignment")
+		}
+	})
+
+	t.Run("public_list_excludes_rascunho", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/remessas-publicas", nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if containsID(consignments, cons.ID) {
+			t.Fatal("public listing should exclude RASCUNHO consignment")
+		}
+	})
+
+	t.Run("gated_list_includes_arquivado", func(t *testing.T) {
+		h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"status": "ARQUIVADO",
+		})
+
+		rec := h.doRequest(t, http.MethodGet, "/remessas", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("gated shop listing should include ARQUIVADO consignment %d", cons.ID)
+		}
+	})
+
+	t.Run("public_shop_list_excludes_arquivado", func(t *testing.T) {
+		path := fmt.Sprintf("/estabelecimentos/%s/remessas", shop.Slug)
+		rec := h.doRequest(t, http.MethodGet, path, nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if containsID(consignments, cons.ID) {
+			t.Fatal("public shop listing should exclude ARQUIVADO consignment")
+		}
+	})
+
+	t.Run("public_list_excludes_arquivado", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/remessas-publicas", nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if containsID(consignments, cons.ID) {
+			t.Fatal("public listing should exclude ARQUIVADO consignment")
+		}
+	})
+
+	// --- consignee gated listing: includes all statuses ---
+
+	t.Run("consignee_gated_includes_rascunho", func(t *testing.T) {
+		h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"status": "RASCUNHO",
+		})
+
+		monitorSession := h.login(t, monitor.Email, monitor.Phone)
+		rec := h.doRequest(t, http.MethodGet, "/monitores/me/remessas", &monitorSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("consignee gated listing should include RASCUNHO consignment %d", cons.ID)
+		}
+	})
+
+	t.Run("consignee_gated_includes_arquivado", func(t *testing.T) {
+		h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"status": "ARQUIVADO",
+		})
+
+		monitorSession := h.login(t, monitor.Email, monitor.Phone)
+		rec := h.doRequest(t, http.MethodGet, "/monitores/me/remessas", &monitorSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("consignee gated listing should include ARQUIVADO consignment %d", cons.ID)
+		}
+	})
 }
