@@ -43,6 +43,8 @@ SKILL_DIR="$(dirname "$(readlink -f "$0")")"
 | `--session-id` | auto-generated | Cart session identifier |
 | `--value-paid` | derived from package | Amount paid (auto-derived from package price × quantity) |
 | `--external-ref` | auto-generated | External payment reference |
+| `--client-email` | — | Client email (optional, triggers welcome email) |
+| `--client-name` | derived from email | Client display name (optional) |
 
 ### 3. Manual Steps (Step by Step)
 
@@ -61,9 +63,10 @@ curl -s -X POST "$BASE/carrinho/adicionar" \
 curl -s "$BASE/carrinho/pacotes?session_id=$SESSION"
 
 # Confirm checkout (fill package_id and value_paid from package options response)
+# Optional: add "client_email" and "client_name" to create a client and send welcome email
 curl -s -X POST "$BASE/checkouts/confirm?session_id=$SESSION" \
   -H "Content-Type: application/json" \
-  -d '{"value_paid":"6.00","external_reference":"EXT-REF-'"$(date +%s)"'","items":[{"package_id":3,"quantity":1}]}'
+  -d '{"value_paid":"6.00","external_reference":"EXT-REF-'"$(date +%s)"'","client_email":"cliente@example.com","client_name":"Fulano de Tal","items":[{"package_id":3,"quantity":1}]}'
 ```
 
 ### API Reference
@@ -76,7 +79,7 @@ curl -s -X POST "$BASE/checkouts/confirm?session_id=$SESSION" \
 | `/carrinho/pacotes?session_id=` | GET | List available pickup packages |
 | `/carrinho/remover/:item?session_id=` | DELETE | Remove item from cart |
 | `/carrinho/atualizar/:item?session_id=` | PUT | Update item quantity |
-| `/checkouts/confirm?session_id=` | POST | Confirm checkout (`value_paid`, `external_reference`, `items[{package_id,quantity}]`) |
+| `/checkouts/confirm?session_id=` | POST | Confirm checkout (`value_paid`, `external_reference`, `items[{package_id,quantity}]`). Optional: `client_email`, `client_name` (creates client + sends welcome email) |
 
 ### Response Codes
 
