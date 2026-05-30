@@ -518,7 +518,7 @@ elif menu == "Requisição HTTP":
     if st.button("🚀 Enviar", type="primary", use_container_width=True):
         if not endpoint.strip():
             st.error("Informe o endpoint.")
-            return
+            st.stop()
 
         # Resolve auth
         if use_auth:
@@ -549,7 +549,7 @@ elif menu == "Requisição HTTP":
                 data_payload = json.loads(body_text.strip())
             except json.JSONDecodeError as e:
                 st.error(f"JSON inválido no corpo: {e}")
-                return
+                st.stop()
 
         # Send
         with st.spinner(f"Enviando {http_method} {path}..."):
