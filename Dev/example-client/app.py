@@ -1,6 +1,7 @@
 """Example client for pvauto.linhazero.com API — Streamlit UI em português brasileiro."""
 
 import json
+import os
 import re
 import time
 from urllib.parse import urlencode, urlparse, parse_qs
@@ -8,7 +9,7 @@ from urllib.parse import urlencode, urlparse, parse_qs
 import requests
 import streamlit as st
 
-BASE_URL = "https://pvauto.linhazero.com"
+BASE_URL = os.environ.get("PV_API_BASE_URL", "https://pvauto.linhazero.com")
 
 # ── Session state defaults ──────────────────────────────────────────────────
 

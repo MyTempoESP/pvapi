@@ -1,4 +1,17 @@
 services:
+  streamlit:
+    build:
+      context: Dev/example-client
+      dockerfile: Dockerfile
+    container_name: pvauto_streamlit
+    restart: always
+    ports:
+      - "8501:8501"
+    environment:
+      - PV_API_BASE_URL=http://pvapi:8080
+    depends_on:
+      - pvapi
+
   pvapi:
     build:
       context: .
