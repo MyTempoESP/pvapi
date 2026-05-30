@@ -1,11 +1,11 @@
 ---
 # pvapi-vnxp
 title: README com instruções de setup do cliente de exemplo
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-05-30T17:37:53Z
-updated_at: 2026-05-30T17:37:58Z
+updated_at: 2026-05-30T17:42:49Z
 parent: pvapi-outm
 ---
 
@@ -36,3 +36,13 @@ Criar `Dev/example-client/README.md` documentando como configurar e rodar a apli
 None — can start immediately.
 
 Triage: ready-for-agent
+
+
+## Summary of Changes
+
+Criado `Dev/example-client/README.md` em português brasileiro com:
+
+- [x] Instruções de virtualenv, pip install e streamlit run
+- [x] Instruções de Docker build e run
+- [x] Descrição das três abas (Checkout, Banco & Saque, Requisição HTTP)
+- [x] Texto integralmente em pt-BR
