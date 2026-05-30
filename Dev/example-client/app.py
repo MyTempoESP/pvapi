@@ -223,6 +223,12 @@ if menu == "Checkout":
     with col2:
         ext_ref = st.text_input("Referência externa", value="", placeholder="ex: EXT-123")
 
+    col_q1, col_q2 = st.columns(2)
+    with col_q1:
+        confirm_qty = st.number_input("Quantidade", min_value=1, value=1, key="confirm_qty")
+    with col_q2:
+        st.write("")
+
     col3, col4 = st.columns(2)
     with col3:
         client_email = st.text_input(
@@ -243,7 +249,7 @@ if menu == "Checkout":
             items = [
                 {
                     "package_id": st.session_state.selected_package_id,
-                    "quantity": int(add_qty if "add_qty" in dir() else 1),
+                    "quantity": confirm_qty,
                 }
             ]
             payload = {
