@@ -3,7 +3,7 @@
 import json
 import re
 import time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs
 
 import requests
 import streamlit as st
@@ -31,7 +31,8 @@ for key, val in _DEFAULTS.items():
 def req(method: str, path: str, **kwargs):
     url = f"{BASE_URL.rstrip('/')}/{path.lstrip('/')}"
     headers = kwargs.pop("headers", {})
-    headers.setdefault("Content-Type", "application/json")
+    if method.upper() in ("POST", "PUT", "PATCH"):
+        headers.setdefault("Content-Type", "application/json")
     token = kwargs.pop("token", None)
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -529,9 +530,10 @@ elif menu == "Requisição HTTP":
 
         # Build URL
         path = endpoint.strip().lstrip("/")
+        params = None
         if query_str.strip():
-            separator = "&" if "?" in path else "?"
-            path = f"{path}{separator}{query_str.strip()}"
+            parsed = urlparse("?" + query_str.strip())
+            params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
 
         # Parse body
         data_payload = None
@@ -547,6 +549,7 @@ elif menu == "Requisição HTTP":
             r = req(
                 http_method,
                 path,
+                params=params,
                 data=data_payload,
                 token=token_override,
             )

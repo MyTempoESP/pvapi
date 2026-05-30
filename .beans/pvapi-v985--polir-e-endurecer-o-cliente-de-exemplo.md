@@ -1,11 +1,11 @@
 ---
 # pvapi-v985
 title: Polir e endurecer o cliente de exemplo
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-05-30T17:37:53Z
-updated_at: 2026-05-30T17:37:58Z
+updated_at: 2026-05-30T17:43:40Z
 parent: pvapi-outm
 ---
 
@@ -38,3 +38,15 @@ Quatro pequenas correções de robustez no cliente de exemplo:
 None — can start immediately.
 
 Triage: ready-for-agent
+
+## Summary of Changes
+
+Implemented four robustness fixes for the Streamlit example client:
+
+1. **Pinned dependencies** — `requirements.txt` now uses `==` instead of `>=` for reproducible builds (`streamlit==1.28.0`, `requests==2.31.0`).
+
+2. **Query string via `params=`** — In the "Requisição HTTP" tab, the manual query string concatenation was replaced with `urlparse`/`parse_qs` parsing and passed as `params=` to `requests.request()`, ensuring proper encoding of special characters (e.g., `nome=São Paulo&valor=10%`).
+
+3. **Conditional Content-Type** — The `req()` helper now only sets `Content-Type: application/json` for methods with a body (`POST`, `PUT`, `PATCH`). GET and DELETE requests no longer send this header.
+
+4. **Non-root user in Dockerfile** — Added `RUN useradd --create-home appuser` and `USER appuser` after `pip install`, before `COPY app.py .`.
