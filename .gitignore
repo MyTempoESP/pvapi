@@ -13,3 +13,4 @@ tmux.just
 *.jpg
 *.html
 !/mail/*.html
+!/mail/*.png
