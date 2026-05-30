@@ -9,9 +9,9 @@ import (
 	gomail "github.com/wneessen/go-mail"
 )
 
-// Mailer is the injectable interface for sending welcome emails.
+// Mailer is the injectable interface for sending pickup confirmation emails.
 type Mailer interface {
-	SendWelcome(ctx context.Context, to, name, password, loginURL, resetURL string) error
+	SendPickupConfirmation(ctx context.Context, to string, data PickupEmailData) error
 }
 
 // Config holds SMTP server configuration.
@@ -68,15 +68,19 @@ func NewClient(cfg Config) (*Client, error) {
 	return &Client{client: client, cfg: cfg}, nil
 }
 
-// SendWelcome sends a welcome email with login credentials.
-func (c *Client) SendWelcome(
+// SendPickupConfirmation sends a pickup confirmation email.
+// It renders the full template (order info + conditional login section).
+func (c *Client) SendPickupConfirmation(
 	ctx context.Context,
-	to, name, password, loginURL, resetURL string,
+	to string,
+	data PickupEmailData,
 ) error {
-	html, err := renderWelcome(name, to, password, loginURL, resetURL)
+	html, err := renderPickupConfirmation(data)
 	if err != nil {
-		return fmt.Errorf("mail: failed to render welcome template: %w", err)
+		return fmt.Errorf("mail: failed to render pickup confirmation template: %w", err)
 	}
+
+	subject := fmt.Sprintf("Seu pedido #%s est\u00e1 pronto para retirada!", shortOrderID(data.OrderID))
 
 	msg := gomail.NewMsg()
 	if err := msg.From(c.cfg.From); err != nil {
@@ -85,19 +89,21 @@ func (c *Client) SendWelcome(
 	if err := msg.To(to); err != nil {
 		return fmt.Errorf("mail: invalid to address: %w", err)
 	}
-	msg.Subject("Bem-vindo à PVAuto!")
+	msg.Subject(subject)
 	msg.SetBodyString(gomail.TypeTextHTML, html)
 
-	slog.DebugContext(ctx, "sending welcome email",
+	slog.DebugContext(ctx, "sending pickup confirmation email",
 		"to", to,
+		"order_id", data.OrderID,
 	)
 
 	if err := c.client.DialAndSendWithContext(ctx, msg); err != nil {
-		return fmt.Errorf("mail: failed to send welcome email to %s: %w", to, err)
+		return fmt.Errorf("mail: failed to send pickup confirmation email to %s: %w", to, err)
 	}
 
-	slog.InfoContext(ctx, "welcome email sent",
+	slog.InfoContext(ctx, "pickup confirmation email sent",
 		"to", to,
+		"order_id", data.OrderID,
 	)
 
 	return nil
@@ -106,37 +112,24 @@ func (c *Client) SendWelcome(
 // NoopMailer is a no-op implementation of Mailer for tests.
 type NoopMailer struct{}
 
-func (NoopMailer) SendWelcome(_ context.Context, _, _, _, _, _ string) error {
+func (NoopMailer) SendPickupConfirmation(_ context.Context, _ string, _ PickupEmailData) error {
 	return nil
 }
 
 // SpyMailer records sent emails for test assertions.
 type SpyMailer struct {
-	SentEmails []WelcomeEmail
-}
-
-type WelcomeEmail struct {
-	To       string
-	Name     string
-	Password string
-	LoginURL string
-	ResetURL string
+	SentConfirmation *PickupEmailData
 }
 
 func NewSpyMailer() *SpyMailer {
-	return &SpyMailer{SentEmails: make([]WelcomeEmail, 0)}
+	return &SpyMailer{}
 }
 
-func (s *SpyMailer) SendWelcome(
+func (s *SpyMailer) SendPickupConfirmation(
 	_ context.Context,
-	to, name, password, loginURL, resetURL string,
+	_ string,
+	data PickupEmailData,
 ) error {
-	s.SentEmails = append(s.SentEmails, WelcomeEmail{
-		To:       to,
-		Name:     name,
-		Password: password,
-		LoginURL: loginURL,
-		ResetURL: resetURL,
-	})
+	s.SentConfirmation = &data
 	return nil
 }

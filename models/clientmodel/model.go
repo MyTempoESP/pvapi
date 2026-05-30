@@ -54,7 +54,7 @@ func SetCartClientID(
 }
 
 // Create creates a user and client record in a single transaction.
-// - If the email already belongs to a client, returns the existing client ID.
+// - If the email already belongs to a client, returns the existing client ID with isNew=false.
 // - If the email belongs to a non-client user, returns ErrDuplicatedResource.
 // - The password hash is pre-computed (bcrypt is heavy — hash outside the tx).
 func Create(
@@ -63,7 +63,7 @@ func Create(
 	clientName,
 	clientEmail string,
 	passwordHash []byte,
-) (clientID int, err error) {
+) (clientID int, isNew bool, err error) {
 	userID, err := usermodel.FindByEmail(ctx, tx, clientEmail)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -74,7 +74,7 @@ func Create(
 			passwordHash,
 		)
 		if err != nil {
-			return 0, fmt.Errorf("error creating user: %w", err)
+			return 0, false, fmt.Errorf("error creating user: %w", err)
 		}
 
 		err = tx.QueryRow(
@@ -83,27 +83,27 @@ func Create(
 			nil, // telephone is not captured during checkout
 		).Scan(&clientID)
 		if err != nil {
-			return 0, fmt.Errorf("error creating client: %w", err)
+			return 0, false, fmt.Errorf("error creating client: %w", err)
 		}
 
-		return clientID, nil
+		return clientID, true, nil
 	}
 
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
 	// email belongs to an existing user — check if they are a client
 	err = tx.QueryRow(ctx, query.FindClientByUserQuery, userID).Scan(&clientID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, fmt.Errorf("user is not a client: %w", util.ErrDuplicatedResource)
+		return 0, false, fmt.Errorf("user is not a client: %w", util.ErrDuplicatedResource)
 	}
 
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
-	return clientID, nil
+	return clientID, false, nil
 }
 
 // CreateAndAssociate wraps Create plus setting the cart's client_id.
@@ -115,17 +115,18 @@ func CreateAndAssociate(
 	clientEmail string,
 	passwordHash []byte,
 	cartID int,
-) error {
-	return util.TransactionAware(ctx, pool,
+) (isNew bool, err error) {
+	err = util.TransactionAware(ctx, pool,
 		func(ctx context.Context, tx pgx.Tx) error {
-			clientID, err := Create(ctx, tx, clientName, clientEmail, passwordHash)
+			clientID, isNewFlag, err := Create(ctx, tx, clientName, clientEmail, passwordHash)
 			if err != nil {
 				return err
 			}
-
+			isNew = isNewFlag
 			return SetCartClientID(ctx, tx, clientID, cartID)
 		},
 	)
+	return
 }
 
 func List(

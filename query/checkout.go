@@ -94,6 +94,23 @@ SELECT COUNT(*) FROM cart_product WHERE cart_id = $1
 SELECT id FROM checkouts WHERE unique_id = $1
 `
 
+	ResolvePickupEmailDataQuery = `
+SELECT
+	pl.name AS pickup_name,
+	p.name AS product_name,
+	SUM(ci.quantity)::integer AS quantity
+FROM (
+	SELECT unnest($1::integer[]) AS package_id,
+	       unnest($2::integer[]) AS quantity
+) ci
+JOIN packages pkg ON pkg.id = ci.package_id
+JOIN products p ON p.id = pkg.product_id
+JOIN consignments con ON con.id = pkg.consignment_id
+JOIN pickup_locations pl ON pl.id = con.pickup_location_id
+GROUP BY pl.id, pl.name, p.id, p.name
+ORDER BY pl.name, p.name
+`
+
 	ShopCheckoutsQuery = `
 SELECT
 	chk.id              AS checkout_id,

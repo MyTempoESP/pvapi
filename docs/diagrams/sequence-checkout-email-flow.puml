@@ -1,0 +1,94 @@
+@startuml
+' Sequence diagram: checkout confirmation flow with async pickup email dispatch
+' Shows the full timeline from client request through email delivery
+
+actor "Client" as C
+participant "Checkout Controller" as Ctrl
+participant "checkoutmodel" as CM
+participant "clientmodel" as CLM
+participant "mail.Mailer" as Mail
+participant "SMTP Server" as SMTP
+database "PostgreSQL" as DB
+
+== Checkout Confirmation (synchronous) ==
+
+C -> Ctrl: POST /checkouts/confirm\n(session_id, items, client_email, value_paid)
+activate Ctrl
+
+Ctrl -> CM: Confirm(ctx, pool, sessionID, req)
+activate CM
+
+CM -> DB: BEGIN transaction
+CM -> DB: check idempotency (session + ref)
+CM -> DB: resolve cart + validate stock
+CM -> DB: write checkout + reserve packages
+CM -> DB: COMMIT
+CM --> Ctrl: ConfirmResponse{UniqueID, QrCode, Status}
+deactivate CM
+
+Ctrl --> C: 200 OK {unique_id, qr_code, status}
+deactivate Ctrl
+
+== Post-Checkout Email (async, best-effort) ==
+
+Ctrl -> Ctrl: createClientAfterCheckout\n(after response sent)
+activate Ctrl
+
+Ctrl -> Ctrl: derive client name from email
+Ctrl -> Ctrl: generate + hash password
+
+Ctrl -> CLM: CreateAndAssociate(ctx, pool, name, email, hash, cartID)
+activate CLM
+
+CLM -> DB: BEGIN transaction
+CLM -> DB: find user by email
+
+alt email not found (new user)
+  CLM -> DB: create user + client record
+  CLM --> Ctrl: (clientID, isNew=true)
+else email found (existing)
+  CLM -> DB: verify existing client
+  CLM --> Ctrl: (clientID, isNew=false)
+end
+
+CLM -> DB: update cart client_id
+CLM -> DB: COMMIT
+deactivate CLM
+
+Ctrl -> CM: ResolvePickupEmailData(ctx, db, items)
+activate CM
+CM -> DB: query packages JOIN products\nJOIN consignments JOIN pickup_locations
+CM --> Ctrl: []PickupGroup (grouped by pickup location)
+deactivate CM
+
+Ctrl -> Ctrl: build PickupEmailData{OrderID, QrCode, Groups, IsNewUser, ...}
+
+Ctrl -> Mail: SendPickupConfirmation(ctx, to, data)
+activate Mail
+
+Mail -> Mail: render order info section\n(order ID, QR code, items by pickup)
+note right of Mail: ALWAYS included
+
+alt IsNewUser == true
+  Mail -> Mail: ALSO render login section\n(name, password, login/reset URLs)
+  note right of Mail: additional block — new users only
+else IsNewUser == false
+  note right of Mail: skip login section (existing users)
+end
+
+Mail -> SMTP: send email (subject + HTML body)
+activate SMTP
+SMTP --> Mail: accepted
+deactivate SMTP
+
+Mail --> Ctrl: nil (or error logged)
+deactivate Mail
+
+deactivate Ctrl
+
+note over Ctrl, Mail
+  Email sending is best-effort: failures are logged
+  but never fail the checkout response
+end note
+
+@enduml

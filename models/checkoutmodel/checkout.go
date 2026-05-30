@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 
+	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/util/qrcode"
@@ -198,6 +200,62 @@ func validateStock(
 	}
 
 	return nil
+}
+
+// pickupEmailRow is a single row from ResolvePickupEmailDataQuery.
+type pickupEmailRow struct {
+	PickupName  string `db:"pickup_name"`
+	ProductName string `db:"product_name"`
+	Quantity    int    `db:"quantity"`
+}
+
+// ResolvePickupEmailData looks up product names and pickup locations
+// for the given checkout items and returns them grouped by pickup location.
+func ResolvePickupEmailData(
+	ctx context.Context,
+	base db.Queryable,
+	items []ConfirmItem,
+) ([]mail.PickupGroup, error) {
+	pkgIDs := make([]int, len(items))
+	qtys := make([]int, len(items))
+	for i, item := range items {
+		pkgIDs[i] = item.PackageID
+		qtys[i] = item.Quantity
+	}
+
+	rows, err := util.WithCollect[pickupEmailRow](
+		ctx, base,
+		query.ResolvePickupEmailDataQuery,
+		pkgIDs,
+		qtys,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve pickup email data: %w", err)
+	}
+
+	var groups []mail.PickupGroup
+	var current *mail.PickupGroup
+
+	for _, row := range rows {
+		if current == nil || current.PickupName != row.PickupName {
+			if current != nil {
+				groups = append(groups, *current)
+			}
+			current = &mail.PickupGroup{
+				PickupName: row.PickupName,
+				Items:      make([]mail.PickupItem, 0),
+			}
+		}
+		current.Items = append(current.Items, mail.PickupItem{
+			ProductName: row.ProductName,
+			Quantity:    row.Quantity,
+		})
+	}
+	if current != nil {
+		groups = append(groups, *current)
+	}
+
+	return groups, nil
 }
 
 func writeCheckout(

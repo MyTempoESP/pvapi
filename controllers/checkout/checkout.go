@@ -68,14 +68,14 @@ func ConfirmHandler(
 			"qr_code":   resp.QrCode,
 		})
 
-		// Best-effort client creation after response is sent
+		// Best-effort email after response is sent
 		if req.ClientEmail != "" {
-			createClientAfterCheckout(c, pool, m, req, resp)
+			sendConfirmationAfterCheckout(c, pool, m, req, resp)
 		}
 	}
 }
 
-func createClientAfterCheckout(
+func sendConfirmationAfterCheckout(
 	c *gin.Context,
 	pool *pgxpool.Pool,
 	m mail.Mailer,
@@ -101,7 +101,7 @@ func createClientAfterCheckout(
 
 	ctx := context.Background()
 
-	err = clientmodel.CreateAndAssociate(
+	isNew, err := clientmodel.CreateAndAssociate(
 		ctx, pool,
 		clientName, req.ClientEmail,
 		hash,
@@ -116,36 +116,61 @@ func createClientAfterCheckout(
 		return
 	}
 
-	util.LogInfo(c, "client created from checkout",
+	util.LogInfo(c, "client created/reused from checkout",
 		"email", req.ClientEmail,
 		"cart_id", resp.CartID,
+		"is_new", isNew,
 	)
 
 	if m == nil {
 		return
 	}
 
-	loginURL, _ := env.SMTPLoginLink()
-	resetURL, _ := env.SMTPResetLink()
-
-	if loginURL == "" || resetURL == "" {
-		util.LogWarn(c, "mail: login link or reset link not configured, skipping welcome email",
-			"email", req.ClientEmail,
+	// Resolve pickup groups for the email
+	groups, err := checkoutmodel.ResolvePickupEmailData(
+		ctx, pool,
+		req.Items,
+	)
+	if err != nil {
+		util.LogError(c, "failed to resolve pickup email data",
+			"error", err,
 		)
 		return
 	}
 
-	if err := m.SendWelcome(
+	emailData := mail.PickupEmailData{
+		OrderID:   resp.UniqueID,
+		QrCode:    resp.QrCode,
+		Groups:    groups,
+		IsNewUser: isNew,
+		Name:      clientName,
+		Email:     req.ClientEmail,
+	}
+
+	if isNew {
+		loginURL, loginErr := env.SMTPLoginLink()
+		resetURL, resetErr := env.SMTPResetLink()
+		if loginErr != nil || resetErr != nil || loginURL == "" || resetURL == "" {
+			util.LogWarn(c, "mail: login link or reset link not configured, skipping login details",
+				"email", req.ClientEmail,
+			)
+		} else {
+			emailData.Password = plaintext
+			emailData.LoginURL = loginURL
+			emailData.ResetURL = resetURL
+		}
+	}
+
+	if err := m.SendPickupConfirmation(
 		ctx, req.ClientEmail,
-		clientName, plaintext,
-		loginURL, resetURL,
+		emailData,
 	); err != nil {
-		util.LogError(c, "failed to send welcome email",
+		util.LogError(c, "failed to send pickup confirmation email",
 			"error", err,
 			"email", req.ClientEmail,
 		)
 	} else {
-		util.LogInfo(c, "welcome email sent",
+		util.LogInfo(c, "pickup confirmation email sent",
 			"email", req.ClientEmail,
 		)
 	}

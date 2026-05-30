@@ -1,0 +1,47 @@
+@startuml
+' Activity diagram: post-checkout email dispatch workflow
+' Shows the branching logic for conditional login details
+
+start
+
+partition "Post-Checkout (after HTTP response)" {
+  :Derive client name from email;
+
+  :Generate random password;
+  :Hash password (bcrypt);
+
+  :CreateAndAssociate client to cart\n(inserts user if new, reuses if existing);
+
+  if (User is new?) then (yes)
+    :Set IsNewUser = true;
+  else (no)
+    :Set IsNewUser = false;
+  endif
+
+  :ResolvePickupEmailData\n(query packages → products → pickup locations);
+  note right
+    Groups items by pickup location,
+    sums quantities for repeated products
+  end note
+
+  :Build PickupEmailData struct;
+}
+
+partition "Mail Package (SendPickupConfirmation)" {
+  :Render order info section\n(order ID, QR code, items grouped by pickup);
+  note right: ALWAYS included — all users
+
+  if (IsNewUser?) then (yes)
+    :Append login section\n(name, email, temporary password,\n"Configurar minha conta" button,\n"Redefinir senha" link);
+    note right: ADDITIONAL block — new users only
+  else (no)
+    :Skip login section;
+    note right: Order info only (existing users)
+  endif
+
+  :Set subject "Seu pedido #XXXXXX está pronto para retirada!";
+  :Send email via SMTP;
+}
+
+stop
+@enduml
