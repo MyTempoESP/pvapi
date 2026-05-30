@@ -18,6 +18,8 @@ Options:
   --session-id ID     Cart session ID (default: auto-generated)
   --value-paid AMOUNT Override value_paid (default: derived from package price)
   --external-ref REF  External payment reference (default: auto-generated)
+  --client-email EMAIL  Client email (optional, triggers welcome email)
+  --client-name NAME    Client display name (optional, derived from email if not set)
   -h, --help          Show this help
 EOF
   exit 0
@@ -32,6 +34,8 @@ while [[ $# -gt 0 ]]; do
     --session-id)   SESSION_ID="$2"; shift 2 ;;
     --value-paid)   VALUE_PAID_OVERRIDE="$2"; shift 2 ;;
     --external-ref) EXTERNAL_REF="$2"; shift 2 ;;
+    --client-email) CLIENT_EMAIL="$2"; shift 2 ;;
+    --client-name)  CLIENT_NAME="$2"; shift 2 ;;
     -h|--help)      usage ;;
     *) echo "Unknown option: $1"; usage ;;
   esac
@@ -128,9 +132,18 @@ fi
 
 log "CHK"  "Confirming checkout — value_paid=$VALUE_PAID — ref=$EXTERNAL_REF"
 
+CLIENT_JSON=""
+if [[ -n "${CLIENT_EMAIL:-}" ]]; then
+  CLIENT_JSON="\"client_email\":\"$CLIENT_EMAIL\""
+  if [[ -n "${CLIENT_NAME:-}" ]]; then
+    CLIENT_JSON="$CLIENT_JSON,\"client_name\":\"$CLIENT_NAME\""
+  fi
+  CLIENT_JSON="$CLIENT_JSON,"
+fi
+
 CHECKOUT_RESP=$(curl -s -X POST "$BASE_URL/checkouts/confirm?session_id=$SESSION_ID" \
   -H "Content-Type: application/json" \
-  -d "{\"value_paid\":\"$VALUE_PAID\",\"external_reference\":\"$EXTERNAL_REF\",\"items\":[{\"package_id\":$PACKAGE_ID,\"quantity\":$QUANTITY}]}")
+  -d "{$CLIENT_JSON\"value_paid\":\"$VALUE_PAID\",\"external_reference\":\"$EXTERNAL_REF\",\"items\":[{\"package_id\":$PACKAGE_ID,\"quantity\":$QUANTITY}]}")
 
 echo "$CHECKOUT_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d.get('success') else 1)" || {
   echo "FAILED checkout:"

@@ -44,6 +44,7 @@ func NewClient(cfg Config) (*Client, error) {
 		gomail.WithPort(cfg.Port),
 		gomail.WithUsername(cfg.User),
 		gomail.WithPassword(cfg.Pass),
+		gomail.WithSMTPAuth(gomail.SMTPAuthLogin),
 	}
 
 	switch cfg.Port {
