@@ -37,7 +37,7 @@ func TestRenderPickupConfirmation(t *testing.T) {
 	}{
 		{"includes order ID (short)", "a1b2c3d4"},
 		{"includes order ID (full)", "a1b2c3d4-e5f6-7890-abcd-ef1234567890"},
-		{"includes QR code as data URI", "data:image/png;base64,iVBOR"},
+		{"includes QR code as CID image", "cid:qrcode.png"},
 		{"includes pickup location name", "Loja Centro"},
 		{"includes product name", "Produto A"},
 		{"includes product quantity", "x2"},
@@ -51,6 +51,8 @@ func TestRenderPickupConfirmation(t *testing.T) {
 		{"has configure account button", "Configurar minha conta"},
 		{"has reset link text", "Redefinir senha"},
 		{"has subject line reference with order short", "#a1b2c3d4"},
+		{"has QR instructional text", "Apresente este QR code no balcão"},
+		{"has logo URL", "https://pvauto.online/logo.png"},
 	}
 
 	for _, tc := range cases {

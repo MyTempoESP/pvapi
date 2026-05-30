@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -204,9 +205,16 @@ func validateStock(
 
 // pickupEmailRow is a single row from ResolvePickupEmailDataQuery.
 type pickupEmailRow struct {
-	PickupName  string `db:"pickup_name"`
-	ProductName string `db:"product_name"`
-	Quantity    int    `db:"quantity"`
+	PickupName     string `db:"pickup_name"`
+	ProductName    string `db:"product_name"`
+	Quantity       int    `db:"quantity"`
+	AddrStreet     string `db:"addrstreet"`
+	AddrNumber     int    `db:"addrnumber"`
+	AddrCity       string `db:"addrcity"`
+	AddrState      string `db:"addrstate"`
+	AddrCep        string `db:"addrcep"`
+	AddrNeigh      string `db:"addrneigh"`
+	AddrComplement string `db:"addrcomplement"`
 }
 
 // ResolvePickupEmailData looks up product names and pickup locations
@@ -243,6 +251,7 @@ func ResolvePickupEmailData(
 			}
 			current = &mail.PickupGroup{
 				PickupName: row.PickupName,
+				Address:    formatPickupAddress(row),
 				Items:      make([]mail.PickupItem, 0),
 			}
 		}
@@ -256,6 +265,38 @@ func ResolvePickupEmailData(
 	}
 
 	return groups, nil
+}
+
+// formatPickupAddress formats a pickupEmailRow's address fields into a
+// single-line address string. Returns nil when no address data is present.
+func formatPickupAddress(row pickupEmailRow) *mail.PickupAddress {
+	if row.AddrStreet == "" {
+		return nil
+	}
+
+	var b strings.Builder
+	b.WriteString(row.AddrStreet)
+	b.WriteString(", ")
+	fmt.Fprint(&b, row.AddrNumber)
+
+	if row.AddrComplement != "" && row.AddrComplement != "nenhum" {
+		b.WriteString(", ")
+		b.WriteString(row.AddrComplement)
+	}
+
+	b.WriteString(" — ")
+	if row.AddrNeigh != "" {
+		b.WriteString(row.AddrNeigh)
+		b.WriteString(", ")
+	}
+	b.WriteString(row.AddrCity)
+	b.WriteString("/")
+	b.WriteString(row.AddrState)
+
+	b.WriteString(" — CEP ")
+	b.WriteString(row.AddrCep)
+
+	return &mail.PickupAddress{Formatted: b.String()}
 }
 
 func writeCheckout(

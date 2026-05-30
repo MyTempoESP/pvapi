@@ -13,7 +13,7 @@
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:8px;padding:32px;">
                 <tr>
                     <td align="center" style="padding-bottom:24px;">
-                        <img src="{{.LogoSrc}}" alt="PVAuto" width="180" style="display:block;width:180px;max-width:100%;height:auto;margin:0 auto 16px;">
+                        <img src="https://pvauto.online/logo.png" alt="PVAuto" width="180" style="display:block;width:180px;max-width:100%;height:auto;margin:0 auto 16px;">
                         <h1 style="margin:0;font-family:'Poppins','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:28px;font-weight:800;color:#d15132;">PVAuto</h1>
                     </td>
                 </tr>
@@ -35,6 +35,9 @@
                                     <p style="margin:0;font-family:'Poppins','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.4;font-weight:700;color:#111827;">
                                         📍 {{.PickupName}}
                                     </p>
+                                    {{if .Address}}
+                                    <p style="margin:4px 0 0;font-family:monospace;font-size:12px;line-height:1.5;color:#4b5563;white-space:pre-wrap;">{{.Address.Formatted}}</p>
+                                    {{end}}
                                 </td>
                             </tr>
                             {{range .Items}}
@@ -55,14 +58,17 @@
                             {{end}}
                         </table>
                         {{end}}
-                        {{if .QrCode}}
+                        {{if .HasQrCode}}
                         <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
                             <tr>
                                 <td align="center" style="padding:16px;background:#fcfaf8;border-radius:8px;border:1px solid #e8e4e0;">
-                                    <p style="margin:0 0 12px;font-family:'Poppins','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.4;font-weight:600;color:#6b7280;text-align:center;text-transform:uppercase;letter-spacing:0.12em;">
+                                    <p style="margin:0 0 8px;font-family:'Poppins','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.4;font-weight:600;color:#6b7280;text-align:center;text-transform:uppercase;letter-spacing:0.12em;">
                                         Código de retirada
                                     </p>
-                                    <img src="{{.QrCode}}" alt="QR Code" width="160" style="display:block;width:160px;max-width:100%;height:auto;margin:0 auto;">
+                                    <p style="margin:0 0 12px;font-family:'Poppins','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.5;color:#374151;text-align:center;">
+                                        Apresente este QR code no balcão do ponto de retirada para receber seus itens.
+                                    </p>
+                                    <img src="cid:qrcode.png" alt="QR Code" width="160" style="display:block;width:160px;max-width:100%;height:auto;margin:0 auto;">
                                 </td>
                             </tr>
                         </table>

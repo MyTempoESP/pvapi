@@ -1,10 +1,13 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	gomail "github.com/wneessen/go-mail"
 )
@@ -92,6 +95,16 @@ func (c *Client) SendPickupConfirmation(
 	msg.Subject(subject)
 	msg.SetBodyString(gomail.TypeTextHTML, html)
 
+	if data.QrCode != "" {
+		qrPNG, err := decodeQrCodePNG(data.QrCode)
+		if err != nil {
+			return fmt.Errorf("mail: failed to decode qr code: %w", err)
+		}
+		if err := msg.EmbedReader("qrcode.png", bytes.NewReader(qrPNG)); err != nil {
+			return fmt.Errorf("mail: failed to embed qr code: %w", err)
+		}
+	}
+
 	slog.DebugContext(ctx, "sending pickup confirmation email",
 		"to", to,
 		"order_id", data.OrderID,
@@ -107,6 +120,15 @@ func (c *Client) SendPickupConfirmation(
 	)
 
 	return nil
+}
+
+// decodeQrCodePNG extracts raw PNG bytes from a base64 data URI.
+func decodeQrCodePNG(dataURI string) ([]byte, error) {
+	const prefix = "data:image/png;base64,"
+	if !strings.HasPrefix(dataURI, prefix) {
+		return nil, fmt.Errorf("mail: qr code data URI has unexpected prefix")
+	}
+	return base64.StdEncoding.DecodeString(dataURI[len(prefix):])
 }
 
 // NoopMailer is a no-op implementation of Mailer for tests.

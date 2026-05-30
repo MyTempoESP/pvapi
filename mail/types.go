@@ -6,9 +6,15 @@ type PickupItem struct {
 	Quantity    int
 }
 
+// PickupAddress holds the formatted address of a pickup location.
+type PickupAddress struct {
+	Formatted string
+}
+
 // PickupGroup groups items under a single pickup location.
 type PickupGroup struct {
 	PickupName string
+	Address    *PickupAddress
 	Items      []PickupItem
 }
 
