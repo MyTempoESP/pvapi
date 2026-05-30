@@ -1,0 +1,77 @@
+services:
+  pvapi:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: pvapi
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    labels:
+      - traefik.http.routers.pvauto-api-eyhxao-8-web.middlewares=redirect-to-https@file,cors-headers
+      - traefik.http.routers.pvauto-api-eyhxao-8-websecure.middlewares=cors-headers
+      - traefik.http.middlewares.cors-headers.headers.accessControlAllowOriginList=*
+      - traefik.http.middlewares.cors-headers.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE
+      - traefik.http.middlewares.cors-headers.headers.accessControlAllowHeaders=*
+    environment:
+      - PV_API_SECURE_COOKIE=yes
+      - PV_API_SECRET=sE)8@aAdDdO(PB3rlFd?#TP(B-{jW)Dp
+      - PV_API_DB_HOST=db
+      - PV_API_DB_USER=pvauto
+      - PV_API_DB_PASS=ajF0a&_jmKI19E#L
+      - PV_API_DB_BASE=pvauto_db
+      - PV_API_DB_PORT=5432
+      - PV_API_ADMIN_USER=lzero
+      - PV_API_ADMIN_MAIL=sistemas@linhazero.com
+      - PV_API_ADMIN_PASS=Ab910407@_
+      - PV_API_LOG_LEVEL=debug
+      - PV_API_PRODUCTION=yes
+      - PV_API_DOMAIN_NAME=pvauto.linhazero.com
+      - PV_API_HTTPS_ENABLED=yes
+      - PV_API_SMTP_HOST=smtp.hostinger.com
+      - PV_API_SMTP_PORT=587
+      - PV_API_SMTP_USER=sistemas@linhazero.com
+      - PV_API_SMTP_PASS=Ab910407@_
+      - PV_API_SMTP_FROM=PvAuto <sistemas@linhazero.com>
+      - PV_API_LOGIN_LINK=https://pvauto.online/login
+      - PV_API_PASSWORD_RESET_LINK=https://pvauto.online/esqueci-senha
+      - GIN_MODE=release
+    volumes:
+      - pvauto__static_data:/app/public
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./internal/database/migrations:/migrations
+    command:
+      - -path=/migrations/
+      - -database=postgres://pvauto:ajF0a%26_jmKI19E%23L@db:5432/pvauto_db?sslmode=disable
+      - up
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18
+    container_name: pvauto_db
+    restart: always
+    ports:
+      - "5440:5432"
+    environment:
+      - POSTGRES_USER=pvauto
+      - POSTGRES_DB=pvauto_db
+      - POSTGRES_PASSWORD=ajF0a&_jmKI19E#L
+    volumes:
+      - pvauto__db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pvauto -d pvauto_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  pvauto__db_data:
+  pvauto__static_data:
+
