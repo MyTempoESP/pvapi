@@ -1,17 +1,18 @@
 package clientmodel
 
-/*
-   'id' => (string) $client->id,
-   'name' => $client->name,
-   'email' => $client->email,
-   'phone' => $client->phone,
-*/
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type ClientResource struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
+	ID             int             `json:"id"`
+	Name           string          `json:"name"`
+	Email          string          `json:"email"`
+	Phone          string          `json:"phone"`
+	TotalPurchases decimal.Decimal `json:"total_purchases"`
+	LastPurchase   *time.Time      `json:"last_purchase,omitempty"`
 }
 
 func (c Client) ToResource() ClientResource {
@@ -20,9 +21,11 @@ func (c Client) ToResource() ClientResource {
 		phone = *c.Phone
 	}
 	return ClientResource{
-		ID:    c.ID,
-		Name:  c.Name,
-		Email: c.Email,
-		Phone: phone,
+		ID:             c.ID,
+		Name:           c.Name,
+		Email:          c.Email,
+		Phone:          phone,
+		TotalPurchases: c.TotalPurchases,
+		LastPurchase:   c.LastPurchase,
 	}
 }

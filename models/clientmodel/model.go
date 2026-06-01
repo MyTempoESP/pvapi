@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/usermodel"
@@ -15,10 +17,12 @@ import (
 )
 
 type Client struct {
-	ID    int     `db:"user_id"`
-	Name  string  `db:"user_name"`
-	Email string  `db:"user_email"`
-	Phone *string `db:"user_phone"`
+	ID             int             `db:"user_id"`
+	Name           string          `db:"user_name"`
+	Email          string          `db:"user_email"`
+	Phone          *string         `db:"user_phone"`
+	TotalPurchases decimal.Decimal `db:"total_purchases"`
+	LastPurchase   *time.Time      `db:"last_purchase"`
 }
 
 // AssociateToCart sets the client_id on a cart and marks the session as finished.
