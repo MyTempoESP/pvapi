@@ -116,4 +116,130 @@ func TestMonitor(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/monitores/me/remessas", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusForbidden)
 	})
+
+	t.Run("update_monitor_name", func(t *testing.T) {
+		updateEmail := fmt.Sprintf("api-upd-monitor-%d@example.com", runID)
+		updateName := "Nome Original"
+		result := h.createMonitor(t, &shopSession, updateName, updateEmail, "27998209673")
+
+		newName := "Nome Atualizado"
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/monitores/%d", result.ID), &shopSession, map[string]any{
+			"name": newName,
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		monitor := asMap(t, body["monitor"])
+		gotName := asString(t, monitor["name"])
+		if gotName != newName {
+			t.Fatalf("expected name=%q, got %q", newName, gotName)
+		}
+		// Ensure other fields unchanged
+		gotEmail := asString(t, monitor["email"])
+		if gotEmail != updateEmail {
+			t.Fatalf("expected email=%q, got %q", updateEmail, gotEmail)
+		}
+	})
+
+	t.Run("update_monitor_email", func(t *testing.T) {
+		updateEmail := fmt.Sprintf("api-upd-email-%d@example.com", runID)
+		result := h.createMonitor(t, &shopSession, "Email Test", updateEmail, "27998209673")
+
+		newEmail := fmt.Sprintf("api-upd-email-new-%d@example.com", runID)
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/monitores/%d", result.ID), &shopSession, map[string]any{
+			"email": newEmail,
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		monitor := asMap(t, body["monitor"])
+		gotEmail := asString(t, monitor["email"])
+		if gotEmail != newEmail {
+			t.Fatalf("expected email=%q, got %q", newEmail, gotEmail)
+		}
+	})
+
+	t.Run("update_monitor_phone", func(t *testing.T) {
+		result := h.createMonitor(t, &shopSession, "Phone Test", fmt.Sprintf("api-upd-phone-%d@example.com", runID), "27998209673")
+
+		newPhone := "11999999999"
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/monitores/%d", result.ID), &shopSession, map[string]any{
+			"phone": newPhone,
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		monitor := asMap(t, body["monitor"])
+		gotPhone := asString(t, monitor["phone"])
+		if gotPhone != newPhone {
+			t.Fatalf("expected phone=%q, got %q", newPhone, gotPhone)
+		}
+	})
+
+	t.Run("update_monitor_address", func(t *testing.T) {
+		result := h.createMonitor(t, &shopSession, "Addr Test", fmt.Sprintf("api-upd-addr-%d@example.com", runID), "27998209673")
+
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/monitores/%d", result.ID), &shopSession, map[string]any{
+			"address": map[string]any{
+				"street":       "Rua Nova Atualizada",
+				"number":       "123",
+				"neighborhood": "Centro",
+				"city":         "São Paulo",
+				"state":        "SP",
+				"cep":          "01001000",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		monitor := asMap(t, body["monitor"])
+		addr := asMap(t, monitor["address"])
+		gotStreet := asString(t, addr["street"])
+		if gotStreet != "Rua Nova Atualizada" {
+			t.Fatalf("expected street=Rua Nova Atualizada, got %q", gotStreet)
+		}
+		gotNumber := asString(t, addr["number"])
+		if gotNumber != "123" {
+			t.Fatalf("expected number=123, got %q", gotNumber)
+		}
+	})
+
+	t.Run("update_monitor_empty_body", func(t *testing.T) {
+		result := h.createMonitor(t, &shopSession, "Empty Body", fmt.Sprintf("api-upd-empty-%d@example.com", runID), "27998209673")
+
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/monitores/%d", result.ID), &shopSession, map[string]any{})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		monitor := asMap(t, body["monitor"])
+		gotName := asString(t, monitor["name"])
+		if gotName != "Empty Body" {
+			t.Fatalf("expected unchanged name=%q, got %q", "Empty Body", gotName)
+		}
+	})
+
+	t.Run("update_monitor_not_found", func(t *testing.T) {
+		// Gate blocks with 403 since the consignee doesn't exist for this shop
+		rec := h.doJSON(t, http.MethodPut, "/monitores/999999", &shopSession, map[string]any{
+			"name": "Ghost",
+		})
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("update_monitor_unauthorized", func(t *testing.T) {
+		result := h.createMonitor(t, &shopSession, "Auth Test", fmt.Sprintf("api-upd-auth-%d@example.com", runID), "27998209673")
+
+		// Second shop should not be able to edit first shop's monitor
+		otherShopEmail := fmt.Sprintf("api-upd-other-shop-%d@example.com", runID)
+		otherShopName := fmt.Sprintf("Outra Loja %d", runID)
+		_ = h.createShop(t, &admin, otherShopName, otherShopEmail, "11988887777")
+		otherSession := h.login(t, otherShopEmail, "11988887777")
+
+		// Gate blocks with 403 since other shop doesn't own this monitor
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/monitores/%d", result.ID), &otherSession, map[string]any{
+			"name": "Hacked",
+		})
+		assertStatus(t, rec, http.StatusForbidden)
+	})
 }
+

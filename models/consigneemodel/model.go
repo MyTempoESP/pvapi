@@ -97,6 +97,65 @@ func Delete(
 	return err
 }
 
+func FindByID(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID int,
+) (Consignee, error) {
+	return util.WithCollectExactlyOneRow[Consignee](
+		ctx, base,
+		query.FindConsigneeByIDQuery,
+		consigneeID,
+	)
+}
+
+func Update(
+	ctx context.Context,
+	base db.Queryable,
+	consigneeID int,
+	req UpdateConsigneeRequest,
+) error {
+	if req.Name != nil || req.Email != nil {
+		_, err := base.Exec(
+			ctx, query.UpdateConsigneeUserQuery,
+			consigneeID, req.Name, req.Email,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	if req.Phone != nil {
+		_, err := base.Exec(
+			ctx, query.UpdateConsigneePhoneQuery,
+			consigneeID, req.Phone,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	if req.Address != nil {
+		a := req.Address
+		_, err := base.Exec(
+			ctx, query.UpdateConsigneeAddressQuery,
+			consigneeID,
+			a.Street,
+			a.Number,
+			a.Neighborhood,
+			a.City,
+			a.State,
+			a.CEP,
+			a.Complement,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func HasReport(
 	ctx context.Context,
 	base db.Queryable,

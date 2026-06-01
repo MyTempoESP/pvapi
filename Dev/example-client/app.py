@@ -77,7 +77,7 @@ st.markdown("Interface de demonstração para a API do **pvauto.linhazero.com**"
 
 # ── Sidebar navigation ──────────────────────────────────────────────────────
 
-menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Requisição HTTP"])
+menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Monitores", "Requisição HTTP"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CHECKOUT
@@ -467,6 +467,223 @@ elif menu == "Banco & Saque":
                     )
                 else:
                     st.info("Nenhum saque encontrado.")
+            else:
+                show_response(r)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MONITORES
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif menu == "Monitores":
+    st.header("👤 Monitores")
+    st.markdown("CRUD de monitores (consignees) do estabelecimento.")
+
+    # ── Section 1: Login ───────────────────────────────────────────────────
+    st.subheader("1. Login (estabelecimento)")
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        mon_email = st.text_input("E-mail", value="", key="mon_email")
+    with col2:
+        mon_pass = st.text_input("Senha", type="password", value="", key="mon_pass")
+    with col3:
+        st.write("")
+        st.write("")
+        if st.button("🔑 Entrar", use_container_width=True, key="mon_login_btn"):
+            with st.spinner("Autenticando..."):
+                r = req("POST", "/login", data={"email": mon_email, "password": mon_pass})
+            if r.ok:
+                data = r.json()
+                token = data.get("access_token") or data.get("token", "")
+                if token:
+                    st.session_state.auth_token = token
+                    st.success("Login realizado com sucesso!")
+                else:
+                    st.error("Token não encontrado na resposta.")
+                    show_response(r)
+            else:
+                st.session_state.auth_token = None
+                show_response(r)
+
+    if st.session_state.auth_token:
+        st.info("✅ Autenticado. Token armazenado na sessão.")
+    else:
+        st.info("Faça login para acessar os recursos autenticados.")
+
+    # ── Section 2: Create Monitor ──────────────────────────────────────────
+    st.subheader("2. Criar monitor")
+    col1, col2 = st.columns(2)
+    with col1:
+        cr_name = st.text_input("Nome", placeholder="João Silva", key="mon_cr_name")
+    with col2:
+        cr_email = st.text_input("E-mail", placeholder="joao@exemplo.com", key="mon_cr_email")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        cr_phone = st.text_input("Telefone", placeholder="11999999999", key="mon_cr_phone")
+    with col4:
+        st.write("")
+
+    with st.expander("Endereço", expanded=True):
+        ac1, ac2 = st.columns(2)
+        with ac1:
+            cr_street = st.text_input("Rua", placeholder="Rua Nova", key="mon_cr_street")
+            cr_neigh = st.text_input("Bairro", placeholder="Centro", key="mon_cr_neigh")
+            cr_city = st.text_input("Cidade", placeholder="Campinas", key="mon_cr_city")
+        with ac2:
+            cr_number = st.text_input("Número", placeholder="50", key="mon_cr_number")
+            cr_state = st.text_input("Estado", placeholder="SP", key="mon_cr_state")
+            cr_cep = st.text_input("CEP", placeholder="13000000", key="mon_cr_cep")
+
+        cr_complement = st.text_input("Complemento", placeholder="Apto 42", key="mon_cr_complement")
+
+    if st.button("👤 Criar monitor", type="primary", use_container_width=True, key="mon_create_btn"):
+        if not cr_name or not cr_email or not cr_phone:
+            st.error("Preencha nome, e-mail e telefone.")
+        elif not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            payload = {
+                "name": cr_name,
+                "email": cr_email,
+                "phone": cr_phone,
+                "address": {
+                    "street": cr_street,
+                    "number": cr_number,
+                    "neighborhood": cr_neigh,
+                    "city": cr_city,
+                    "state": cr_state,
+                    "cep": cr_cep,
+                    "complement": cr_complement,
+                },
+            }
+            with st.spinner("Criando monitor..."):
+                r = req("POST", "/monitores", data=payload, token=st.session_state.auth_token)
+            if r.ok:
+                data = r.json()
+                monitor = data.get("monitor", data)
+                mid = monitor.get("id")
+                st.success(f"Monitor criado! ID: `{mid}`")
+                st.balloons()
+            else:
+                show_response(r)
+
+    # ── Section 3: List Monitors ───────────────────────────────────────────
+    st.subheader("3. Listar monitores")
+    if st.button("📋 Listar monitores", use_container_width=True, key="mon_list_btn"):
+        if not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            with st.spinner("Listando monitores..."):
+                r = req("GET", "/monitores", token=st.session_state.auth_token)
+            if r.ok:
+                data = r.json()
+                monitores = data.get("data", data if isinstance(data, list) else [])
+                if monitores:
+                    st.dataframe(
+                        [
+                            {
+                                "ID": m.get("id"),
+                                "Nome": m.get("name", ""),
+                                "E-mail": m.get("email", ""),
+                                "Telefone": m.get("phone", ""),
+                            }
+                            for m in monitores
+                        ],
+                        use_container_width=True,
+                    )
+                else:
+                    st.info("Nenhum monitor encontrado.")
+            else:
+                show_response(r)
+
+    # ── Section 4: Update Monitor ──────────────────────────────────────────
+    st.subheader("4. Editar monitor")
+    st.markdown("Edição parcial — apenas os campos preenchidos são alterados.")
+
+    up_id = st.number_input("ID do monitor", min_value=1, value=1, key="mon_up_id")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        up_name = st.text_input("Novo nome (opcional)", placeholder="", key="mon_up_name")
+    with col2:
+        up_email = st.text_input("Novo e-mail (opcional)", placeholder="", key="mon_up_email")
+
+    up_phone = st.text_input("Novo telefone (opcional)", placeholder="", key="mon_up_phone")
+
+    with st.expander("Editar endereço (opcional)", expanded=False):
+        ae1, ae2 = st.columns(2)
+        with ae1:
+            up_street = st.text_input("Rua", placeholder="", key="mon_up_street")
+            up_neigh = st.text_input("Bairro", placeholder="", key="mon_up_neigh")
+            up_city = st.text_input("Cidade", placeholder="", key="mon_up_city")
+        with ae2:
+            up_number = st.text_input("Número", placeholder="", key="mon_up_number")
+            up_state = st.text_input("Estado", placeholder="", key="mon_up_state")
+            up_cep = st.text_input("CEP", placeholder="", key="mon_up_cep")
+
+        up_complement = st.text_input("Complemento", placeholder="", key="mon_up_complement")
+
+    if st.button("💾 Salvar alterações", type="primary", use_container_width=True, key="mon_up_btn"):
+        if not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            payload = {}
+            if up_name.strip():
+                payload["name"] = up_name.strip()
+            if up_email.strip():
+                payload["email"] = up_email.strip()
+            if up_phone.strip():
+                payload["phone"] = up_phone.strip()
+
+            addr = {}
+            if up_street.strip():
+                addr["street"] = up_street.strip()
+            if up_number.strip():
+                addr["number"] = up_number.strip()
+            if up_neigh.strip():
+                addr["neighborhood"] = up_neigh.strip()
+            if up_city.strip():
+                addr["city"] = up_city.strip()
+            if up_state.strip():
+                addr["state"] = up_state.strip()
+            if up_cep.strip():
+                addr["cep"] = up_cep.strip()
+            if up_complement.strip():
+                addr["complement"] = up_complement.strip()
+
+            if addr:
+                payload["address"] = addr
+
+            if not payload:
+                st.info("Nenhum campo preenchido — PUT com corpo vazio mantém os dados inalterados.")
+
+            with st.spinner("Atualizando monitor..."):
+                r = req(
+                    "PUT",
+                    f"/monitores/{up_id}",
+                    data=payload,
+                    token=st.session_state.auth_token,
+                )
+            if r.ok:
+                data = r.json()
+                monitor = data.get("monitor", data)
+                st.success("Monitor atualizado!")
+                st.code(json.dumps(monitor, indent=2, ensure_ascii=False), language="json")
+            else:
+                show_response(r)
+
+    # ── Section 5: Delete Monitor ──────────────────────────────────────────
+    st.subheader("5. Excluir monitor")
+    del_id = st.number_input("ID do monitor para excluir", min_value=1, value=1, key="mon_del_id")
+
+    if st.button("🗑️ Excluir monitor", use_container_width=True, key="mon_del_btn"):
+        if not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            with st.spinner("Excluindo monitor..."):
+                r = req("DELETE", f"/monitores/{del_id}", token=st.session_state.auth_token)
+            if r.ok:
+                st.success(f"Monitor `{del_id}` excluído!")
             else:
                 show_response(r)
 

@@ -8,3 +8,10 @@ type CreateConsigneeRequest struct {
 	Phone   string `json:"phone" binding:"required"`
 	Address *address.AddressRequest
 }
+
+type UpdateConsigneeRequest struct {
+	Name    *string                       `json:"name"`
+	Email   *string                       `json:"email"`
+	Phone   *string                       `json:"phone"`
+	Address *address.AddressUpdateRequest `json:"address"`
+}

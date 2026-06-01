@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
 	"linhazero.com/pvapi/models/consigneemodel"
+	"linhazero.com/pvapi/models/shopmodel"
 	"linhazero.com/pvapi/util"
 )
 
@@ -94,7 +95,62 @@ func UpdateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("consignee"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
 
+		user := authmodel.GetUserFromContext(c)
+
+		ok, err := shopmodel.HasConsignee(
+			c.Request.Context(),
+			pool,
+			user.ActiveRoleID,
+			id,
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+		if !ok {
+			util.Handle404(c, nil)
+			return
+		}
+
+		var req consigneemodel.UpdateConsigneeRequest
+
+		err = c.ShouldBindJSON(&req)
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			func(ctx context.Context, tx pgx.Tx) error {
+				return consigneemodel.Update(ctx, tx, id, req)
+			},
+		)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		consignee, err := consigneemodel.FindByID(
+			c.Request.Context(),
+			pool,
+			id,
+		)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.WrapLabeled(
+			c, "monitor atualizado com sucesso",
+			"monitor", consignee.ToResource(),
+		)
 	}
 }
 

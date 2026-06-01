@@ -117,6 +117,7 @@ func setupRoutes(
 	{
 		consignees.POST("", consignee.CreateHandler(pool))
 		consignees.GET("", consignee.ListHandler(pool))
+		consignees.PUT(":consignee", consignee.UpdateHandler(pool))
 		consignees.DELETE(":consignee", consignee.DeleteHandler(pool))
 
 		consigneeMe := consignees.Group("/me")

@@ -34,6 +34,16 @@ func (a Address) Params() pgx.NamedArgs {
 	}
 }
 
+type AddressUpdateRequest struct {
+	Street       *string `json:"street"`
+	Number       *string `json:"number"`
+	Neighborhood *string `json:"neighborhood"`
+	City         *string `json:"city"`
+	State        *string `json:"state"`
+	CEP          *string `json:"cep"`
+	Complement   *string `json:"complement"`
+}
+
 func (a AddressRequest) Prepare() Address {
 	return Address{
 		Street:     a.Street,

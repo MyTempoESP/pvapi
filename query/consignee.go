@@ -69,4 +69,48 @@ WHERE c.id = $1 AND r.id = $2
 DELETE FROM consignees
 WHERE id = $1
 `
+
+	UpdateConsigneeUserQuery = `
+UPDATE users
+SET name  = COALESCE($2::text, name),
+    email = COALESCE($3::text, email)
+WHERE id = (SELECT user_id FROM consignees WHERE id = $1)
+`
+
+	UpdateConsigneePhoneQuery = `
+UPDATE consignees
+SET telephone = COALESCE($2::text, telephone)
+WHERE id = $1
+`
+
+	UpdateConsigneeAddressQuery = `
+UPDATE addresses
+SET street       = COALESCE($2::text, street),
+    number       = COALESCE($3::integer, number),
+    neighborhood  = COALESCE($4::text, neighborhood),
+    city         = COALESCE($5::text, city),
+    state        = COALESCE($6::text, state),
+    cep          = COALESCE($7::text, cep),
+    complement   = COALESCE($8::text, complement)
+WHERE id = (SELECT address_id FROM consignees WHERE id = $1)
+`
+
+	FindConsigneeByIDQuery = `
+SELECT
+	v.consignee_id,
+	v.phone,
+
+	v.user_name,
+	v.user_email,
+
+	v.addrstreet,
+	v.addrnumber,
+	v.addrneigh,
+	v.addrcity,
+	v.addrstate,
+	v.addrcep,
+	v.addrcomplement
+FROM consignees_info_full_view v
+WHERE v.consignee_id = $1
+`
 )
