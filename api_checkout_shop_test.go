@@ -301,3 +301,134 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		}
 	})
 }
+
+func TestCheckoutShopClientID(t *testing.T) {
+	h := newAPIHarness(t)
+	baseRunID := time.Now().UnixNano()
+
+	// Setup: one shop with one product in a consignment
+	admin := h.login(t, "sistemas@lzero.org", "TestingPassword")
+	shopName := fmt.Sprintf("Loja ChkShopCli %d", baseRunID)
+	shopEmail := fmt.Sprintf("api-chkshopcli-%d@example.com", baseRunID)
+	h.createShop(t, &admin, shopName, shopEmail, "11988887790")
+	shopSession := h.login(t, shopEmail, "11988887790")
+
+	monitor := h.createMonitor(t, &shopSession,
+		fmt.Sprintf("Monitor ChkShopCli %d", baseRunID),
+		fmt.Sprintf("api-chkshopcli-mon-%d@example.com", baseRunID),
+		"27998209690")
+	pickup := h.createPickup(t, &shopSession)
+	cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-chkshopcli-%d", baseRunID))
+	prdName := fmt.Sprintf("Produto ChkShopCli %d", baseRunID)
+	prd := h.createProduct(t, &shopSession, prdName, cat.ID)
+	h.approveProduct(t, &admin, prd.ID)
+	cons := h.createConsignment(t, &shopSession, pickup.ID, monitor.ID)
+	h.addProductToConsignment(t, &shopSession, cons.ID, prd.ID, prdName)
+
+	t.Run("populates_client_id_when_email_provided", func(t *testing.T) {
+		runID := baseRunID + 1
+		pkgID := h.getPackageID(t, prd.ID, runID)
+		sessionID := fmt.Sprintf("chkshopcli-email-%d", runID)
+		h.createCartItem(t, sessionID, prd.ID, 1)
+
+		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
+		externalRef := fmt.Sprintf("EXT-REF-CLI-%d", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": externalRef,
+			"items": []map[string]any{
+				{"package_id": pkgID, "quantity": 1},
+			},
+			"client_email": clientEmail,
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Query checkout_shop rows for this checkout and verify client_id
+		type csClientRow struct {
+			ClientID *int `db:"client_id"`
+		}
+		rows, err := h.pool.Query(
+			context.Background(),
+			`SELECT cs.client_id
+			 FROM checkout_shop cs
+			 JOIN checkouts chk ON chk.id = cs.checkout_id
+			 WHERE chk.external_reference = $1`,
+			externalRef,
+		)
+		if err != nil {
+			t.Fatalf("query checkout_shop: %v", err)
+		}
+		defer rows.Close()
+
+		var csRows []csClientRow
+		for rows.Next() {
+			var r csClientRow
+			if err := rows.Scan(&r.ClientID); err != nil {
+				t.Fatalf("scan checkout_shop row: %v", err)
+			}
+			csRows = append(csRows, r)
+		}
+
+		if len(csRows) == 0 {
+			t.Fatal("expected at least one checkout_shop row")
+		}
+		for i, r := range csRows {
+			if r.ClientID == nil {
+				t.Errorf("checkout_shop[%d]: expected non-nil client_id, got NULL", i)
+			}
+		}
+	})
+
+	t.Run("leaves_client_id_null_when_no_email", func(t *testing.T) {
+		runID := baseRunID + 2
+		pkgID := h.getPackageID(t, prd.ID, runID)
+		sessionID := fmt.Sprintf("chkshopcli-noemail-%d", runID)
+		h.createCartItem(t, sessionID, prd.ID, 1)
+
+		externalRef := fmt.Sprintf("EXT-REF-NOCLI-%d", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": externalRef,
+			"items": []map[string]any{
+				{"package_id": pkgID, "quantity": 1},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		type csClientRow struct {
+			ClientID *int `db:"client_id"`
+		}
+		rows, err := h.pool.Query(
+			context.Background(),
+			`SELECT cs.client_id
+			 FROM checkout_shop cs
+			 JOIN checkouts chk ON chk.id = cs.checkout_id
+			 WHERE chk.external_reference = $1`,
+			externalRef,
+		)
+		if err != nil {
+			t.Fatalf("query checkout_shop: %v", err)
+		}
+		defer rows.Close()
+
+		var csRows []csClientRow
+		for rows.Next() {
+			var r csClientRow
+			if err := rows.Scan(&r.ClientID); err != nil {
+				t.Fatalf("scan checkout_shop row: %v", err)
+			}
+			csRows = append(csRows, r)
+		}
+
+		if len(csRows) == 0 {
+			t.Fatal("expected at least one checkout_shop row")
+		}
+		for i, r := range csRows {
+			if r.ClientID != nil {
+				t.Errorf("checkout_shop[%d]: expected NULL client_id, got %d", i, *r.ClientID)
+			}
+		}
+	})
+}

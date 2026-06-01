@@ -1,0 +1,84 @@
+@startuml
+' ER diagram: checkout_shop client_id addition for pvapi-gbho
+' Entities affected by adding client_id to checkout_shop
+
+skinparam linetype ortho
+
+entity "clients" as clients #palegreen {
+  *id : serial <<generated>>
+  *user_id : integer <<FK>> <<unique>>
+  --
+  telephone : text
+}
+
+entity "users" as users {
+  *id : serial <<generated>>
+  --
+  *name : text
+  *email : text <<unique>>
+  *password_hash : text
+}
+
+entity "carts" as carts {
+  *id : serial <<generated>>
+  *session_id : text <<unique>>
+  --
+  client_id : integer <<FK>> <<unique>>
+}
+
+entity "checkouts" as checkouts {
+  *id : serial <<generated>>
+  *cart_id : integer <<FK>>
+  --
+  *unique_id : uuid
+  *value : numeric
+  *status : text
+  *description : text
+  *external_reference : text
+  *value_discrepancy : numeric
+  processed_at : timestamp
+}
+
+entity "checkout_shop" as checkout_shop #lightblue {
+  *checkout_id : integer <<FK>>
+  *shop_id : integer <<FK>>
+  --
+  *checkout_unique_id : uuid
+  *shop_value : numeric
+  *shop_tax : numeric
+  *shop_commission : numeric
+  created_at : timestamp
+  **client_id** : integer <<FK>> <<nullable>>    ' NEW - pvapi-gbho
+}
+
+entity "shops" as shops {
+  *id : serial <<generated>>
+  --
+  *user_id : integer <<FK>>
+  *name : text
+  *slug : text
+  *telephone : text
+}
+
+entity "package_reserved" as pkg_res {
+  *id : serial <<generated>>
+  --
+  *package_id : integer <<FK>>
+  *checkout_id : integer <<FK>>
+  *quantity : integer
+  reserved_at : timestamp
+}
+
+' FK relationships
+
+users ||--o{ clients : "has"
+clients ||--o{ carts : "owns"
+
+checkouts }o--|| carts : "belongs to"
+checkout_shop }|--|| checkouts : "breaks down"
+checkout_shop }|--|| shops : "for"
+checkout_shop }o--o| clients : "purchased by (NEW)"  ' NEW nullable FK
+
+pkg_res }o--|| checkouts : "reserved in"
+pkg_res }o--|| packages : "reserves"
+@enduml

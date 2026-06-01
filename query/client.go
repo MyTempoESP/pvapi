@@ -33,6 +33,14 @@ LEFT JOIN products p ON p.id = cp.product_id
 WHERE p.shop_id = $1
 `
 
+	UpdateCheckoutShopClientIDQuery = `
+UPDATE checkout_shop cs
+SET client_id = $1
+FROM checkouts chk
+WHERE chk.cart_id = $2
+  AND cs.checkout_id = chk.id
+`
+
 	FindClientByUserQuery = `
 SELECT id FROM clients WHERE user_id = $1
 `

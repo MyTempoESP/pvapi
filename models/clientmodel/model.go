@@ -53,6 +53,24 @@ func SetCartClientID(
 	return err
 }
 
+// SetCheckoutShopClientID sets the client_id on checkout_shop rows linked
+// to the given cart via the checkouts table. Atomically pairs with
+// SetCartClientID so both cart and per-shop financial records carry the
+// purchasing client's identity.
+func SetCheckoutShopClientID(
+	ctx context.Context,
+	tx pgx.Tx,
+	clientID,
+	cartID int,
+) error {
+	_, err := tx.Exec(
+		ctx, query.UpdateCheckoutShopClientIDQuery,
+		clientID,
+		cartID,
+	)
+	return err
+}
+
 // Create creates a user and client record in a single transaction.
 // - If the email already belongs to a client, returns the existing client ID with isNew=false.
 // - If the email belongs to a non-client user, returns ErrDuplicatedResource.
@@ -106,8 +124,9 @@ func Create(
 	return clientID, false, nil
 }
 
-// CreateAndAssociate wraps Create plus setting the cart's client_id.
-// It opens its own transaction, independent of any caller transaction.
+// CreateAndAssociate wraps Create plus setting the cart's client_id
+// and checkout_shop.client_id. It opens its own transaction,
+// independent of any caller transaction.
 func CreateAndAssociate(
 	ctx context.Context,
 	pool *pgxpool.Pool,
@@ -123,7 +142,13 @@ func CreateAndAssociate(
 				return err
 			}
 			isNew = isNewFlag
-			return SetCartClientID(ctx, tx, clientID, cartID)
+			if err := SetCartClientID(ctx, tx, clientID, cartID); err != nil {
+				return err
+			}
+			if err := SetCheckoutShopClientID(ctx, tx, clientID, cartID); err != nil {
+				return err
+			}
+			return nil
 		},
 	)
 	return
