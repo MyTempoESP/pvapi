@@ -353,6 +353,27 @@ func writeCheckout(
 		return "", fmt.Errorf("failed to reserve stock: %w", err)
 	}
 
+	// Insert per-shop financial breakdown
+	_, err = tx.Exec(
+		ctx,
+		query.InsertCheckoutShopQuery,
+		checkoutID,
+		uniqueID,
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to insert checkout_shop: %w", err)
+	}
+
+	// Compute and store value_discrepancy
+	_, err = tx.Exec(
+		ctx,
+		query.UpdateCheckoutDiscrepancyQuery,
+		checkoutID,
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to update value_discrepancy: %w", err)
+	}
+
 	_, err = tx.Exec(
 		ctx,
 		query.FinishCartQuery,

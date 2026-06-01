@@ -121,20 +121,50 @@ GROUP BY pl.id, pl.name, p.id, p.name,
 ORDER BY pl.name, p.name
 `
 
+	InsertCheckoutShopQuery = `
+INSERT INTO checkout_shop
+	(checkout_id, shop_id, checkout_unique_id, shop_value, shop_tax, shop_commission)
+SELECT
+	$1,
+	con.shop_id,
+	$2::uuid,
+	SUM(pkg.price * pr.quantity),
+	SUM((p.platform_cut / 100.0) * pkg.price * pr.quantity),
+	SUM(CASE
+		WHEN con.comission_type = 'PERCENT'
+			THEN (con.comission_value / 100.0) * pkg.price * pr.quantity
+		ELSE con.comission_value + (pkg.price * pr.quantity)
+	END)
+FROM package_reserved pr
+JOIN packages pkg ON pkg.id = pr.package_id
+JOIN products p ON p.id = pkg.product_id
+JOIN consignments con ON con.id = pkg.consignment_id
+WHERE pr.checkout_id = $1
+GROUP BY con.shop_id
+`
+
+	UpdateCheckoutDiscrepancyQuery = `
+UPDATE checkouts chk
+SET value_discrepancy = chk.value - COALESCE(
+	(SELECT SUM(cs.shop_value)
+	 FROM checkout_shop cs
+	 WHERE cs.checkout_id = chk.id),
+	0
+)
+WHERE chk.id = $1
+`
+
 	ShopCheckoutsQuery = `
 SELECT
 	chk.id              AS checkout_id,
 	chk.unique_id::text AS checkout_unique_id,
 	chk.description     AS checkout_description,
-	chk.value           AS checkout_value,
-	SUM(pr.tax)         AS checkout_tax,
-	SUM(pr.commission)  AS checkout_commission
+	cs.shop_value       AS checkout_value,
+	cs.shop_tax         AS checkout_tax,
+	cs.shop_commission  AS checkout_commission
 FROM checkouts chk
-JOIN package_reserved pr ON pr.checkout_id = chk.id
-JOIN packages pkg ON pkg.id = pr.package_id
-JOIN consignments con ON con.id = pkg.consignment_id
-WHERE con.shop_id = $1
-GROUP BY chk.id
+JOIN checkout_shop cs ON cs.checkout_id = chk.id
+WHERE cs.shop_id = $1
 ORDER BY chk.processed_at DESC
 `
 )

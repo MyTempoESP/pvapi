@@ -16,12 +16,9 @@ GROUP BY status
 	// CheckoutEarningsByShopQuery returns the total earnings
 	// (value - tax - commission) from confirmed checkouts for a given shop.
 	CheckoutEarningsByShopQuery = `
-SELECT COALESCE(SUM(chk.value - pr.tax - pr.commission), 0) AS total
-FROM checkouts chk
-JOIN package_reserved pr ON pr.checkout_id = chk.id
-JOIN packages pkg ON pkg.id = pr.package_id
-JOIN consignments con ON con.id = pkg.consignment_id
-WHERE con.shop_id = $1
+SELECT COALESCE(SUM(cs.shop_value - cs.shop_tax - cs.shop_commission), 0) AS total
+FROM checkout_shop cs
+WHERE cs.shop_id = $1
 `
 
 	// LockShopRowQuery locks the shop row for the duration of a transaction
