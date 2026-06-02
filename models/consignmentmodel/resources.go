@@ -44,6 +44,7 @@ type ConsignmentWithStatsResource struct {
 	ID            int       `json:"id"`
 	Status        string    `json:"status"`
 	Destination   string    `json:"destination"`
+	MonitorName   string    `json:"monitorName"`
 	CreatedAt     time.Time `json:"createdAt"`
 	TotalProducts int       `json:"totalProducts"`
 	SoldProducts  int       `json:"soldProducts"`
@@ -55,6 +56,7 @@ func (c ConsignmentWithStats) ToResource() ConsignmentWithStatsResource {
 		ID:            c.ID,
 		Status:        c.Status,
 		Destination:   c.Pickup.Name,
+		MonitorName:   c.Consignee.Name,
 		CreatedAt:     c.CreatedAt,
 		TotalProducts: c.TotalProducts,
 		SoldProducts:  c.SoldProducts,
