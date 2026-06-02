@@ -23,6 +23,7 @@ type ReportResource struct {
 	Description string    `json:"description"`
 	Moment      string    `json:"moment"`
 	Monitor     string    `json:"customerName"`
+	Monitor2    string    `json:"monitorName"`
 	Scope       string    `json:"occurrenceScope"`
 	OrderID     int       `json:"orderId"`
 	Priority    string    `json:"priority"`
