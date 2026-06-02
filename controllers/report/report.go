@@ -24,7 +24,7 @@ func ListHandler(
 
 		var (
 			reports []reportmodel.Report
-			err error
+			err     error
 		)
 
 		switch user.Role {
@@ -58,6 +58,28 @@ func ListHandler(
 	}
 }
 
+func consigneeReportCreationHandler(
+	c *gin.Context,
+	pool *pgxpool.Pool,
+	request reportmodel.CreateReportRequest,
+	user authmodel.AuthUser,
+) {
+	report := request.PrepareWithConsigneeID(user.ActiveRoleID)
+
+	id, err := report.Save(c.Request.Context(), pool)
+
+	if err != nil {
+		util.HandleGuessFromDBOperation(c, err)
+		return
+	}
+
+	// CHANGEME
+	util.WrapLabeled(
+		c, "[report] criado com sucesso",
+		"id", id,
+	)
+}
+
 func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
@@ -78,7 +100,27 @@ func CreateHandler(
 			request.Scope = "consignment"
 		}
 
-		err = validateScope(c, pool, user, request.Scope, int(request.OrderID))
+		err = validateScope(
+			c, pool, user,
+			request.Scope,
+			int(request.OrderID),
+		)
+
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		switch user.Role {
+		case roles.Shop:
+		case roles.Consignee:
+			consigneeReportCreationHandler(c, pool, request, user)
+			return
+		default:
+			err = errors.New(
+				"user not authorized (gate failure?)")
+		}
+
 		if err != nil {
 			util.HandleBadRequest(c, err)
 			return

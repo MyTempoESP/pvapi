@@ -109,6 +109,22 @@ DELETE FROM reports
 WHERE id = $1
 `
 
+	CreateReportWithConsigneeIDQuery = `
+INSERT INTO reports
+	(description, moment, consignee_id, scope, consignment_id, priority, status, type)
+VALUES
+	(@description, @moment, @consignee_id, @scope, @consignment_id, @priority, @status, @type)
+RETURNING id
+`
+
+	CreateProductReportWithConsigneeIDQuery = `
+INSERT INTO reports
+	(description, moment, consignee_id, scope, product_id, priority, status, type)
+VALUES
+	(@description, @moment, @consignee_id, @scope, @product_id, @priority, @status, @type)
+RETURNING id
+`
+
 	FindReportScopeQuery = `
 SELECT scope FROM reports WHERE id = $1
 `

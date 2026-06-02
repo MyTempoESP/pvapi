@@ -33,7 +33,26 @@ func TestReport(t *testing.T) {
 	cons := h.createConsignment(t, &shopSession, pickup.ID, monitor.ID)
 	h.addProductToConsignment(t, &shopSession, cons.ID, prd.ID, productName)
 
+	otherShopName := fmt.Sprintf("Outra Loja RP %d", runID)
+	otherShopEmail := fmt.Sprintf("api-rp-other-shop-%d@example.com", runID)
+	otherShop := h.createShop(t, &admin, otherShopName, otherShopEmail, "11988887777")
+	otherShopSession := h.login(t, otherShopEmail, "11988887777")
+
+	otherCat := h.createCategory(t, &otherShopSession, "lixo-eletronico")
+	otherProductName := fmt.Sprintf("Outro Produto RP %d", runID)
+	otherPrd := h.createProduct(t, &otherShopSession, otherProductName, otherCat.ID)
+	h.approveProduct(t, &admin, otherPrd.ID)
+
+	otherMonitorName := fmt.Sprintf("Outro Monitor RP %d", runID)
+	otherMonitorEmail := fmt.Sprintf("api-rp-other-monitor-%d@example.com", runID)
+	otherMonitor := h.createMonitor(t, &otherShopSession, otherMonitorName, otherMonitorEmail, "27998209673")
+	otherPickup := h.createPickup(t, &otherShopSession)
+	otherCons := h.createConsignment(t, &otherShopSession, otherPickup.ID, otherMonitor.ID)
+
 	_ = shop
+	_ = otherShop
+	_ = otherMonitor
+	_ = otherCons
 
 	t.Run("reject_nonexistent_product", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &shopSession, map[string]any{
@@ -306,5 +325,122 @@ func TestReport(t *testing.T) {
 
 		rec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/ocorrencias/%d", rpt.ID), &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("consignee_create_product_report", func(t *testing.T) {
+		result := h.createReport(t, &consigneeSession, reportFixture{
+			OrderID:     prd.ID,
+			Monitor:     monitorName,
+			Moment:      "exposicao",
+			Type:        "falta_peca",
+			Status:      "aberto",
+			Description: "consignee product report",
+			Priority:    "baixa",
+			Scope:       "product",
+		})
+		if result.ID == 0 {
+			t.Fatal("expected non-zero report ID")
+		}
+	})
+
+	t.Run("consignee_create_consignment_report", func(t *testing.T) {
+		result := h.createReport(t, &consigneeSession, reportFixture{
+			OrderID:     cons.ID,
+			Monitor:     monitorName,
+			Moment:      "exposicao",
+			Type:        "falta_peca",
+			Status:      "aberto",
+			Description: "consignee consignment report",
+			Priority:    "baixa",
+			Scope:       "consignment",
+		})
+		if result.ID == 0 {
+			t.Fatal("expected non-zero report ID")
+		}
+	})
+
+	t.Run("consignee_reject_product_nonexistent", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &consigneeSession, map[string]any{
+			"orderId":         99999,
+			"monitor":         monitorName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "nonexistent product",
+			"priority":        "baixa",
+			"occurrenceScope": "product",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("consignee_reject_product_cross_shop", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &consigneeSession, map[string]any{
+			"orderId":         otherPrd.ID,
+			"monitor":         monitorName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "other shop product",
+			"priority":        "baixa",
+			"occurrenceScope": "product",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("consignee_reject_consignment_nonexistent", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &consigneeSession, map[string]any{
+			"orderId":         99999,
+			"monitor":         monitorName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "nonexistent consignment",
+			"priority":        "baixa",
+			"occurrenceScope": "consignment",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("consignee_reject_consignment_cross_monitor", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/ocorrencias", &consigneeSession, map[string]any{
+			"orderId":         otherCons.ID,
+			"monitor":         monitorName,
+			"moment":          "exposicao",
+			"type":            "falta_peca",
+			"status":          "aberto",
+			"description":     "other monitor consignment",
+			"priority":        "baixa",
+			"occurrenceScope": "consignment",
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("consignee_report_appears_in_both_lists", func(t *testing.T) {
+		rpt := h.createReport(t, &consigneeSession, reportFixture{
+			OrderID:     prd.ID,
+			Monitor:     monitorName,
+			Moment:      "exposicao",
+			Type:        "falta_peca",
+			Status:      "aberto",
+			Description: "consignee listing test",
+			Priority:    "baixa",
+			Scope:       "product",
+		})
+
+		rec := h.doRequest(t, http.MethodGet, "/ocorrencias", &consigneeSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		reports := asSlice(t, body["data"])
+		if !containsID(reports, rpt.ID) {
+			t.Fatalf("report %d not found in consignee report list: %s", rpt.ID, rec.Body.String())
+		}
+
+		rec = h.doRequest(t, http.MethodGet, "/ocorrencias", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		reports = asSlice(t, body["data"])
+		if !containsID(reports, rpt.ID) {
+			t.Fatalf("report %d not found in shop report list: %s", rpt.ID, rec.Body.String())
+		}
 	})
 }

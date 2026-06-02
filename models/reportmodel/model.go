@@ -69,43 +69,95 @@ func (b UpdateReportBlueprint) Save(
 	return nil
 }
 
-func (r ReportBlueprint) Save(
+func createBaseReportFields(
+	description,
+	moment,
+	scope,
+	priority,
+	status,
+	r_type string,
+) util.Args {
+	return util.Args{
+		"description": description,
+		"moment":      moment,
+		"scope":       scope,
+		"priority":    priority,
+		"status":      status,
+		"type":        r_type,
+	}
+}
+
+func newReport(
 	ctx context.Context,
 	base db.Queryable,
+	fields util.Args,
+	scope string,
+	orderID int,
 ) (int, error) {
-	if r.Scope == "product" {
+	if scope == "product" {
+		// assign product_id if scope is product
+		fields["product_id"] = orderID
+
 		return model.Create(
 			ctx,
 			base,
 			query.CreateProductReportQuery,
-			util.Args{
-				"description":    r.Description,
-				"moment":         r.Moment,
-				"consignee_name": r.Monitor,
-				"scope":          r.Scope,
-				"product_id":     r.OrderID,
-				"priority":       r.Priority,
-				"status":         r.Status,
-				"type":           r.Type,
-			},
+			fields,
 		)
 	}
+
+	// assign consignment_id if scope is consignment
+	fields["consignment_id"] = orderID
 
 	return model.Create(
 		ctx,
 		base,
 		query.CreateReportQuery,
-		util.Args{
-			"description":    r.Description,
-			"moment":         r.Moment,
-			"consignee_name": r.Monitor,
-			"scope":          r.Scope,
-			"consignment_id": r.OrderID,
-			"priority":       r.Priority,
-			"status":         r.Status,
-			"type":           r.Type,
-		},
+		fields,
 	)
+}
+
+func (r ReportWithConsigneeIDBlueprint) Save(
+	ctx context.Context,
+	base db.Queryable,
+) (int, error) {
+	fields := createBaseReportFields(
+		r.Description,
+		r.Moment,
+		r.Scope,
+		r.Priority,
+		r.Status,
+		r.Type,
+	)
+
+	fields["consignee_id"] = r.ConsigneeID
+
+	if r.Scope == "product" {
+		fields["product_id"] = int(r.OrderID)
+		return model.Create(ctx, base, query.CreateProductReportWithConsigneeIDQuery, fields)
+	}
+
+	fields["consignment_id"] = int(r.OrderID)
+	return model.Create(ctx, base, query.CreateReportWithConsigneeIDQuery, fields)
+}
+
+func (r ReportBlueprint) Save(
+	ctx context.Context,
+	base db.Queryable,
+) (int, error) {
+	fields := createBaseReportFields(
+		r.Description,
+		r.Moment,
+		r.Scope,
+		r.Priority,
+		r.Status,
+		r.Type,
+	)
+
+	// assign consignee id in this case
+	fields["consignee_name"] = r.Monitor
+
+	return newReport(ctx, base, fields, r.Scope, int(r.OrderID))
 }
 
 func ListByConsignee(
@@ -165,4 +217,3 @@ func Delete(
 	_, err := base.Exec(ctx, query.DeleteReportQuery, id)
 	return err
 }
-

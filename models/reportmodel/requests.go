@@ -65,6 +65,15 @@ func (r CreateReportRequest) Prepare() ReportBlueprint {
 	}
 }
 
+func (r CreateReportRequest) PrepareWithConsigneeID(
+	id int,
+) ReportWithConsigneeIDBlueprint {
+	return ReportWithConsigneeIDBlueprint{
+		ConsigneeID:         id,
+		CreateReportRequest: r,
+	}
+}
+
 func (r UpdateReportRequest) Prepare(id int) UpdateReportBlueprint {
 	return UpdateReportBlueprint{
 		ID:          id,
