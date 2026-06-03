@@ -148,7 +148,7 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		// package price=3, checkout quantity=1
 		// shop_value = 3.00 * 1 = 3.00
 		// shop_tax = (5/100) * 3.00 * 1 = 0.15
-		// commission = 3.00 + (3.00 * 1) = 6.00
+		// commission = 3.00
 		if shopRows[0].ShopID == shop1.ID || shopRows[1].ShopID == shop1.ID {
 			var s1 csRow
 			if shopRows[0].ShopID == shop1.ID {
@@ -162,8 +162,8 @@ func TestCheckoutShopFreeze(t *testing.T) {
 			if s1.ShopTax != 0.15 {
 				t.Errorf("shop1: expected shop_tax=0.15, got %v", s1.ShopTax)
 			}
-			if s1.ShopCommission != 6.00 {
-				t.Errorf("shop1: expected shop_commission=6.00, got %v", s1.ShopCommission)
+			if s1.ShopCommission != 3.00 {
+				t.Errorf("shop1: expected shop_commission=3.00, got %v", s1.ShopCommission)
 			}
 		}
 
@@ -233,8 +233,8 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		}
 
 		comm := asString(t, co["commission"])
-		if comm != "6" && comm != "6.00" {
-			t.Errorf("shop1: expected commission=6.00, got %q", comm)
+		if comm != "3" && comm != "3.00" {
+			t.Errorf("shop1: expected commission=3.00, got %q", comm)
 		}
 
 		// The response should NOT contain value_paid or value_discrepancy fields
@@ -263,14 +263,14 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		if taxesStr != "0.15" {
 			t.Errorf("shop1 totals: expected taxes=0.15, got %q", taxesStr)
 		}
-		if commStr != "6" && commStr != "6.00" {
-			t.Errorf("shop1 totals: expected commissions=6.00, got %q", commStr)
+		if commStr != "3" && commStr != "3.00" {
+			t.Errorf("shop1 totals: expected commissions=3.00, got %q", commStr)
 		}
 	})
 
 	t.Run("available_balance_uses_checkout_shop", func(t *testing.T) {
 		// Shop1 available balance = total - tax - commission - saques
-		// = 3.00 - 0.15 - 6.00 - 0 = -3.15
+		// = 3.00 - 0.15 - 3.00 - 0 = -0.15
 		var balance float64
 		// We need a transaction to use LockShopRowQuery — use h.pool and exec inline
 		tx, err := h.pool.Begin(context.Background())
@@ -296,8 +296,8 @@ func TestCheckoutShopFreeze(t *testing.T) {
 			t.Fatalf("query available: %v", err)
 		}
 
-		if balance != -3.15 {
-			t.Errorf("shop1: expected available balance=-3.15, got %v", balance)
+		if balance != -0.15 {
+			t.Errorf("shop1: expected available balance=-0.15, got %v", balance)
 		}
 	})
 }

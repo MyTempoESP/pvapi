@@ -42,9 +42,11 @@ SELECT
 	(p.platform_cut / 100.0) * pkg.price * qty,
 	CASE
 		-- matches consignmentmodel.ComissionPercent / ComissionFixed
+		-- FIXED: commission is the flat comission_value per checkout,
+		--        not added to the package price
 		WHEN c.comission_type = 'PERCENT'
 			THEN (c.comission_value / 100.0) * pkg.price * qty
-		ELSE c.comission_value + (pkg.price * qty)
+		ELSE c.comission_value
 	END
 FROM packages pkg
 JOIN products p ON p.id = pkg.product_id
@@ -131,9 +133,11 @@ SELECT
 	SUM(pkg.price * pr.quantity),
 	SUM((p.platform_cut / 100.0) * pkg.price * pr.quantity),
 	SUM(CASE
+		-- FIXED: commission is the flat comission_value per checkout,
+		--        not added to the package price
 		WHEN con.comission_type = 'PERCENT'
 			THEN (con.comission_value / 100.0) * pkg.price * pr.quantity
-		ELSE con.comission_value + (pkg.price * pr.quantity)
+		ELSE con.comission_value
 	END)
 FROM package_reserved pr
 JOIN packages pkg ON pkg.id = pr.package_id
