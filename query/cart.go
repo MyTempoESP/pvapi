@@ -120,12 +120,7 @@ SELECT
 	pkg.product_id,
 	pkg.id              AS package_id,
 	pkg.price           AS package_price,
-	pkg.quantity - COALESCE(
-		(SELECT SUM(pr.quantity)
-		 FROM package_reserved pr
-		 WHERE pr.package_id = pkg.id),
-		0
-	) AS package_stock,
+	pkg.quantity        AS package_stock,
 	pkg.discount        AS package_discount,
 	c.id                AS consignment_id,
 	pl.id               AS pickup_id,
@@ -148,20 +143,9 @@ WHERE pkg.product_id IN (
 	JOIN carts cart ON cart.id = cp.cart_id
 	WHERE cart.session_id = $1
 )
+  AND pkg.quantity > 0
 `
 
-	// freeze prices & hold stock
-	CartHoldStock = `
-WITH update_cart_products AS (
-	UPDATE cart_product i
-	SET price = p.price * (1 - p.discount / 100) * i.quantity
-	FROM products p
-	WHERE i.cart_id = $1
-	  AND i.product_id = p.id
-)
-SELECT product_decrement_inventory(product_id, quantity)
-FROM cart_product
-WHERE cart_id = $1
-`
+
 )
 

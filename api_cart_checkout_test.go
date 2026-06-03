@@ -372,14 +372,23 @@ func TestCartAndCheckout(t *testing.T) {
 		assertStatus(t, postOptsRec, http.StatusOK)
 		postOptsBody := decodeJSON(t, postOptsRec)
 		postProduct := findObjectByIntField(t, asSlice(t, postOptsBody["products"]), "product_id", prd.ID)
-		postPackages := asSlice(t, postProduct["packages"])
-		if len(postPackages) == 0 {
-			t.Fatal("expected at least one package in post-checkout options")
-		}
-		postStock := asInt(t, asMap(t, postPackages[0])["stock"])
 
-		if postStock != preStock-1 {
-			t.Fatalf("expected package stock to decrease by 1 after checkout (pre=%d, post=%d)", preStock, postStock)
+		if preStock == 1 {
+			// Package was already bought down to 1; this checkout sells the last unit.
+			// With the refactored AvailablePackages, sold-out packages (quantity=0)
+			// are excluded entirely via pkg.quantity > 0.
+			if len(asSlice(t, postProduct["packages"])) != 0 {
+				t.Fatal("expected no packages after last unit was sold")
+			}
+		} else {
+			postPackages := asSlice(t, postProduct["packages"])
+			if len(postPackages) == 0 {
+				t.Fatal("expected at least one package in post-checkout options")
+			}
+			postStock := asInt(t, asMap(t, postPackages[0])["stock"])
+			if postStock != preStock-1 {
+				t.Fatalf("expected package stock to decrease by 1 after checkout (pre=%d, post=%d)", preStock, postStock)
+			}
 		}
 	})
 }

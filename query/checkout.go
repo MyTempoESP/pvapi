@@ -22,37 +22,33 @@ RETURNING unique_id
 `
 
 	InsertPackageReservedQuery = `
--- $3 arrives as integer (item.Quantity), but the tax/commission
--- arithmetic requires numeric. The CTE coerces $3 to numeric
--- once so it can be used in both the integer quantity column
--- (via ::integer cast) and the numeric multiplications below.
-WITH params(qty) AS (VALUES ($3::numeric))
+WITH decrement AS (
+	UPDATE packages
+	SET quantity = quantity - $3
+	WHERE id = $1 AND quantity >= $3
+	RETURNING id, product_id, consignment_id, price
+)
 INSERT INTO package_reserved
-	(
-		package_id,
-		checkout_id,
-		quantity,
-		tax,
-		commission
-	)
+	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status)
 SELECT
-	$1,
+	d.id,
 	$2,
-	qty::integer,
-	(p.platform_cut / 100.0) * pkg.price * qty,
+	$3::integer,
+	(p.platform_cut / 100.0) * d.price * $3::numeric,
 	CASE
-		-- matches consignmentmodel.ComissionPercent / ComissionFixed
 		-- FIXED: commission is the flat comission_value per checkout,
 		--        not added to the package price
 		WHEN c.comission_type = 'PERCENT'
-			THEN (c.comission_value / 100.0) * pkg.price * qty
+			THEN (c.comission_value / 100.0) * d.price * $3::numeric
 		ELSE c.comission_value
-	END
-FROM packages pkg
-JOIN products p ON p.id = pkg.product_id
-JOIN consignments c ON c.id = pkg.consignment_id
-CROSS JOIN params
-WHERE pkg.id = $1
+	END,
+	c.shop_id,
+	d.consignment_id,
+	d.price * $3::numeric,
+	'pending'
+FROM decrement d
+JOIN products p ON p.id = d.product_id
+JOIN consignments c ON c.id = d.consignment_id
 `
 
 	FindCheckoutBySessionRefQuery = `
@@ -64,16 +60,10 @@ WHERE carts.session_id IN ($1, 'FINISHED-' || $2)
 `
 
 	CheckPackageAvailabilityQuery = `
-SELECT
-	pkg.quantity - COALESCE(
-		(SELECT SUM(pr.quantity)
-		 FROM package_reserved pr
-		 WHERE pr.package_id = pkg.id),
-		0
-	) AS available
-FROM packages pkg
-WHERE pkg.id = $1
-FOR UPDATE OF pkg
+SELECT quantity AS available
+FROM packages
+WHERE id = $1
+FOR UPDATE
 `
 
 	FinishCartQuery = `
@@ -128,23 +118,14 @@ INSERT INTO checkout_shop
 	(checkout_id, shop_id, checkout_unique_id, shop_value, shop_tax, shop_commission)
 SELECT
 	$1,
-	con.shop_id,
+	pr.shop_id,
 	$2::uuid,
-	SUM(pkg.price * pr.quantity),
-	SUM((p.platform_cut / 100.0) * pkg.price * pr.quantity),
-	SUM(CASE
-		-- FIXED: commission is the flat comission_value per checkout,
-		--        not added to the package price
-		WHEN con.comission_type = 'PERCENT'
-			THEN (con.comission_value / 100.0) * pkg.price * pr.quantity
-		ELSE con.comission_value
-	END)
+	SUM(pr.shop_value),
+	SUM(pr.tax),
+	SUM(pr.commission)
 FROM package_reserved pr
-JOIN packages pkg ON pkg.id = pr.package_id
-JOIN products p ON p.id = pkg.product_id
-JOIN consignments con ON con.id = pkg.consignment_id
 WHERE pr.checkout_id = $1
-GROUP BY con.shop_id
+GROUP BY pr.shop_id
 `
 
 	UpdateCheckoutDiscrepancyQuery = `

@@ -80,12 +80,12 @@ func TestMonitor(t *testing.T) {
 
 		// Assert new aggregate fields
 		totalProducts := asInt(t, item["totalProducts"])
-		soldProducts := asInt(t, item["soldProducts"])
-		if totalProducts != 2 {
-			t.Fatalf("expected totalProducts=2, got %d", totalProducts)
+		confirmedProducts := asInt(t, item["confirmedProducts"])
+		if totalProducts != 0 {
+			t.Fatalf("expected totalProducts=0 (no sales), got %d", totalProducts)
 		}
-		if soldProducts != 0 {
-			t.Fatalf("expected soldProducts=0, got %d", soldProducts)
+		if confirmedProducts != 0 {
+			t.Fatalf("expected confirmedProducts=0, got %d", confirmedProducts)
 		}
 
 		// Assert camelCase fields match frontend contract

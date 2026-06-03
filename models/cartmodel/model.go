@@ -104,18 +104,6 @@ func FindBySession(
 	return
 }
 
-func (c CartDetails) HoldStock(
-	ctx context.Context,
-	tx pgx.Tx,
-) (err error) {
-	_, err = tx.Exec(
-		ctx,
-		query.CartHoldStock,
-		c.ID,
-	)
-	return
-}
-
 func (r AddToCartRequest) Exec(
 	ctx context.Context,
 	tx pgx.Tx,

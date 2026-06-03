@@ -53,10 +53,6 @@ func (a RemoveProductAction) Exec(
 		return err
 	}
 
-	if err = a.checkNoActiveReservations(ctx, tx); err != nil {
-		return err
-	}
-
 	currentQty, err := a.readPackageQuantity(ctx, tx)
 	if err != nil {
 		return err
@@ -94,34 +90,6 @@ func (a RemoveProductAction) checkConsignmentNotArchived(
 		return fmt.Errorf(
 			"could not check consignment %d status: %w",
 			a.ConsignmentID, err,
-		)
-	}
-
-	return nil
-}
-
-func (a RemoveProductAction) checkNoActiveReservations(
-	ctx context.Context,
-	tx pgx.Tx,
-) error {
-	var reserved int
-	err := tx.QueryRow(
-		ctx, query.CheckPackageReservedForProductQuery,
-		a.ProductID, a.ConsignmentID,
-	).Scan(&reserved)
-
-	if err == nil {
-		return fmt.Errorf(
-			"product %d in consignment %d has active reservations: %w",
-			a.ProductID, a.ConsignmentID,
-			util.ErrResourceLocked,
-		)
-	}
-
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf(
-			"could not check reservations for product %d in consignment %d: %w",
-			a.ProductID, a.ConsignmentID, err,
 		)
 	}
 

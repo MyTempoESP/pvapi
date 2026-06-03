@@ -82,8 +82,8 @@ SELECT
 	consignment_slug,
 	consignment_code,
 
-	COALESCE((SELECT SUM(quantity) FROM packages WHERE consignment_id = c.consignment_id), 0) AS total_products,
-	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr JOIN packages pkg ON pkg.id = pr.package_id WHERE pkg.consignment_id = c.consignment_id), 0) AS sold_products,
+	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr WHERE pr.consignment_id = c.consignment_id), 0) AS total_products,
+	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr WHERE pr.consignment_id = c.consignment_id AND pr.status = 'confirmed'), 0) AS confirmed_products,
 
 	consignee_id,
 	consignee_name,
@@ -108,8 +108,8 @@ SELECT
 	consignment_slug,
 	consignment_code,
 
-	COALESCE((SELECT SUM(quantity) FROM packages WHERE consignment_id = c.consignment_id), 0) AS total_products,
-	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr JOIN packages pkg ON pkg.id = pr.package_id WHERE pkg.consignment_id = c.consignment_id), 0) AS sold_products,
+	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr WHERE pr.consignment_id = c.consignment_id), 0) AS total_products,
+	COALESCE((SELECT SUM(pr.quantity) FROM package_reserved pr WHERE pr.consignment_id = c.consignment_id AND pr.status = 'confirmed'), 0) AS confirmed_products,
 
 	consignee_id,
 	consignee_name,
@@ -123,7 +123,7 @@ FROM consignments_listing_view c
 WHERE consignee_id = $1
 `
 
-ListAllActiveConsignmentsQuery = `
+	ListAllActiveConsignmentsQuery = `
 SELECT
 	consignment_id,
 	consignment_comission_type,
@@ -198,10 +198,5 @@ DELETE FROM packages
 WHERE product_id = $1 AND consignment_id = $2
 `
 
-	CheckPackageReservedForProductQuery = `
-SELECT 1 FROM package_reserved pr
-JOIN packages pkg ON pkg.id = pr.package_id
-WHERE pkg.product_id = $1 AND pkg.consignment_id = $2
-LIMIT 1
-`
+
 )

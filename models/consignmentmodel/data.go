@@ -55,8 +55,8 @@ type ConsignmentWithStats struct {
 	Slug           string          `db:"consignment_slug"`
 	Code           string          `db:"consignment_code"`
 
-	TotalProducts int `db:"total_products"`
-	SoldProducts  int `db:"sold_products"`
+	TotalProducts    int `db:"total_products"`
+	ConfirmedProducts int `db:"confirmed_products"`
 
 	Shop
 	Consignee
