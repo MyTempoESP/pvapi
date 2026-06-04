@@ -55,5 +55,10 @@ func New(base db.Queryable) *policymodel.Bouncer {
 		Gate: gate.NewCategory(base),
 	})
 
+	bouncer.Register(policymodel.Guard{
+		Path: "/usuario",
+		Gate: gate.NewUsuario(),
+	})
+
 	return bouncer
 }
