@@ -173,7 +173,7 @@ func TestProduct(t *testing.T) {
 		h.approveProduct(t, &admin, prd2.ID)
 
 		// Filter by first shop — should only see that shop's products
-		url := fmt.Sprintf("/produtos?shop=%d", shop.ID)
+		url := fmt.Sprintf("/produtos?loja=%d", shop.ID)
 		rec := h.doRequest(t, http.MethodGet, url, nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
@@ -194,7 +194,7 @@ func TestProduct(t *testing.T) {
 	})
 
 	t.Run("filter_by_shop_multiple", func(t *testing.T) {
-		url := fmt.Sprintf("/produtos?shop=%d&shop=%d", shop.ID, shop.ID)
+		url := fmt.Sprintf("/produtos?loja=%d&loja=%d", shop.ID, shop.ID)
 		rec := h.doRequest(t, http.MethodGet, url, nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
@@ -214,7 +214,7 @@ func TestProduct(t *testing.T) {
 		cons := h.createConsignment(t, &shopSession, pickup.ID, monitor.ID)
 		h.addProductToConsignment(t, &shopSession, cons.ID, prd.ID, productName)
 
-		url := fmt.Sprintf("/produtos?consignment=%d", cons.ID)
+		url := fmt.Sprintf("/produtos?remessa=%d", cons.ID)
 		rec := h.doRequest(t, http.MethodGet, url, nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 

@@ -20,8 +20,8 @@ func PublicListingHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		rawShopIDs := c.Request.URL.Query()["shop"]
-		rawConsignmentIDs := c.Request.URL.Query()["consignment"]
+		rawShopIDs := c.Request.URL.Query()["loja"]
+		rawConsignmentIDs := c.Request.URL.Query()["remessa"]
 
 		shopIDs := parseQueryInts(rawShopIDs)
 		consignmentIDs := parseQueryInts(rawConsignmentIDs)
