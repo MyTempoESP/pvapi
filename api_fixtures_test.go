@@ -276,28 +276,19 @@ func (h *apiHarness) createCartItem(t *testing.T, sessionID string, productID, q
 func (h *apiHarness) getPackageID(t *testing.T, productID int, runID int64) int {
 	t.Helper()
 
-	sessionID := fmt.Sprintf("pkg-lookup-%d", runID)
-
-	h.createCartItem(t, sessionID, productID, 1)
-
-	optsRec := h.doRequest(t, http.MethodGet,
-		fmt.Sprintf("/carrinho/pacotes?session_id=%s", sessionID),
+	rec := h.doRequest(t, http.MethodGet,
+		fmt.Sprintf("/produtos/%d", productID),
 		nil, "", nil)
-	assertStatus(t, optsRec, http.StatusOK)
+	assertStatus(t, rec, http.StatusOK)
 
-	body := decodeJSON(t, optsRec)
-	products := asSlice(t, body["products"])
-	if len(products) == 0 {
-		t.Fatal("no products in package options")
+	body := decodeJSON(t, rec)
+	product := asMap(t, body["data"])
+	pickups := asSlice(t, product["pickups"])
+	if len(pickups) == 0 {
+		t.Fatal("no pickups available for product")
 	}
 
-	pkg := findObjectByIntField(t, products, "product_id", productID)
-	packages := asSlice(t, pkg["packages"])
-	if len(packages) == 0 {
-		t.Fatal("no packages in options")
-	}
-
-	return asInt(t, asMap(t, packages[0])["package_id"])
+	return asInt(t, asMap(t, pickups[0])["package_id"])
 }
 
 func (h *apiHarness) createBankAccount(t *testing.T, session *apiSession, name, bankName string) bankAccountFixtureResult {

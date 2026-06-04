@@ -10,6 +10,26 @@ type SpecificationResource struct {
 	Value string `json:"value"`
 }
 
+type ProductPickupAddressResource struct {
+	Street     string `json:"street"`
+	Number     string `json:"number"`
+	Neigh      string `json:"neighborhood"`
+	City       string `json:"city"`
+	State      string `json:"state"`
+	CEP        string `json:"cep"`
+	Complement string `json:"complement"`
+}
+
+type ProductPickupResource struct {
+	PackageID  int                        `json:"package_id"`
+	Price      decimal.Decimal           `json:"price"`
+	Discount   decimal.Decimal           `json:"discount"`
+	Quantity   int                        `json:"quantity"`
+	PickupName string                     `json:"pickup_name"`
+	PickupDate string                     `json:"pickup_date"`
+	Address    ProductPickupAddressResource `json:"address"`
+}
+
 type ProductResource struct {
 	ID       int             `json:"id"`
 	Name     string          `json:"name"`
@@ -43,7 +63,7 @@ type ProductResource struct {
 	DeliveryImages      []string                `json:"deliveryImages"`
 	Specifications      []SpecificationResource `json:"specifications"`
 
-	Consignments []int `json:"consignments,omitempty"`
+	Pickups *[]ProductPickupResource `json:"pickups,omitempty"`
 }
 
 /*
@@ -116,8 +136,15 @@ func (p Product) ToResource() ProductResource {
 		Code: p.Code,
 		UUID: p.UUID,
 
-		Consignments: p.Consignments,
+		Pickups: pickupsToPointer(p.Pickups),
 	}
+}
+
+func pickupsToPointer(pickups []ProductPickupResource) *[]ProductPickupResource {
+	if pickups == nil {
+		return nil
+	}
+	return &pickups
 }
 
 func (s Specification) ToResource() SpecificationResource {

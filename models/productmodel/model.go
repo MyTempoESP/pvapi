@@ -58,7 +58,7 @@ type Product struct {
 	Attributes       ProductAttr     `db:"product_attr"`
 	PlatformCutType  string          `db:"product_platform_cut_type"`
 	PlatformCut      decimal.Decimal `db:"product_platform_cut"`
-	Consignments     []int             `db:"-"`
+	Pickups          []ProductPickupResource `db:"-"`
 }
 
 func PublicIndex(
@@ -107,14 +107,6 @@ func PublicIndex(
 	)
 }
 
-// productRow is used internally to scan product rows that include the optional
-// product_consignments column. Fields without a db tag are not touched by
-// RowToStructByName, so we keep the original Product struct for that.
-type productRow struct {
-	Product
-	Consignments []int `db:"product_consignments"`
-}
-
 func publicIndexWithFilters(
 	ctx context.Context,
 	base db.Queryable,
@@ -130,15 +122,6 @@ func publicIndexWithFilters(
 		cPlaceholders[i] = "?"
 	}
 	cList := strings.Join(cPlaceholders, ", ")
-
-	consignmentSubq := fmt.Sprintf(
-		`(SELECT COALESCE(array_agg(DISTINCT p.consignment_id), ARRAY[]::integer[])`+
-			` FROM packages p`+
-			` JOIN consignments_active ca ON ca.id = p.consignment_id`+
-			` WHERE p.product_id = v.product_id`+
-			` AND p.consignment_id IN (%s))`,
-		cList,
-	)
 
 	consignmentWhere := fmt.Sprintf(
 		`EXISTS (SELECT 1 FROM packages p`+
@@ -167,7 +150,6 @@ func publicIndexWithFilters(
 		"v.product_shop_id",
 		"v.product_shop_name",
 	).
-		Column(sq.Alias(sq.Expr(consignmentSubq, cids...), "product_consignments")).
 		From("product_catalog_view v").
 		Where("v.product_moderation_status = 'approved'").
 		Where(sq.Expr(consignmentWhere, cids...))
@@ -191,18 +173,80 @@ func publicIndexWithFilters(
 		return nil, fmt.Errorf("build consignment-filter query: %w", err)
 	}
 
-	prs, err := util.WithCollect[productRow](ctx, base, sql, args...)
+	return util.WithCollect[Product](ctx, base, sql, args...)
+}
+
+type packageRow struct {
+	ProductID     int             `db:"product_id"`
+	PackageID     int             `db:"package_id"`
+	PackagePrice  decimal.Decimal `db:"package_price"`
+	PackageStock  int             `db:"package_stock"`
+	Discount      decimal.Decimal `db:"package_discount"`
+	ConsignmentID int             `db:"consignment_id"`
+	PickupID      int             `db:"pickup_id"`
+	PickupName    string          `db:"pickup_name"`
+	PickupDate    string          `db:"pickup_date"`
+	AddrStreet    string          `db:"addrstreet"`
+	AddrNumber    string          `db:"addrnumber"`
+	AddrCity      string          `db:"addrcity"`
+	AddrState     string          `db:"addrstate"`
+	AddrCEP       string          `db:"addrcep"`
+	AddrNeigh     string          `db:"addrneigh"`
+	AddrComplement string         `db:"addrcomplement"`
+}
+
+func BatchFetchPickups(
+	ctx context.Context,
+	base db.Queryable,
+	productIDs []int,
+) (map[int][]ProductPickupResource, error) {
+	if len(productIDs) == 0 {
+		return map[int][]ProductPickupResource{}, nil
+	}
+
+	ids := make([]any, len(productIDs))
+	for i, id := range productIDs {
+		ids[i] = id
+	}
+
+	rows, err := util.WithCollect[packageRow](
+		ctx, base,
+		query.PackagesByProductIDs,
+		ids,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	products := make([]Product, len(prs))
-	for i := range prs {
-		prs[i].Product.Consignments = prs[i].Consignments
-		products[i] = prs[i].Product
+	result := make(map[int][]ProductPickupResource, len(productIDs))
+	for _, r := range rows {
+		result[r.ProductID] = append(result[r.ProductID], ProductPickupResource{
+			PackageID:  r.PackageID,
+			Price:      r.PackagePrice,
+			Discount:   r.Discount,
+			Quantity:   r.PackageStock,
+			PickupName: r.PickupName,
+			PickupDate: r.PickupDate,
+			Address: ProductPickupAddressResource{
+				Street:     r.AddrStreet,
+				Number:     r.AddrNumber,
+				Neigh:      r.AddrNeigh,
+				City:       r.AddrCity,
+				State:      r.AddrState,
+				CEP:        r.AddrCEP,
+				Complement: r.AddrComplement,
+			},
+		})
 	}
 
-	return products, nil
+	// Initialize empty slices for products with no packages
+	for _, id := range productIDs {
+		if _, ok := result[id]; !ok {
+			result[id] = []ProductPickupResource{}
+		}
+	}
+
+	return result, nil
 }
 
 func (p ProductBlueprint) Save(

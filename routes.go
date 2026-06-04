@@ -206,7 +206,6 @@ func setupRoutes(
 
 	carts := t.Group("/carrinho")
 	{
-		carts.GET("/pacotes", cart.PackageOptionsHandler(pool))
 		carts.GET("/dados", cart.ViewHandler(pool))
 		carts.POST("/adicionar", cart.AddProductHandler(pool))
 		carts.DELETE("/remover/:item", cart.RemoveHandler(pool))

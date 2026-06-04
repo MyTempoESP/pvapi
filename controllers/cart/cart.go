@@ -137,33 +137,6 @@ func ViewHandler(
 	}
 }
 
-func PackageOptionsHandler(
-	pool *pgxpool.Pool,
-) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		sessionID, ok := c.GetQuery("session_id")
-		if !ok {
-			util.HandleBadRequest(c, fmt.Errorf("no session_id"))
-			return
-		}
-
-		result, err := cartmodel.FindPackageOptions(
-			c.Request.Context(), pool,
-			sessionID,
-		)
-
-		if err != nil {
-			util.HandleGuessFromDBOperation(c, err)
-			return
-		}
-
-		util.WrapLabeled(
-			c, "opções de pacote listadas com sucesso",
-			"products", result,
-		)
-	}
-}
-
 func AddProductHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

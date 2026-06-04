@@ -232,17 +232,119 @@ func TestProduct(t *testing.T) {
 				continue
 			}
 			found = true
-			// The product should include the consignment IDs
-			consignments := asSlice(t, pm["consignments"])
-			if len(consignments) == 0 {
-				t.Fatal("expected consignments array on product when filtering by consignment")
+			// The product should include pickups when filtered by consignment
+			pickups := asSlice(t, pm["pickups"])
+			if len(pickups) == 0 {
+				t.Fatal("expected pickups array on product when filtering by consignment")
 			}
-			if asInt(t, consignments[0]) != cons.ID {
-				t.Fatalf("expected consignment id %d, got %v", cons.ID, consignments[0])
+			pkg := asMap(t, pickups[0])
+			if asString(t, pkg["pickup_name"]) == "" {
+				t.Fatal("expected pickup_name in pickup entry")
+			}
+			if asString(t, pkg["pickup_date"]) == "" {
+				t.Fatal("expected pickup_date in pickup entry")
 			}
 		}
 		if !found {
 			t.Fatalf("product %d not found in consignment-filtered listing", prd.ID)
+		}
+	})
+
+	t.Run("pickups_on_product_detail", func(t *testing.T) {
+		// View a product that belongs to a consignment
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/produtos/%d", prd.ID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		product := asMap(t, body["data"])
+		pickups := asSlice(t, product["pickups"])
+		if len(pickups) == 0 {
+			t.Fatal("expected non-empty pickups on product detail")
+		}
+
+		pkg := asMap(t, pickups[0])
+		expectedFields := []string{"package_id", "price", "discount", "quantity", "pickup_name", "pickup_date", "address"}
+		for _, field := range expectedFields {
+			if _, ok := pkg[field]; !ok {
+				t.Fatalf("expected field %q in pickup entry", field)
+			}
+		}
+
+		addr := asMap(t, pkg["address"])
+		addrFields := []string{"street", "number", "neighborhood", "city", "state", "cep"}
+		for _, field := range addrFields {
+			if _, ok := addr[field]; !ok {
+				t.Fatalf("expected address field %q in pickup entry", field)
+			}
+		}
+	})
+
+	t.Run("pickups_on_product_listing", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/produtos", nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		products := asSlice(t, body["produtos"])
+
+		for _, p := range products {
+			pm := asMap(t, p)
+			pid := asInt(t, pm["id"])
+			if pid != prd.ID {
+				continue
+			}
+			pickups := asSlice(t, pm["pickups"])
+			if len(pickups) == 0 {
+				t.Fatal("expected non-empty pickups on product in listing")
+			}
+		}
+	})
+
+	t.Run("empty_pickups_without_consignment", func(t *testing.T) {
+		noConsignName := fmt.Sprintf("SemConsignacao %d", runID)
+		noConsignPrd := h.createProduct(t, &shopSession, noConsignName, cat.ID)
+		h.approveProduct(t, &admin, noConsignPrd.ID)
+
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/produtos/%d", noConsignPrd.ID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		product := asMap(t, body["data"])
+		pickups := asSlice(t, product["pickups"])
+		if len(pickups) != 0 {
+			t.Fatal("expected empty pickups array for product without consignments")
+		}
+	})
+
+	t.Run("no_pickups_on_shop_listed_products", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/estabelecimentos/%s/produtos", shop.Slug),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		products := asSlice(t, body["products"])
+		for _, p := range products {
+			pm := asMap(t, p)
+			if _, exists := pm["pickups"]; exists {
+				t.Fatal("expected no pickups field on shop-listed products")
+			}
+		}
+	})
+
+	t.Run("consignments_field_removed", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/produtos/%d", prd.ID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		product := asMap(t, body["data"])
+		if _, ok := product["consignments"]; ok {
+			t.Fatal("expected no consignments field in product response")
 		}
 	})
 

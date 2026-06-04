@@ -66,24 +66,18 @@ func TestCheckoutShopFreeze(t *testing.T) {
 	h.addProductToConsignment(t, &shop2Session, cons2ID, prd2.ID, prd2Name)
 
 	// getPackageID uses the default consignment setup, so
-	// for shop2 we need to get the package ID manually
-	pkgSessionID := fmt.Sprintf("pkg-lookup-shop2-%d", runID)
-	h.createCartItem(t, pkgSessionID, prd2.ID, 1)
-	optsRec := h.doRequest(t, http.MethodGet,
-		fmt.Sprintf("/carrinho/pacotes?session_id=%s", pkgSessionID),
+	// for shop2 we need to get the package ID manually from the product detail
+	pkgRec := h.doRequest(t, http.MethodGet,
+		fmt.Sprintf("/produtos/%d", prd2.ID),
 		nil, "", nil)
-	assertStatus(t, optsRec, http.StatusOK)
-	optsBody := decodeJSON(t, optsRec)
-	optsProducts := asSlice(t, optsBody["products"])
-	if len(optsProducts) == 0 {
-		t.Fatal("no products in package options for shop2")
+	assertStatus(t, pkgRec, http.StatusOK)
+	pkgBody := decodeJSON(t, pkgRec)
+	pkgProduct := asMap(t, pkgBody["data"])
+	pkgPickups := asSlice(t, pkgProduct["pickups"])
+	if len(pkgPickups) == 0 {
+		t.Fatal("no pickups for shop2 product")
 	}
-	shop2Pkg := findObjectByIntField(t, optsProducts, "product_id", prd2.ID)
-	shop2Packages := asSlice(t, shop2Pkg["packages"])
-	if len(shop2Packages) == 0 {
-		t.Fatal("no packages for shop2")
-	}
-	pkgID2 := asInt(t, asMap(t, shop2Packages[0])["package_id"])
+	pkgID2 := asInt(t, asMap(t, pkgPickups[0])["package_id"])
 
 	// ── Verify consignment details ──────────────────────────────────────
 	// The fixtures use:

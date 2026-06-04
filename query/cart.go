@@ -107,45 +107,6 @@ JOIN carts c ON c.id = cart_product.cart_id
 WHERE cart_product.id = $1 AND c.session_id = $2
 `
 
-	CartProductsForPackages = `
-SELECT DISTINCT cp.product_id, p.name AS product_name
-FROM cart_product cp
-JOIN carts cart ON cart.id = cp.cart_id
-JOIN products p ON p.id = cp.product_id
-WHERE cart.session_id = $1
-`
-
-	AvailablePackages = `
-SELECT
-	pkg.product_id,
-	pkg.id              AS package_id,
-	pkg.price           AS package_price,
-	pkg.quantity        AS package_stock,
-	pkg.discount        AS package_discount,
-	c.id                AS consignment_id,
-	pl.id               AS pickup_id,
-	pl.name             AS pickup_name,
-	pl.pickup_at::text  AS pickup_date,
-	a.addrstreet,
-	a.addrnumber::text  AS addrnumber,
-	a.addrcity,
-	a.addrstate,
-	a.addrcep,
-	a.addrneigh,
-	a.addrcomplement
-FROM packages pkg
-JOIN consignments_active c ON c.id = pkg.consignment_id
-JOIN pickup_locations pl ON pl.id = c.pickup_location_id
-JOIN aliased_addresses_view a ON a.address_id = pl.address_id
-WHERE pkg.product_id IN (
-	SELECT cp.product_id
-	FROM cart_product cp
-	JOIN carts cart ON cart.id = cp.cart_id
-	WHERE cart.session_id = $1
-)
-  AND pkg.quantity > 0
-`
-
 
 )
 

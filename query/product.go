@@ -289,6 +289,32 @@ DELETE FROM products
 WHERE id = $1
 `
 
+	PackagesByProductIDs = `
+SELECT
+	pkg.product_id,
+	pkg.id              AS package_id,
+	pkg.price           AS package_price,
+	pkg.quantity        AS package_stock,
+	pkg.discount        AS package_discount,
+	c.id                AS consignment_id,
+	pl.id               AS pickup_id,
+	pl.name             AS pickup_name,
+	pl.pickup_at::text  AS pickup_date,
+	a.addrstreet,
+	a.addrnumber::text  AS addrnumber,
+	a.addrcity,
+	a.addrstate,
+	a.addrcep,
+	a.addrneigh,
+	a.addrcomplement
+FROM packages pkg
+JOIN consignments_active c ON c.id = pkg.consignment_id
+JOIN pickup_locations pl ON pl.id = c.pickup_location_id
+JOIN aliased_addresses_view a ON a.address_id = pl.address_id
+WHERE pkg.product_id = ANY($1)
+  AND pkg.quantity > 0
+`
+
 	ProductAddToStock = `
 SELECT product_increment_inventory($1, $2)
 `

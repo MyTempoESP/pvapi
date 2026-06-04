@@ -36,6 +36,24 @@ func PublicListingHandler(
 			return
 		}
 
+		// Batch-fetch pickups for all listed products
+		productIDs := make([]int, len(products))
+		for i, p := range products {
+			productIDs[i] = p.ID
+		}
+
+		pickupMap, err := productmodel.BatchFetchPickups(
+			c.Request.Context(), pool, productIDs,
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		for i := range products {
+			products[i].Pickups = pickupMap[products[i].ID]
+		}
+
 		util.WrapMap(
 			c, "Produtos listados com sucesso!",
 			gin.H{
@@ -309,6 +327,17 @@ func PublicViewHandler(
 			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
+
+		// Fetch pickups for this product
+		pickupMap, err := productmodel.BatchFetchPickups(
+			c.Request.Context(), pool, []int{productID},
+		)
+		if err != nil {
+			util.Handle500(c, err)
+			return
+		}
+
+		product.Pickups = pickupMap[productID]
 
 		util.Wrap(
 			c, "produto encontrado!",
