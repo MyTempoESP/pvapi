@@ -87,8 +87,6 @@ func TestCheckoutShopFreeze(t *testing.T) {
 	//   Shop2 consignment: comission_value=3, comission_type='PERCENT'
 
 	sessionID := fmt.Sprintf("chkshop-checkout-%d", runID)
-	h.createCartItem(t, sessionID, prd1.ID, 1)
-	h.createCartItem(t, sessionID, prd2.ID, 1)
 
 	// Checkout with value_paid different from actual to test discrepancy
 	externalRef := fmt.Sprintf("EXT-REF-CS-%d", runID)
@@ -323,7 +321,6 @@ func TestCheckoutShopClientID(t *testing.T) {
 		runID := baseRunID + 1
 		pkgID := h.getPackageID(t, prd.ID, runID)
 		sessionID := fmt.Sprintf("chkshopcli-email-%d", runID)
-		h.createCartItem(t, sessionID, prd.ID, 1)
 
 		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
 		externalRef := fmt.Sprintf("EXT-REF-CLI-%d", runID)
@@ -378,7 +375,6 @@ func TestCheckoutShopClientID(t *testing.T) {
 		runID := baseRunID + 2
 		pkgID := h.getPackageID(t, prd.ID, runID)
 		sessionID := fmt.Sprintf("chkshopcli-noemail-%d", runID)
-		h.createCartItem(t, sessionID, prd.ID, 1)
 
 		externalRef := fmt.Sprintf("EXT-REF-NOCLI-%d", runID)
 

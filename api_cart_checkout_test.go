@@ -145,8 +145,6 @@ func TestCartAndCheckout(t *testing.T) {
 	t.Run("checkout_confirm", func(t *testing.T) {
 		sessionID := fmt.Sprintf("checkout-test-%d", runID)
 
-		h.createCartItem(t, sessionID, prd.ID, 1)
-
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-%d", runID),
@@ -186,48 +184,8 @@ func TestCartAndCheckout(t *testing.T) {
 		})
 	})
 
-	t.Run("checkout_confirm_invalid_cart", func(t *testing.T) {
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id=nonexistent-"+fmt.Sprint(runID), nil, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-INVALID-%d", runID),
-			"items": []map[string]any{
-				{"package_id": packageID, "quantity": 1},
-			},
-		})
-		assertStatus(t, rec, http.StatusNotFound)
-	})
-
-	t.Run("checkout_confirm_empty_cart", func(t *testing.T) {
-		sessionID := fmt.Sprintf("empty-checkout-%d", runID)
-
-		h.createCartItem(t, sessionID, prd.ID, 1)
-
-		viewRec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/carrinho/dados?session_id=%s", sessionID), nil, "", nil)
-		assertStatus(t, viewRec, http.StatusOK)
-		viewBody := decodeJSON(t, viewRec)
-		emptyItems := asSlice(t, viewBody["items"])
-		if len(emptyItems) != 1 {
-			t.Fatalf("expected 1 cart item, got %d", len(emptyItems))
-		}
-		emptyItemID := asInt(t, asMap(t, emptyItems[0])["id"])
-
-		delRec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/carrinho/remover/%d?session_id=%s", emptyItemID, sessionID), nil, "", nil)
-		assertStatus(t, delRec, http.StatusOK)
-
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-EMPTY-%d", runID),
-			"items": []map[string]any{
-				{"package_id": packageID, "quantity": 1},
-			},
-		})
-		assertStatus(t, rec, http.StatusUnprocessableEntity)
-	})
-
 	t.Run("checkout_confirm_insufficient_stock", func(t *testing.T) {
 		sessionID := fmt.Sprintf("overstock-checkout-%d", runID)
-
-		h.createCartItem(t, sessionID, prd.ID, 1)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
@@ -241,8 +199,6 @@ func TestCartAndCheckout(t *testing.T) {
 
 	t.Run("checkout_confirm_bad_package", func(t *testing.T) {
 		sessionID := fmt.Sprintf("bad-pkg-%d", runID)
-
-		h.createCartItem(t, sessionID, prd.ID, 1)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",

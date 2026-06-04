@@ -35,15 +35,13 @@ type PackageStock struct {
 }
 
 type ConfirmResponse struct {
-	UniqueID string `json:"unique_id"`
-	Status   string `json:"status"`
-	QrCode   string `json:"qr_code"`
-	CartID   int    `json:"-"`
+	UniqueID   string `json:"unique_id"`
+	Status     string `json:"status"`
+	QrCode     string `json:"qr_code"`
+	CheckoutID int    `json:"-"`
 }
 
 var (
-	ErrCartNotFound      = errors.New("cart not found or already checked out")
-	ErrCartEmpty         = errors.New("cart has no items")
 	ErrPackageNotFound   = errors.New("package not found")
 	ErrInsufficientStock = errors.New("insufficient stock")
 )
@@ -62,21 +60,15 @@ func Confirm(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	uniqueID, done, err := checkIdempotency(
-		ctx, tx, sessionID, req.ExternalReference,
+	checkoutID, uniqueID, done, err := checkIdempotency(
+		ctx, tx, req.ExternalReference,
 	)
 	if err != nil {
 		return resp, err
 	}
 	if done {
-		return ConfirmResponse{UniqueID: uniqueID, Status: "paid"}, tx.Commit(ctx)
+		return ConfirmResponse{UniqueID: uniqueID, Status: "paid", CheckoutID: checkoutID}, tx.Commit(ctx)
 	}
-
-	cartID, itemCount, err := resolveCart(ctx, tx, sessionID)
-	if err != nil {
-		return resp, err
-	}
-	resp.CartID = cartID
 
 	if err := validateStock(ctx, tx, req.Items); err != nil {
 		return resp, err
@@ -87,13 +79,11 @@ func Confirm(
 		return resp, fmt.Errorf("invalid value_paid: %w", err)
 	}
 
-	uniqueID, err = writeCheckout(
+	checkoutID, uniqueID, err = writeCheckout(
 		ctx, tx,
-		cartID,
 		sessionID,
 		req.ExternalReference,
 		value,
-		itemCount,
 		req.Items,
 	)
 	if err != nil {
@@ -109,6 +99,7 @@ func Confirm(
 		return resp, fmt.Errorf("failed to generate qr code: %w", err)
 	}
 
+	resp.CheckoutID = checkoutID
 	resp.UniqueID = uniqueID
 	resp.Status = "paid"
 	resp.QrCode = qr
@@ -118,56 +109,21 @@ func Confirm(
 func checkIdempotency(
 	ctx context.Context,
 	tx pgx.Tx,
-	sessionID, externalReference string,
-) (uniqueID string, done bool, err error) {
+	externalReference string,
+) (checkoutID int, uniqueID string, done bool, err error) {
 	err = tx.QueryRow(
 		ctx,
-		query.FindCheckoutBySessionRefQuery,
-		sessionID,
+		query.FindCheckoutByExternalRefQuery,
 		externalReference,
-	).Scan(&uniqueID)
+	).Scan(&checkoutID, &uniqueID)
 
 	if err == nil {
-		return uniqueID, true, nil
+		return checkoutID, uniqueID, true, nil
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", false, nil
+		return 0, "", false, nil
 	}
-	return "", false, fmt.Errorf("failed to check idempotency: %w", err)
-}
-
-func resolveCart(
-	ctx context.Context,
-	tx pgx.Tx,
-	sessionID string,
-) (cartID int, itemCount int, err error) {
-	if err = tx.QueryRow(
-		ctx,
-		query.FindCartBySessionQuery,
-		sessionID,
-	).Scan(&cartID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			err = ErrCartNotFound
-			return
-		}
-		err = fmt.Errorf("failed to resolve cart: %w", err)
-		return
-	}
-
-	if err = tx.QueryRow(
-		ctx,
-		query.CountCartItemsQuery,
-		cartID,
-	).Scan(&itemCount); err != nil {
-		err = fmt.Errorf("failed to count cart items: %w", err)
-		return
-	}
-	if itemCount == 0 {
-		err = ErrCartEmpty
-		return
-	}
-
-	return cartID, itemCount, nil
+	return 0, "", false, fmt.Errorf("failed to check idempotency: %w", err)
 }
 
 func validateStock(
@@ -302,41 +258,32 @@ func formatPickupAddress(row pickupEmailRow) *mail.PickupAddress {
 func writeCheckout(
 	ctx context.Context,
 	tx pgx.Tx,
-	cartID int,
 	sessionID, externalReference string,
 	value decimal.Decimal,
-	itemCount int,
 	items []ConfirmItem,
-) (string, error) {
+) (checkoutID int, uniqueID string, err error) {
+	totalItems := 0
+	for _, item := range items {
+		totalItems += item.Quantity
+	}
+
 	description := fmt.Sprintf(
 		"Checkout for session %s — %d items",
 		sessionID,
-		itemCount,
+		totalItems,
 	)
 
-	var uniqueID string
-	err := tx.QueryRow(
+	err = tx.QueryRow(
 		ctx,
 		query.InsertCheckoutQuery,
 		util.Args{
-			"cart_id":            cartID,
 			"value":              value,
 			"description":        description,
 			"external_reference": externalReference,
 		},
-	).Scan(&uniqueID)
+	).Scan(&checkoutID, &uniqueID)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert checkout: %w", err)
-	}
-
-	var checkoutID int
-	err = tx.QueryRow(
-		ctx,
-		query.FindCheckoutIDByUniqueIDQuery,
-		uniqueID,
-	).Scan(&checkoutID)
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve checkout id: %w", err)
+		return 0, "", fmt.Errorf("failed to insert checkout: %w", err)
 	}
 
 	batch := &pgx.Batch{}
@@ -350,7 +297,7 @@ func writeCheckout(
 	}
 
 	if err := util.Bake(ctx, tx, batch); err != nil {
-		return "", fmt.Errorf("failed to reserve stock: %w", err)
+		return 0, "", fmt.Errorf("failed to reserve stock: %w", err)
 	}
 
 	// Insert per-shop financial breakdown
@@ -361,7 +308,7 @@ func writeCheckout(
 		uniqueID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to insert checkout_shop: %w", err)
+		return 0, "", fmt.Errorf("failed to insert checkout_shop: %w", err)
 	}
 
 	// Compute and store value_discrepancy
@@ -371,18 +318,8 @@ func writeCheckout(
 		checkoutID,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to update value_discrepancy: %w", err)
+		return 0, "", fmt.Errorf("failed to update value_discrepancy: %w", err)
 	}
 
-	_, err = tx.Exec(
-		ctx,
-		query.FinishCartQuery,
-		sessionID,
-		externalReference,
-	)
-	if err != nil {
-		return "", fmt.Errorf("failed to finish cart: %w", err)
-	}
-
-	return uniqueID, nil
+	return checkoutID, uniqueID, nil
 }

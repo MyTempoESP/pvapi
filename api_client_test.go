@@ -69,7 +69,6 @@ func TestClient(t *testing.T) {
 
 		// First checkout: 1x item at 3.00 each
 		sessionID1 := fmt.Sprintf("clientf-agg-1-%d", runID)
-		h.createCartItem(t, sessionID1, fx.productID, 1)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-AGG1-%d", runID),
@@ -96,7 +95,6 @@ func TestClient(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		sessionID2 := fmt.Sprintf("clientf-agg-2-%d", runID)
-		h.createCartItem(t, sessionID2, prd2.ID, 1)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-AGG2-%d", runID),

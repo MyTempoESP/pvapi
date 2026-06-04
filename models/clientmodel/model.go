@@ -57,20 +57,18 @@ func SetCartClientID(
 	return err
 }
 
-// SetCheckoutShopClientID sets the client_id on checkout_shop rows linked
-// to the given cart via the checkouts table. Atomically pairs with
-// SetCartClientID so both cart and per-shop financial records carry the
-// purchasing client's identity.
+// SetCheckoutShopClientID sets the client_id on checkout_shop rows for the
+// given checkout_id directly (no cart join).
 func SetCheckoutShopClientID(
 	ctx context.Context,
 	tx pgx.Tx,
 	clientID,
-	cartID int,
+	checkoutID int,
 ) error {
 	_, err := tx.Exec(
-		ctx, query.UpdateCheckoutShopClientIDQuery,
+		ctx, query.UpdateCheckoutShopClientIDByCheckoutIDQuery,
 		clientID,
-		cartID,
+		checkoutID,
 	)
 	return err
 }
@@ -128,16 +126,16 @@ func Create(
 	return clientID, false, nil
 }
 
-// CreateAndAssociate wraps Create plus setting the cart's client_id
-// and checkout_shop.client_id. It opens its own transaction,
-// independent of any caller transaction.
-func CreateAndAssociate(
+// CreateAndAssociateByCheckout wraps Create plus writing client_id to
+// checkouts, checkout_shop, and package_reserved tables using the
+// given checkout_id. It opens its own transaction.
+func CreateAndAssociateByCheckout(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	clientName,
 	clientEmail string,
 	passwordHash []byte,
-	cartID int,
+	checkoutID int,
 ) (isNew bool, err error) {
 	err = util.TransactionAware(ctx, pool,
 		func(ctx context.Context, tx pgx.Tx) error {
@@ -146,16 +144,50 @@ func CreateAndAssociate(
 				return err
 			}
 			isNew = isNewFlag
-			if err := SetCartClientID(ctx, tx, clientID, cartID); err != nil {
+			if err := SetCheckoutClientID(ctx, tx, clientID, checkoutID); err != nil {
 				return err
 			}
-			if err := SetCheckoutShopClientID(ctx, tx, clientID, cartID); err != nil {
+			if err := SetCheckoutShopClientID(ctx, tx, clientID, checkoutID); err != nil {
+				return err
+			}
+			if err := SetPackageReservedClientID(ctx, tx, clientID, checkoutID); err != nil {
 				return err
 			}
 			return nil
 		},
 	)
 	return
+}
+
+// SetCheckoutClientID sets client_id on the checkouts table.
+func SetCheckoutClientID(
+	ctx context.Context,
+	tx pgx.Tx,
+	clientID,
+	checkoutID int,
+) error {
+	_, err := tx.Exec(
+		ctx, query.UpdateCheckoutClientIDQuery,
+		clientID,
+		checkoutID,
+	)
+	return err
+}
+
+// SetPackageReservedClientID sets client_id on package_reserved rows for the
+// given checkout_id.
+func SetPackageReservedClientID(
+	ctx context.Context,
+	tx pgx.Tx,
+	clientID,
+	checkoutID int,
+) error {
+	_, err := tx.Exec(
+		ctx, query.UpdatePackageReservedClientIDQuery,
+		clientID,
+		checkoutID,
+	)
+	return err
 }
 
 func List(

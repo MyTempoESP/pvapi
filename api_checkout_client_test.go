@@ -57,7 +57,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		fx := setupChkCliFixtures(t, h, "happy", runID)
 		sessionID := fmt.Sprintf("chkcli-happy-%d", runID)
 
-		h.createCartItem(t, sessionID, fx.productID, 1)
 		clientEmail := fmt.Sprintf("chkcli-happy-%d@example.com", runID)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
@@ -98,7 +97,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		// First checkout creates the client
 		sessionID1 := fmt.Sprintf("chkcli-reuse-1-%d", runID)
-		h.createCartItem(t, sessionID1, fx.productID, 1)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REUSE1-%d", runID),
@@ -124,7 +122,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		sessionID2 := fmt.Sprintf("chkcli-reuse-2-%d", runID)
-		h.createCartItem(t, sessionID2, prd2.ID, 1)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REUSE2-%d", runID),
@@ -156,7 +153,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 3
 		fx := setupChkCliFixtures(t, h, "noemail", runID)
 		sessionID := fmt.Sprintf("chkcli-noemail-%d", runID)
-		h.createCartItem(t, sessionID, fx.productID, 1)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
@@ -177,7 +173,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 4
 		fx := setupChkCliFixtures(t, h, "name", runID)
 		sessionID := fmt.Sprintf("chkcli-name-%d", runID)
-		h.createCartItem(t, sessionID, fx.productID, 1)
 
 		clientEmail := fmt.Sprintf("chkcli-name-%d@example.com", runID)
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
@@ -215,7 +210,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 5
 		fx := setupChkCliFixtures(t, h, "failok", runID)
 		sessionID := fmt.Sprintf("chkcli-failok-%d", runID)
-		h.createCartItem(t, sessionID, fx.productID, 1)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "3.00",
@@ -240,7 +234,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 6
 		fx := setupChkCliFixtures(t, h, "email", runID)
 		sessionID := fmt.Sprintf("chkcli-email-%d", runID)
-		h.createCartItem(t, sessionID, fx.productID, 1)
 
 		clientEmail := fmt.Sprintf("chkcli-email-%d@example.com", runID)
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
@@ -318,7 +311,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		// First checkout creates the client
 		sessionID1 := fmt.Sprintf("chkcli-reuse2-1-%d", runID)
-		h.createCartItem(t, sessionID1, fx.productID, 1)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REUSE2A-%d", runID),
@@ -345,7 +337,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		// Second checkout with same email — existing user, no login details
 		sessionID2 := fmt.Sprintf("chkcli-reuse2-2-%d", runID)
-		h.createCartItem(t, sessionID2, prd2.ID, 1)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REUSE2B-%d", runID),
@@ -392,7 +383,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 8
 		fx := setupChkCliFixtures(t, h, "noemail2", runID)
 		sessionID := fmt.Sprintf("chkcli-noemail2-%d", runID)
-		h.createCartItem(t, sessionID, fx.productID, 1)
 
 		prevData := h.mailer.SentConfirmation
 

@@ -102,7 +102,6 @@ func TestClientOverview(t *testing.T) {
 		clientSession, _ := registerClientUser(t, h, clientEmail, "Cliente Multi", "TestingPassword")
 
 		sessionID := fmt.Sprintf("ov-multi-%d", runID)
-		h.createCartItem(t, sessionID, fx.productID, 2)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 			"value_paid":         "6.00",
@@ -185,7 +184,6 @@ func TestClientOverview(t *testing.T) {
 
 		// First checkout — will be updated to 'recebido' after
 		sessionID1 := fmt.Sprintf("ov-mix-1-%d", runID)
-		h.createCartItem(t, sessionID1, fx.productID, 1)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-OV-MIX1-%d", runID),
@@ -197,13 +195,12 @@ func TestClientOverview(t *testing.T) {
 		})
 		assertStatus(t, rec1, http.StatusOK)
 
-		// Mark first package as received (direct SQL to avoid creating a new handler)
+		// Mark first package as received (direct SQL)
 		_, err := h.pool.Exec(context.Background(),
 			`UPDATE package_reserved SET status = 'recebido'
 			 WHERE checkout_id = (
 			   SELECT chk.id FROM checkouts chk
-			   JOIN carts c ON c.id = chk.cart_id
-			   WHERE c.client_id = $1
+			   WHERE chk.client_id = $1
 			   ORDER BY chk.processed_at ASC
 			   LIMIT 1
 			 )`, clientID)
@@ -226,7 +223,6 @@ func TestClientOverview(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		sessionID2 := fmt.Sprintf("ov-mix-2-%d", runID)
-		h.createCartItem(t, sessionID2, prd2.ID, 1)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-OV-MIX2-%d", runID),

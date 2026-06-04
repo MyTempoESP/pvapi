@@ -4,7 +4,6 @@ const (
 	InsertCheckoutQuery = `
 INSERT INTO checkouts
 	(
-		cart_id,
 		value,
 		status,
 		description,
@@ -12,13 +11,12 @@ INSERT INTO checkouts
 	)
 VALUES
 	(
-		@cart_id,
 		@value,
 		'paid',
 		@description,
 		@external_reference
 	)
-RETURNING unique_id
+RETURNING id, unique_id
 `
 
 	InsertPackageReservedQuery = `
@@ -51,12 +49,10 @@ JOIN products p ON p.id = d.product_id
 JOIN consignments c ON c.id = d.consignment_id
 `
 
-	FindCheckoutBySessionRefQuery = `
-SELECT unique_id
+	FindCheckoutByExternalRefQuery = `
+SELECT id, unique_id
 FROM checkouts
-JOIN carts ON carts.id = checkouts.cart_id
-WHERE carts.session_id IN ($1, 'FINISHED-' || $2)
-  AND external_reference = $2
+WHERE external_reference = $1
 `
 
 	CheckPackageAvailabilityQuery = `
@@ -64,22 +60,6 @@ SELECT quantity AS available
 FROM packages
 WHERE id = $1
 FOR UPDATE
-`
-
-	FinishCartQuery = `
-UPDATE carts
-SET session_id = 'FINISHED-' || $2
-WHERE session_id = $1
-`
-
-	FindCartBySessionQuery = `
-SELECT id FROM carts
-WHERE session_id = $1
-  AND session_id NOT LIKE 'FINISHED-%'
-`
-
-	CountCartItemsQuery = `
-SELECT COUNT(*) FROM cart_product WHERE cart_id = $1
 `
 
 	FindCheckoutIDByUniqueIDQuery = `
@@ -137,6 +117,24 @@ SET value_discrepancy = chk.value - COALESCE(
 	0
 )
 WHERE chk.id = $1
+`
+
+	UpdateCheckoutClientIDQuery = `
+UPDATE checkouts
+SET client_id = $1
+WHERE id = $2
+`
+
+	UpdatePackageReservedClientIDQuery = `
+UPDATE package_reserved
+SET client_id = $1
+WHERE checkout_id = $2
+`
+
+	UpdateCheckoutShopClientIDByCheckoutIDQuery = `
+UPDATE checkout_shop
+SET client_id = $1
+WHERE checkout_id = $2
 `
 
 	ShopCheckoutsQuery = `

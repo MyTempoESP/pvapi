@@ -28,20 +28,3 @@ No flags runs `golangci-lint` followed by the full test suite.
 | — | `--short` | Skip slow tests |
 | — | `--no-lint` | Skip golangci-lint |
 | — | `--keep-db` | Don't clean test DB after run |
-
-## Manual Steps
-
-If the script is unavailable:
-
-```bash
-golangci-lint run --fix
-just t::test-db
-go test -v -count=1 -run 'TestNamePattern' .
-just t::clean
-```
-
-For the full suite:
-
-```bash
-just t
-```

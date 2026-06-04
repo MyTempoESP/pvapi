@@ -41,10 +41,7 @@ func ConfirmHandler(
 
 		if err != nil {
 			switch {
-			case errors.Is(err, checkoutmodel.ErrCartNotFound):
-				util.Handle404(c, err)
-			case errors.Is(err, checkoutmodel.ErrCartEmpty),
-				errors.Is(err, checkoutmodel.ErrPackageNotFound):
+			case errors.Is(err, checkoutmodel.ErrPackageNotFound):
 				c.AbortWithStatusJSON(422, gin.H{
 					"success": false,
 					"message": err.Error(),
@@ -101,24 +98,24 @@ func sendConfirmationAfterCheckout(
 
 	ctx := context.Background()
 
-	isNew, err := clientmodel.CreateAndAssociate(
+	isNew, err := clientmodel.CreateAndAssociateByCheckout(
 		ctx, pool,
 		clientName, req.ClientEmail,
 		hash,
-		resp.CartID,
+		resp.CheckoutID,
 	)
 	if err != nil {
 		util.LogError(c, "failed to create client from checkout",
 			"error", err,
 			"email", req.ClientEmail,
-			"cart_id", resp.CartID,
+			"checkout_id", resp.CheckoutID,
 		)
 		return
 	}
 
 	util.LogInfo(c, "client created/reused from checkout",
 		"email", req.ClientEmail,
-		"cart_id", resp.CartID,
+		"checkout_id", resp.CheckoutID,
 		"is_new", isNew,
 	)
 
