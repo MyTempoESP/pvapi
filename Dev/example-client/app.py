@@ -14,7 +14,6 @@ BASE_URL = os.environ.get("PV_API_BASE_URL", "https://pvauto.linhazero.com")
 # ── Session state defaults ──────────────────────────────────────────────────
 
 _DEFAULTS = {
-    "cart_session_id": f"cart_{int(time.time())}",
     "auth_token": None,
     "products": None,
     "selected_items": {},
@@ -58,10 +57,6 @@ def show_response(r: requests.Response):
     st.code(fmt_json(r), language="json")
 
 
-def sanitize_session_id(sid: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_]", "", sid)
-
-
 # ── Page config ─────────────────────────────────────────────────────────────
 
 st.set_page_config(
@@ -83,15 +78,6 @@ menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Monitores", "Requ
 
 if menu == "Checkout":
     st.header("🛍️ Checkout")
-
-    # ── Session ID ──────────────────────────────────────────────────────────
-    st.subheader("Sessão")
-    sid = st.text_input(
-        "ID da sessão",
-        value=st.session_state.cart_session_id,
-        help="Identificador único da sessão de checkout. Gerado automaticamente.",
-    )
-    st.session_state.cart_session_id = sanitize_session_id(sid)
 
     # ── Section 1: Lojas ───────────────────────────────────────────────────
     st.subheader("1. Lojas")
@@ -278,7 +264,7 @@ if menu == "Checkout":
             with st.spinner("Finalizando compra..."):
                 r = req(
                     "POST",
-                    f"/checkouts/confirm?session_id={st.session_state.cart_session_id}",
+                    "/checkouts/confirm",
                     data=payload,
                 )
             if r.ok:
@@ -295,8 +281,6 @@ if menu == "Checkout":
                 if qr_code:
                     st.code(qr_code, language="text")
                     st.caption("QR Code para retirada")
-                # new session for next purchase
-                st.session_state.cart_session_id = f"cart_{int(time.time())}"
                 st.session_state.selected_items = {}
             else:
                 show_response(r)

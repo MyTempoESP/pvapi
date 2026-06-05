@@ -12,7 +12,7 @@ Fluxo completo de compra:
 1. **Lojas** — lista os estabelecimentos ativos via `GET /estabelecimentos` (opcional, para filtrar produtos).
 2. **Produtos disponíveis** — lista os produtos cadastrados via `GET /produtos`, com filtro por loja. Cada produto exibe seus pacotes de retirada (preço, estoque, ponto de retirada, endereço).
 3. **Selecionar pacotes** — escolhe pacotes e quantidades diretamente, sem carrinho intermediário.
-4. **Confirmar compra** — finaliza a compra via `POST /checkouts/confirm?session_id=...` com valor pago, referência externa, itens (`[{package_id, quantity}]`) e dados opcionais do cliente (e-mail e nome). Ao confirmar, um e-mail de confirmação é enviado se o e-mail do cliente for informado.
+4. **Confirmar compra** — finaliza a compra via `POST /checkouts/confirm` com valor pago, referência externa, itens (`[{package_id, quantity}]`) e dados opcionais do cliente (e-mail e nome). Ao confirmar, um e-mail de confirmação é enviado se o e-mail do cliente for informado.
 
 ### 🏦 Banco & Saque
 Gestão de conta bancária e solicitação de saques (autenticado como estabelecimento):
@@ -91,5 +91,4 @@ docker stop <container-id>
 ## Observações
 
 - A aplicação se conecta ao servidor de produção (`https://pvauto.linhazero.com`).
-- O ID de sessão é gerado automaticamente e renovado a cada compra finalizada.
 - Os tokens de autenticação são armazenados apenas na sessão do navegador (não persistem entre recarregamentos da página).
