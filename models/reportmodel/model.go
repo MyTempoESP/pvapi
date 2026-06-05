@@ -7,6 +7,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"linhazero.com/pvapi/db"
+	"linhazero.com/pvapi/models/consignmentmodel"
 	"linhazero.com/pvapi/models/model"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
@@ -166,12 +167,17 @@ func ListByConsignee(
 	base db.Queryable,
 	consignee int,
 ) ([]Report, error) {
-	return util.WithCollect[Report](
+	reports, err := util.WithCollect[Report](
 		ctx,
 		base,
 		query.ListAllReportsByConsigneeQuery,
 		consignee,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return overrideConsignmentOrderNames(ctx, base, reports)
 }
 
 func ListByShop(
@@ -179,12 +185,17 @@ func ListByShop(
 	base db.Queryable,
 	shop int,
 ) ([]Report, error) {
-	return util.WithCollect[Report](
+	reports, err := util.WithCollect[Report](
 		ctx,
 		base,
 		query.ListAllReportsByShopQuery,
 		shop,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return overrideConsignmentOrderNames(ctx, base, reports)
 }
 
 func Find(
@@ -192,12 +203,17 @@ func Find(
 	base db.Queryable,
 	id any,
 ) (Report, error) {
-	return util.WithCollectExactlyOneRow[Report](
+	report, err := util.WithCollectExactlyOneRow[Report](
 		ctx,
 		base,
 		query.FindReportQuery,
 		id,
 	)
+	if err != nil {
+		return report, err
+	}
+
+	return overrideConsignmentOrderName(ctx, base, report)
 }
 
 func FindScope(
@@ -217,4 +233,60 @@ func Delete(
 ) error {
 	_, err := base.Exec(ctx, query.DeleteReportQuery, id)
 	return err
+}
+
+func overrideConsignmentOrderNames(
+	ctx context.Context,
+	base db.Queryable,
+	reports []Report,
+) ([]Report, error) {
+	var consignmentIDs []int
+	for _, r := range reports {
+		if r.Scope == "consignment" && r.ConsignmentID != nil {
+			consignmentIDs = append(consignmentIDs, *r.ConsignmentID)
+		}
+	}
+
+	if len(consignmentIDs) == 0 {
+		return reports, nil
+	}
+
+	pickupMap, err := consignmentmodel.BatchFetchConsignmentPickups(ctx, base, consignmentIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range reports {
+		if reports[i].Scope != "consignment" || reports[i].ConsignmentID == nil {
+			continue
+		}
+		pickups := pickupMap[*reports[i].ConsignmentID]
+		reports[i].OrderName = BuildConsignmentOrderName(reports[i].ConsigneeName, pickups)
+	}
+
+	return reports, nil
+}
+
+func overrideConsignmentOrderName(
+	ctx context.Context,
+	base db.Queryable,
+	report Report,
+) (Report, error) {
+	if report.Scope != "consignment" || report.ConsignmentID == nil {
+		return report, nil
+	}
+
+	pickupMap, err := consignmentmodel.BatchFetchConsignmentPickups(
+		ctx, base, []int{*report.ConsignmentID},
+	)
+	if err != nil {
+		return report, err
+	}
+
+	report.OrderName = BuildConsignmentOrderName(
+		report.ConsigneeName,
+		pickupMap[*report.ConsignmentID],
+	)
+
+	return report, nil
 }

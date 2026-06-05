@@ -171,4 +171,42 @@ func requireField(t *testing.T, obj map[string]any, field string) any {
 	return v
 }
 
+func containsMonitorAndPickups(orderName, monitor string, pickupCount int) bool {
+	prefix := monitor + " para "
+	if len(orderName) < len(prefix) {
+		return false
+	}
+	if orderName[:len(prefix)] != prefix {
+		return false
+	}
+
+	// Count commas in the pickup portion
+	suffix := orderName[len(prefix):]
+	if suffix == "N/A" {
+		return pickupCount == 0
+	}
+
+	// For N pickups with no +N suffix: N-1 commas
+	// For 4+ pickups showing first 3: 2 commas + "+N outros"
+	if pickupCount <= 3 {
+		// N pickups → N-1 commas (e.g. 3 pickups → 2 commas)
+		commas := 0
+		for _, c := range suffix {
+			if c == ',' {
+				commas++
+			}
+		}
+		return commas == pickupCount-1
+	}
+
+	// For >3 pickups: expect 2 commas and "+N outros"
+	commas := 0
+	for _, c := range suffix {
+		if c == ',' {
+			commas++
+		}
+	}
+	return commas == 2
+}
+
 

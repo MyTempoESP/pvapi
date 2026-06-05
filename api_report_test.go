@@ -455,4 +455,100 @@ func TestReport(t *testing.T) {
 			t.Fatalf("report %d not found in shop report list: %s", rpt.ID, rec.Body.String())
 		}
 	})
+
+	t.Run("consignment_orderName_with_three_pickups", func(t *testing.T) {
+		pickup2 := h.createPickup(t, &shopSession)
+		pickup3 := h.createPickup(t, &shopSession)
+
+		cons3 := h.createConsignmentWithPickups(t, &shopSession, []int{pickup.ID, pickup2.ID, pickup3.ID}, monitor.ID)
+		h.addProductToConsignment(t, &shopSession, cons3.ID, prd.ID, productName)
+
+		rpt := h.createReport(t, &shopSession, reportFixture{
+			OrderID:     cons3.ID,
+			Monitor:     monitorName,
+			Moment:      "exposicao",
+			Type:        "falta_peca",
+			Status:      "aberto",
+			Description: "consignment orderName test",
+			Priority:    "baixa",
+			Scope:       "consignment",
+		})
+
+		// View the report and check orderName
+		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/ocorrencias/%d", rpt.ID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		orderName := asString(t, report["orderName"])
+
+		// Expect "Monitor RP {runID} para {pickup1}, {pickup2}, {pickup3}"
+		if !containsMonitorAndPickups(orderName, monitorName, 3) {
+			t.Fatalf("expected formatted orderName with monitor and 3 pickups, got %q", orderName)
+		}
+
+		// List and check orderName
+		rec = h.doRequest(t, http.MethodGet, "/ocorrencias", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		reports := asSlice(t, body["data"])
+		found := false
+		for _, item := range reports {
+			r := asMap(t, item)
+			if asInt(t, r["id"]) == rpt.ID {
+				if asString(t, r["orderName"]) != orderName {
+					t.Fatalf("list orderName %q does not match view orderName %q", asString(t, r["orderName"]), orderName)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("report not found in shop list")
+		}
+	})
+
+	t.Run("consignment_orderName_no_pickups_returns_na", func(t *testing.T) {
+		cons0 := h.createConsignmentWithPickups(t, &shopSession, []int{}, monitor.ID)
+		h.addProductToConsignment(t, &shopSession, cons0.ID, prd.ID, productName)
+
+		rpt := h.createReport(t, &shopSession, reportFixture{
+			OrderID:     cons0.ID,
+			Monitor:     monitorName,
+			Moment:      "exposicao",
+			Type:        "falta_peca",
+			Status:      "aberto",
+			Description: "consignment no pickups",
+			Priority:    "baixa",
+			Scope:       "consignment",
+		})
+
+		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/ocorrencias/%d", rpt.ID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asString(t, report["orderName"]) != "N/A" {
+			t.Fatalf("expected orderName %q, got %q", "N/A", report["orderName"])
+		}
+	})
+
+	t.Run("product_scope_report_still_uses_product_name", func(t *testing.T) {
+		// Regression test: product-scope reports must still show product name
+		rpt := h.createReport(t, &shopSession, reportFixture{
+			OrderID:     prd.ID,
+			Monitor:     monitorName,
+			Moment:      "exposicao",
+			Type:        "falta_peca",
+			Status:      "aberto",
+			Description: "product scope regression",
+			Priority:    "baixa",
+			Scope:       "product",
+		})
+
+		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/ocorrencias/%d", rpt.ID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		report := asMap(t, body["report"])
+		if asString(t, report["orderName"]) != productName {
+			t.Fatalf("expected orderName %q for product-scope report, got %q", productName, report["orderName"])
+		}
+	})
 }

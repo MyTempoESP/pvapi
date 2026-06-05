@@ -223,9 +223,19 @@ func (h *apiHarness) approveProduct(t *testing.T, admin *apiSession, productID i
 
 func (h *apiHarness) createConsignment(t *testing.T, session *apiSession, pickupID, monitorID int) consignmentFixtureResult {
 	t.Helper()
+	return h.createConsignmentWithPickups(t, session, []int{pickupID}, monitorID)
+}
+
+func (h *apiHarness) createConsignmentWithPickups(t *testing.T, session *apiSession, pickupIDs []int, monitorID int) consignmentFixtureResult {
+	t.Helper()
+
+	ids := make([]any, len(pickupIDs))
+	for i, id := range pickupIDs {
+		ids[i] = id
+	}
 
 	rec := h.doJSON(t, http.MethodPost, "/remessas", session, map[string]any{
-		"destinationId": []any{pickupID},
+		"destinationId": ids,
 		"monitorId":     monitorID,
 		"status":        "CONFERIR - DEVOLUCAO",
 		"monitorProfit": 3,
