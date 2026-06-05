@@ -24,6 +24,7 @@ type Report struct {
 	Priority      string    `db:"priority"`
 	Status        string    `db:"status"`
 	Type          string    `db:"type"`
+	OrderName     string    `db:"order_name"`
 	CreatedAt     time.Time `db:"created_at"`
 }
 

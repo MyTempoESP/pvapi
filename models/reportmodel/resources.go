@@ -26,6 +26,7 @@ type ReportResource struct {
 	Monitor2    string    `json:"monitorName"`
 	Scope       string    `json:"occurrenceScope"`
 	OrderID     int       `json:"orderId"`
+	OrderName   string    `json:"orderName"`
 	Priority    string    `json:"priority"`
 	Status      string    `json:"status"`
 	Type        string    `json:"type"`
@@ -48,6 +49,7 @@ func (r Report) ToResource() ReportResource {
 		Monitor2:    r.ConsigneeName,
 		Scope:       r.Scope,
 		OrderID:     orderID,
+		OrderName:   r.OrderName,
 		Priority:    r.Priority,
 		Status:      r.Status,
 		Type:        r.Type,

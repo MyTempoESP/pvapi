@@ -74,6 +74,24 @@ func asInt(t *testing.T, value any) int {
 	}
 }
 
+func containsName(items []any, want string) bool {
+	for _, item := range items {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, ok := obj["orderName"]
+		if !ok {
+			continue
+		}
+		s, ok := name.(string)
+		if ok && s == want {
+			return true
+		}
+	}
+	return false
+}
+
 func containsID(items []any, want int) bool {
 	for _, item := range items {
 		obj, ok := item.(map[string]any)

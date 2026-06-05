@@ -33,7 +33,7 @@ type PickupResource struct {
 }
 
 func NewPickupResourceFromPickup(p Pickup) PickupResource {
-	return PickupResource{ID: p.ID, Name: p.Name}
+	return PickupResource(p)
 }
 
 type ConsignmentResource struct {
@@ -44,8 +44,8 @@ type ConsignmentResource struct {
 	Slug           string          `json:"slug"`
 	Status         string          `json:"status"`
 
-	Destinations    DestinationsResource `json:"destinations"`
-	ConsigneeName   string               `json:"responsibleMonitor"`
+	Destinations  DestinationsResource `json:"destinations"`
+	ConsigneeName string               `json:"responsibleMonitor"`
 
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -82,8 +82,8 @@ type PublicConsignmentResource struct {
 	Slug           string          `json:"slug"`
 	Status         string          `json:"status"`
 
-	Destinations    DestinationsResource `json:"destinations"`
-	ConsigneeName   string               `json:"responsibleMonitor"`
+	Destinations  DestinationsResource `json:"destinations"`
+	ConsigneeName string               `json:"responsibleMonitor"`
 
 	Shop struct {
 		ID   int    `json:"id"`

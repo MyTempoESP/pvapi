@@ -162,6 +162,9 @@ func TestReport(t *testing.T) {
 		if asInt(t, report["id"]) != rpt.ID {
 			t.Fatalf("expected report id %d, got body %s", rpt.ID, rec.Body.String())
 		}
+		if asString(t, report["orderName"]) != productName {
+			t.Fatalf("expected orderName %q, got %v", productName, report["orderName"])
+		}
 	})
 
 	t.Run("view_report_as_monitor", func(t *testing.T) {
@@ -184,6 +187,9 @@ func TestReport(t *testing.T) {
 		if asInt(t, report["id"]) != rpt.ID {
 			t.Fatalf("expected report id %d, got body %s", rpt.ID, rec.Body.String())
 		}
+		if asString(t, report["orderName"]) != productName {
+			t.Fatalf("expected orderName %q, got %v", productName, report["orderName"])
+		}
 	})
 
 	t.Run("list_shop_reports_and_monitor_list", func(t *testing.T) {
@@ -205,6 +211,9 @@ func TestReport(t *testing.T) {
 		if !containsID(reports, rpt.ID) {
 			t.Fatalf("report %d not found in shop report list: %s", rpt.ID, rec.Body.String())
 		}
+		if !containsName(reports, productName) {
+			t.Fatalf("orderName %q not found in shop report list: %s", productName, rec.Body.String())
+		}
 
 		rec = h.doRequest(t, http.MethodGet, "/ocorrencias", &consigneeSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)
@@ -212,6 +221,9 @@ func TestReport(t *testing.T) {
 		reports = asSlice(t, body["data"])
 		if !containsID(reports, rpt.ID) {
 			t.Fatalf("report %d not found in monitor report list: %s", rpt.ID, rec.Body.String())
+		}
+		if !containsName(reports, productName) {
+			t.Fatalf("orderName %q not found in monitor report list: %s", productName, rec.Body.String())
 		}
 	})
 
