@@ -75,7 +75,7 @@ func run(logger *slog.Logger) (err error) {
 		return
 	}
 
-	mailer := createMailer(logger)
+	_ = createMailer(logger)
 
 	params, err := auth.GenerateJwtInitParams(pool)
 
@@ -95,7 +95,7 @@ func run(logger *slog.Logger) (err error) {
 		return
 	}
 
-	setupRoutes(t, authMiddleware, pool, mailer)
+	setupRoutes(t, authMiddleware, pool)
 
 	err = t.Run()
 

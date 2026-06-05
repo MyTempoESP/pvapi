@@ -7,8 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"linhazero.com/pvapi/env"
-	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/models/checkoutmodel"
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
@@ -17,7 +15,6 @@ import (
 
 func ConfirmHandler(
 	pool *pgxpool.Pool,
-	m mail.Mailer,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var req checkoutmodel.ConfirmRequest
@@ -68,22 +65,20 @@ func ConfirmHandler(
 			"message":   "checkout confirmed",
 			"unique_id": resp.UniqueID,
 			"status":    resp.Status,
-			"qr_code":   resp.QrCode,
+			"qr_codes":  resp.QrCodes,
 		})
 
-		// Best-effort client creation and email after response is sent
+		// Best-effort client association after response is sent
 		if ci.EffectiveEmail != "" {
-			sendConfirmationAfterCheckout(c, pool, m, ci, req.Items, resp)
+			associateClientAfterCheckout(c, pool, ci, resp)
 		}
 	}
 }
 
-func sendConfirmationAfterCheckout(
+func associateClientAfterCheckout(
 	c *gin.Context,
 	pool *pgxpool.Pool,
-	m mail.Mailer,
 	ci checkoutclient.CheckoutClientOutput,
-	items []checkoutmodel.ConfirmItem,
 	resp checkoutmodel.ConfirmResponse,
 ) {
 	hash, err := util.HashPassword(ci.Password)
@@ -114,57 +109,4 @@ func sendConfirmationAfterCheckout(
 		"checkout_id", resp.CheckoutID,
 		"is_new", isNew,
 	)
-
-	if m == nil || ci.IsSyntheticEmail {
-		return
-	}
-
-	// Resolve pickup groups for the email
-	groups, err := checkoutmodel.ResolvePickupEmailData(
-		ctx, pool,
-		items,
-	)
-	if err != nil {
-		util.LogError(c, "failed to resolve pickup email data",
-			"error", err,
-		)
-		return
-	}
-
-	emailData := mail.PickupEmailData{
-		OrderID:   resp.UniqueID,
-		QrCode:    resp.QrCode,
-		Groups:    groups,
-		IsNewUser: isNew,
-		Name:      ci.ClientName,
-		Email:     ci.EffectiveEmail,
-	}
-
-	if isNew {
-		loginURL, loginErr := env.SMTPLoginLink()
-		resetURL, resetErr := env.SMTPResetLink()
-		if loginErr != nil || resetErr != nil || loginURL == "" || resetURL == "" {
-			util.LogWarn(c, "mail: login link or reset link not configured, skipping login details",
-				"email", ci.EffectiveEmail,
-			)
-		} else {
-			emailData.Password = ci.Password
-			emailData.LoginURL = loginURL
-			emailData.ResetURL = resetURL
-		}
-	}
-
-	if err := m.SendPickupConfirmation(
-		ctx, ci.EffectiveEmail,
-		emailData,
-	); err != nil {
-		util.LogError(c, "failed to send pickup confirmation email",
-			"error", err,
-			"email", ci.EffectiveEmail,
-		)
-	} else {
-		util.LogInfo(c, "pickup confirmation email sent",
-			"email", ci.EffectiveEmail,
-		)
-	}
 }

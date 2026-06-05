@@ -299,7 +299,7 @@ components:
 
     RespostaCheckout:
       type: object
-      required: [success, message, unique_id, status]
+      required: [success, message, unique_id, status, qr_codes]
       properties:
         success:
           type: boolean
@@ -315,9 +315,18 @@ components:
           type: string
           example: paid
           description: Status da transação
-        qr_code:
-          type: string
-          description: QR code em data URI (PNG base64)
+        qr_codes:
+          type: array
+          description: QR codes, um por pacote reservado
+          items:
+            type: object
+            properties:
+              package_id:
+                type: integer
+                description: ID do pacote
+              qr_code:
+                type: string
+                description: QR code em data URI (PNG base64) do unique_id do package_reserved
 
     # ── Remessa / Consignment ───────────────────────────────────
     RecursoRemessa:

@@ -17,7 +17,6 @@ import (
 	"linhazero.com/pvapi/controllers/saque"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
-	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/middleware/auth"
 	"linhazero.com/pvapi/util"
 )
@@ -26,7 +25,6 @@ func setupRoutes(
 	t *gin.Engine,
 	authMiddleware *jwt.GinJWTMiddleware,
 	pool *pgxpool.Pool,
-	mailer mail.Mailer,
 ) {
 	auth.RegisterAuthRoutes(t, authMiddleware, pool)
 
@@ -229,7 +227,7 @@ func setupRoutes(
 
 	checkouts := t.Group("/checkouts")
 	{
-		checkouts.POST("/confirm", checkout.ConfirmHandler(pool, mailer))
+		checkouts.POST("/confirm", checkout.ConfirmHandler(pool))
 	}
 
 	t.Static("/assets", "./public/uploads")

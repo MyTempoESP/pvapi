@@ -95,13 +95,16 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		assertStatus(t, rec2, http.StatusOK)
 		r2 := decodeJSON(t, rec2)
 
-		// Same unique_id and qr_code — idempotent
+		// Same unique_id and qr_codes — idempotent
 		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
 			t.Fatalf("expected same unique_id for identical payload, got %q vs %q",
 				r1["unique_id"], r2["unique_id"])
 		}
-		if asString(t, r1["qr_code"]) != asString(t, r2["qr_code"]) {
-			t.Fatalf("expected same qr_code for identical payload")
+		// Compare qr_codes arrays (same package_id → same QR codes)
+		qr1 := fmt.Sprintf("%v", r1["qr_codes"])
+		qr2 := fmt.Sprintf("%v", r2["qr_codes"])
+		if qr1 != qr2 {
+			t.Fatalf("expected same qr_codes for identical payload")
 		}
 		if asString(t, r1["status"]) != "paid" || asString(t, r2["status"]) != "paid" {
 			t.Fatalf("expected status 'paid' on both requests")

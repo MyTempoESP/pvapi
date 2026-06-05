@@ -226,172 +226,11 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 	})
 
-	t.Run("pickup_confirmation_email_sent_on_new_client", func(t *testing.T) {
-		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
-		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
 
-		runID := baseRunID + 6
-		fx := setupChkCliFixtures(t, h, "email", runID)
 
-		clientEmail := fmt.Sprintf("chkcli-email-%d@example.com", runID)
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-EMAIL-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": clientEmail,
-			"client_name":  "Maria Oliveira",
-		})
-		assertStatus(t, rec, http.StatusOK)
 
-		if h.mailer.SentConfirmation == nil {
-			t.Fatalf("expected a pickup confirmation email to be sent")
-		}
 
-		email := h.mailer.SentConfirmation
-		if email.OrderID == "" {
-			t.Errorf("expected non-empty OrderID")
-		}
-		if email.QrCode == "" {
-			t.Errorf("expected non-empty QrCode")
-		}
-		if !email.IsNewUser {
-			t.Errorf("expected IsNewUser=true for new client")
-		}
-		if email.Name != "Maria Oliveira" {
-			t.Errorf("expected Name='Maria Oliveira', got %q", email.Name)
-		}
-		if email.Email != clientEmail {
-			t.Errorf("expected Email=%q, got %q", clientEmail, email.Email)
-		}
-		if email.Password == "" {
-			t.Errorf("expected non-empty Password for new user")
-		}
-		if email.LoginURL != "https://pvaauto.example.com/login" {
-			t.Errorf("expected LoginURL=https://pvaauto.example.com/login, got %q", email.LoginURL)
-		}
-		if email.ResetURL != "https://pvaauto.example.com/reset" {
-			t.Errorf("expected ResetURL=https://pvaauto.example.com/reset, got %q", email.ResetURL)
-		}
 
-		// Should include product and pickup info
-		if len(email.Groups) == 0 {
-			t.Errorf("expected at least one pickup group")
-		}
-		hasProduct := false
-		hasPickup := false
-		for _, g := range email.Groups {
-			if g.PickupName != "" {
-				hasPickup = true
-			}
-			for _, item := range g.Items {
-				if strings.Contains(item.ProductName, "Produto ChkCli") {
-					hasProduct = true
-				}
-			}
-		}
-		if !hasProduct {
-			t.Errorf("expected email groups to contain a product name")
-		}
-		if !hasPickup {
-			t.Errorf("expected email groups to contain a pickup location")
-		}
-	})
-
-	t.Run("no_login_details_for_existing_client", func(t *testing.T) {
-		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
-		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
-
-		runID := baseRunID + 7
-		fx := setupChkCliFixtures(t, h, "reuse2", runID)
-		clientEmail := fmt.Sprintf("chkcli-reuse2-%d@example.com", runID)
-
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-REUSE2A-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": clientEmail,
-		})
-		assertStatus(t, rec1, http.StatusOK)
-
-		// Create a second product/consignment for the second checkout
-		monitor2 := h.createMonitor(t, &fx.shopSession,
-			fmt.Sprintf("Monitor Reuse2B %d", runID),
-			fmt.Sprintf("api-chkcli-mon-reuse2b-%d@example.com", runID),
-			"27998209675")
-		pickup2 := h.createPickup(t, &fx.shopSession)
-		cat2 := h.createCategory(t, &fx.shopSession, fmt.Sprintf("cat-reuse2b-%d", runID))
-		prd2Name := fmt.Sprintf("Produto Reuse2B %d", runID)
-		prd2 := h.createProduct(t, &fx.shopSession, prd2Name, cat2.ID)
-		h.approveProduct(t, &fx.admin, prd2.ID)
-		cons2 := h.createConsignment(t, &fx.shopSession, pickup2.ID, monitor2.ID)
-		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
-		pkgID2 := h.getPackageID(t, prd2.ID, runID)
-
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-REUSE2B-%d", runID),
-			"items": []map[string]any{
-				{"package_id": pkgID2, "quantity": 1},
-			},
-			"client_email": clientEmail,
-		})
-		assertStatus(t, rec2, http.StatusOK)
-
-		// The second checkout sends a confirmation email with IsNewUser=false and no password
-		if h.mailer.SentConfirmation == nil {
-			t.Fatalf("expected a confirmation email to be sent")
-		}
-
-		email := h.mailer.SentConfirmation
-		if email.IsNewUser {
-			t.Errorf("expected IsNewUser=false for existing client")
-		}
-		if email.Password != "" {
-			t.Errorf("expected empty Password for existing client, got %q", email.Password)
-		}
-		if email.LoginURL != "" {
-			t.Errorf("expected empty LoginURL for existing client, got %q", email.LoginURL)
-		}
-		if email.ResetURL != "" {
-			t.Errorf("expected empty ResetURL for existing client, got %q", email.ResetURL)
-		}
-
-		// Should still have order info
-		if email.OrderID == "" {
-			t.Errorf("expected non-empty OrderID")
-		}
-		if len(email.Groups) == 0 {
-			t.Errorf("expected at least one pickup group")
-		}
-	})
-
-	t.Run("no_email_without_client_email", func(t *testing.T) {
-		// Ensure env vars are set so the mailer would send if called
-		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
-		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
-
-		runID := baseRunID + 8
-		fx := setupChkCliFixtures(t, h, "noemail2", runID)
-
-		prevData := h.mailer.SentConfirmation
-
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-REF-NOEMAIL2-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-		})
-		assertStatus(t, rec, http.StatusOK)
-
-		if h.mailer.SentConfirmation != prevData {
-			t.Fatalf("expected no new emails sent when client_email is missing")
-		}
-	})
 
 	// --- Telephone and CPF resolution tests ---
 
@@ -401,9 +240,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		clientEmail := fmt.Sprintf("telpw-%d@example.com", runID)
 		telephone := "11988887777"
-
-		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
-		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
@@ -415,17 +251,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"telephone":    telephone,
 		})
 		assertStatus(t, rec, http.StatusOK)
-
-		if h.mailer.SentConfirmation == nil {
-			t.Fatal("expected a pickup confirmation email to be sent")
-		}
-		email := h.mailer.SentConfirmation
-		if !email.IsNewUser {
-			t.Fatal("expected IsNewUser=true")
-		}
-		if email.Password != telephone {
-			t.Fatalf("expected password %q in email, got %q", telephone, email.Password)
-		}
 
 		// Verify telephone stored on client
 		cl := queryClientByEmail(t, h.pool, clientEmail)
@@ -449,8 +274,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 		syntheticEmail := cpf + "@br"
 
-		prevData := h.mailer.SentConfirmation
-
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFONLY-%d", runID),
@@ -460,11 +283,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"cpf": cpf,
 		})
 		assertStatus(t, rec, http.StatusOK)
-
-		// Verify no email was sent (synthetic)
-		if h.mailer.SentConfirmation != prevData {
-			t.Fatal("expected no email sent for synthetic CPF email")
-		}
 
 		// Verify client created with synthetic email
 		cl := queryClientByEmail(t, h.pool, syntheticEmail)
@@ -488,8 +306,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		telephone := "21988887777"
 		syntheticEmail := telephone + "@tele"
 
-		prevData := h.mailer.SentConfirmation
-
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-TELONLY-%d", runID),
@@ -499,10 +315,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"telephone": telephone,
 		})
 		assertStatus(t, rec, http.StatusOK)
-
-		if h.mailer.SentConfirmation != prevData {
-			t.Fatal("expected no email sent for synthetic telephone email")
-		}
 
 		cl := queryClientByEmail(t, h.pool, syntheticEmail)
 		if cl.Name != "usuario-"+telephone {
@@ -529,8 +341,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		telephone := "11988887777"
 		syntheticEmail := cpf + "@br"
 
-		prevData := h.mailer.SentConfirmation
-
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFTEL-%d", runID),
@@ -541,10 +351,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"cpf":       cpf,
 		})
 		assertStatus(t, rec, http.StatusOK)
-
-		if h.mailer.SentConfirmation != prevData {
-			t.Fatal("expected no email sent for synthetic CPF email")
-		}
 
 		cl := queryClientByEmail(t, h.pool, syntheticEmail)
 		if cl.CPF == nil || *cl.CPF != cpf {
@@ -571,9 +377,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 		telephone := "11988887777"
 
-		t.Setenv("PV_API_LOGIN_LINK", "https://pvaauto.example.com/login")
-		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
-
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REALWINS-%d", runID),
@@ -585,20 +388,6 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"cpf":          cpf,
 		})
 		assertStatus(t, rec, http.StatusOK)
-
-		if h.mailer.SentConfirmation == nil {
-			t.Fatal("expected a confirmation email to be sent for real email")
-		}
-		email := h.mailer.SentConfirmation
-		if email.Email != clientEmail {
-			t.Fatalf("expected email=%q, got %q", clientEmail, email.Email)
-		}
-		if !email.IsNewUser {
-			t.Fatal("expected IsNewUser=true")
-		}
-		if email.Password != telephone {
-			t.Fatalf("expected password=%q from telephone, got %q", telephone, email.Password)
-		}
 
 		cl := queryClientByEmail(t, h.pool, clientEmail)
 		if cl.CPF == nil || *cl.CPF != cpf {

@@ -50,6 +50,7 @@ SELECT
 FROM decrement d
 JOIN products p ON p.id = d.product_id
 JOIN consignments c ON c.id = d.consignment_id
+RETURNING unique_id, package_id
 `
 
 	FindCheckoutByContentHashQuery = `
@@ -67,6 +68,12 @@ FOR UPDATE
 
 	FindCheckoutIDByUniqueIDQuery = `
 SELECT id FROM checkouts WHERE unique_id = $1
+`
+
+	FindPackageReservedByCheckoutQuery = `
+SELECT unique_id, package_id
+FROM package_reserved
+WHERE checkout_id = $1
 `
 
 	ResolvePickupEmailDataQuery = `

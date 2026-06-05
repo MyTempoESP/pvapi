@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 
-	"linhazero.com/pvapi/db"
-	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
 	"linhazero.com/pvapi/util/checkouthash"
@@ -37,11 +34,16 @@ type PackageStock struct {
 	Available int `db:"available"`
 }
 
+type QRCodeEntry struct {
+	PackageID int    `json:"package_id"`
+	QrCode    string `json:"qr_code"`
+}
+
 type ConfirmResponse struct {
-	UniqueID   string `json:"unique_id"`
-	Status     string `json:"status"`
-	QrCode     string `json:"qr_code"`
-	CheckoutID int    `json:"-"`
+	UniqueID   string        `json:"unique_id"`
+	Status     string        `json:"status"`
+	QrCodes    []QRCodeEntry `json:"qr_codes"`
+	CheckoutID int           `json:"-"`
 }
 
 var (
@@ -98,15 +100,15 @@ func Confirm(
 			return resp, err
 		}
 
-		qr, err := qrcode.Encode(uniqueID)
+		qrEntries, err := findPackageReservedQRCodes(ctx, tx, checkoutID)
 		if err != nil {
-			return resp, fmt.Errorf("failed to generate qr code: %w", err)
+			return resp, err
 		}
 
 		resp.CheckoutID = checkoutID
 		resp.UniqueID = uniqueID
 		resp.Status = "paid"
-		resp.QrCode = qr
+		resp.QrCodes = qrEntries
 		return resp, tx.Commit(ctx)
 	}
 
@@ -115,7 +117,8 @@ func Confirm(
 		return resp, err
 	}
 
-	if err := writeCheckoutData(ctx, tx, checkoutID, uniqueID, req.Items); err != nil {
+	qrEntries, err := writeCheckoutData(ctx, tx, checkoutID, uniqueID, req.Items)
+	if err != nil {
 		return resp, err
 	}
 
@@ -123,15 +126,10 @@ func Confirm(
 		return resp, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	qr, err := qrcode.Encode(uniqueID)
-	if err != nil {
-		return resp, fmt.Errorf("failed to generate qr code: %w", err)
-	}
-
 	resp.CheckoutID = checkoutID
 	resp.UniqueID = uniqueID
 	resp.Status = "paid"
-	resp.QrCode = qr
+	resp.QrCodes = qrEntries
 	return resp, nil
 }
 
@@ -168,101 +166,7 @@ func validateStock(
 	return nil
 }
 
-// pickupEmailRow is a single row from ResolvePickupEmailDataQuery.
-type pickupEmailRow struct {
-	PickupName     string `db:"pickup_name"`
-	ProductName    string `db:"product_name"`
-	Quantity       int    `db:"quantity"`
-	AddrStreet     string `db:"addrstreet"`
-	AddrNumber     int    `db:"addrnumber"`
-	AddrCity       string `db:"addrcity"`
-	AddrState      string `db:"addrstate"`
-	AddrCep        string `db:"addrcep"`
-	AddrNeigh      string `db:"addrneigh"`
-	AddrComplement string `db:"addrcomplement"`
-}
 
-// ResolvePickupEmailData looks up product names and pickup locations
-// for the given checkout items and returns them grouped by pickup location.
-func ResolvePickupEmailData(
-	ctx context.Context,
-	base db.Queryable,
-	items []ConfirmItem,
-) ([]mail.PickupGroup, error) {
-	pkgIDs := make([]int, len(items))
-	qtys := make([]int, len(items))
-	for i, item := range items {
-		pkgIDs[i] = item.PackageID
-		qtys[i] = item.Quantity
-	}
-
-	rows, err := util.WithCollect[pickupEmailRow](
-		ctx, base,
-		query.ResolvePickupEmailDataQuery,
-		pkgIDs,
-		qtys,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve pickup email data: %w", err)
-	}
-
-	var groups []mail.PickupGroup
-	var current *mail.PickupGroup
-
-	for _, row := range rows {
-		if current == nil || current.PickupName != row.PickupName {
-			if current != nil {
-				groups = append(groups, *current)
-			}
-			current = &mail.PickupGroup{
-				PickupName: row.PickupName,
-				Address:    formatPickupAddress(row),
-				Items:      make([]mail.PickupItem, 0),
-			}
-		}
-		current.Items = append(current.Items, mail.PickupItem{
-			ProductName: row.ProductName,
-			Quantity:    row.Quantity,
-		})
-	}
-	if current != nil {
-		groups = append(groups, *current)
-	}
-
-	return groups, nil
-}
-
-// formatPickupAddress formats a pickupEmailRow's address fields into a
-// single-line address string. Returns nil when no address data is present.
-func formatPickupAddress(row pickupEmailRow) *mail.PickupAddress {
-	if row.AddrStreet == "" {
-		return nil
-	}
-
-	var b strings.Builder
-	b.WriteString(row.AddrStreet)
-	b.WriteString(", ")
-	fmt.Fprint(&b, row.AddrNumber)
-
-	if row.AddrComplement != "" && row.AddrComplement != "nenhum" {
-		b.WriteString(", ")
-		b.WriteString(row.AddrComplement)
-	}
-
-	b.WriteString(" — ")
-	if row.AddrNeigh != "" {
-		b.WriteString(row.AddrNeigh)
-		b.WriteString(", ")
-	}
-	b.WriteString(row.AddrCity)
-	b.WriteString("/")
-	b.WriteString(row.AddrState)
-
-	b.WriteString(" — CEP ")
-	b.WriteString(row.AddrCep)
-
-	return &mail.PickupAddress{Formatted: b.String()}
-}
 
 // insertCheckoutContentHash inserts a checkout with content-hash dedup.
 // Returns (0, "", nil) when the content_hash already exists.
@@ -323,27 +227,41 @@ func buildDescription(externalReference string, totalItems int) string {
 	return fmt.Sprintf("%s — %d items", reference, totalItems)
 }
 
-// writeCheckoutData writes the remaining checkout data (package reservations,
-// financial breakdown, discrepancy) after a new checkout row is inserted.
+// writeCheckoutData writes package reservations, generates QR codes per
+// package, and records financial breakdown.
 func writeCheckoutData(
 	ctx context.Context,
 	tx pgx.Tx,
 	checkoutID int,
 	uniqueID string,
 	items []ConfirmItem,
-) error {
-	batch := &pgx.Batch{}
+) ([]QRCodeEntry, error) {
+	var entries []QRCodeEntry
+
 	for _, item := range items {
-		batch.Queue(
+		var pkgUniqueID string
+		var pkgID int
+
+		err := tx.QueryRow(
+			ctx,
 			query.InsertPackageReservedQuery,
 			item.PackageID,
 			checkoutID,
 			item.Quantity,
-		)
-	}
+		).Scan(&pkgUniqueID, &pkgID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to reserve package %d: %w", item.PackageID, err)
+		}
 
-	if err := util.Bake(ctx, tx, batch); err != nil {
-		return fmt.Errorf("failed to reserve stock: %w", err)
+		qr, err := qrcode.Encode(pkgUniqueID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate qr code for package %d: %w", pkgID, err)
+		}
+
+		entries = append(entries, QRCodeEntry{
+			PackageID: pkgID,
+			QrCode:    qr,
+		})
 	}
 
 	// Insert per-shop financial breakdown
@@ -354,7 +272,7 @@ func writeCheckoutData(
 		uniqueID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to insert checkout_shop: %w", err)
+		return nil, fmt.Errorf("failed to insert checkout_shop: %w", err)
 	}
 
 	// Compute and store value_discrepancy
@@ -364,8 +282,43 @@ func writeCheckoutData(
 		checkoutID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update value_discrepancy: %w", err)
+		return nil, fmt.Errorf("failed to update value_discrepancy: %w", err)
 	}
 
-	return nil
+	return entries, nil
+}
+
+// findPackageReservedQRCodes fetches package_reserved rows for a checkout
+// and generates QR codes for each one (dedup path).
+func findPackageReservedQRCodes(
+	ctx context.Context,
+	tx pgx.Tx,
+	checkoutID int,
+) ([]QRCodeEntry, error) {
+	rows, err := tx.Query(ctx, query.FindPackageReservedByCheckoutQuery, checkoutID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query package_reserved for checkout %d: %w", checkoutID, err)
+	}
+	defer rows.Close()
+
+	var entries []QRCodeEntry
+	for rows.Next() {
+		var uid string
+		var pkgID int
+		if err := rows.Scan(&uid, &pkgID); err != nil {
+			return nil, fmt.Errorf("failed to scan package_reserved row: %w", err)
+		}
+
+		qr, err := qrcode.Encode(uid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate qr code for package %d: %w", pkgID, err)
+		}
+
+		entries = append(entries, QRCodeEntry{
+			PackageID: pkgID,
+			QrCode:    qr,
+		})
+	}
+
+	return entries, rows.Err()
 }
