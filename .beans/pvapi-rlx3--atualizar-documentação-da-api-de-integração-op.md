@@ -1,11 +1,11 @@
 ---
 # pvapi-rlx3
 title: Atualizar documentação da API de integração (OpenAPI + llms.txt) e remover session_id do checkout
-status: todo
+status: done
 type: feature
 priority: normal
 created_at: 2026-06-05T01:29:55Z
-updated_at: 2026-06-05T01:29:59Z
+updated_at: 2026-06-05T01:34:59Z
 ---
 
 ## Problem Statement
@@ -93,4 +93,4 @@ A documentação final deve descrever fielmente a API pública real:
 - O campo `pickups` em produtos vem de `BatchFetchPickups`, que faz join entre packages, consignments, e pickup_locations.
 - O `index.html` gerado pelo Redocly (`build-docs`) será reconstruído automaticamente a partir do YAML atualizado.
 
-Triage: ready-for-agent
+Triage: done
