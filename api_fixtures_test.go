@@ -326,9 +326,8 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 
 	packageID := h.getPackageID(t, prd.ID, runID)
 
-	sessionID := fmt.Sprintf("earnings-checkout-%d", runID)
 
-	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 		"value_paid":         "3.00",
 		"external_reference": fmt.Sprintf("EXT-REF-EARN-%d", runID),
 		"items": []map[string]any{

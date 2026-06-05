@@ -49,7 +49,6 @@ var (
 func Confirm(
 	ctx context.Context,
 	pool *pgxpool.Pool,
-	sessionID string,
 	req ConfirmRequest,
 ) (ConfirmResponse, error) {
 	var resp ConfirmResponse
@@ -81,7 +80,6 @@ func Confirm(
 
 	checkoutID, uniqueID, err = writeCheckout(
 		ctx, tx,
-		sessionID,
 		req.ExternalReference,
 		value,
 		req.Items,
@@ -258,7 +256,7 @@ func formatPickupAddress(row pickupEmailRow) *mail.PickupAddress {
 func writeCheckout(
 	ctx context.Context,
 	tx pgx.Tx,
-	sessionID, externalReference string,
+	externalReference string,
 	value decimal.Decimal,
 	items []ConfirmItem,
 ) (checkoutID int, uniqueID string, err error) {
@@ -268,8 +266,8 @@ func writeCheckout(
 	}
 
 	description := fmt.Sprintf(
-		"Checkout for session %s — %d items",
-		sessionID,
+		"Checkout %s — %d items",
+		externalReference,
 		totalItems,
 	)
 

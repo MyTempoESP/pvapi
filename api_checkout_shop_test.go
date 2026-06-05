@@ -86,11 +86,10 @@ func TestCheckoutShopFreeze(t *testing.T) {
 	//   Shop1 consignment: comission_value=3, comission_type='FIXED'
 	//   Shop2 consignment: comission_value=3, comission_type='PERCENT'
 
-	sessionID := fmt.Sprintf("chkshop-checkout-%d", runID)
 
 	// Checkout with value_paid different from actual to test discrepancy
 	externalRef := fmt.Sprintf("EXT-REF-CS-%d", runID)
-	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 		"value_paid":         "99.99",
 		"external_reference": externalRef,
 		"items": []map[string]any{
@@ -320,12 +319,11 @@ func TestCheckoutShopClientID(t *testing.T) {
 	t.Run("populates_client_id_when_email_provided", func(t *testing.T) {
 		runID := baseRunID + 1
 		pkgID := h.getPackageID(t, prd.ID, runID)
-		sessionID := fmt.Sprintf("chkshopcli-email-%d", runID)
 
 		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
 		externalRef := fmt.Sprintf("EXT-REF-CLI-%d", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": externalRef,
 			"items": []map[string]any{
@@ -374,11 +372,10 @@ func TestCheckoutShopClientID(t *testing.T) {
 	t.Run("leaves_client_id_null_when_no_email", func(t *testing.T) {
 		runID := baseRunID + 2
 		pkgID := h.getPackageID(t, prd.ID, runID)
-		sessionID := fmt.Sprintf("chkshopcli-noemail-%d", runID)
 
 		externalRef := fmt.Sprintf("EXT-REF-NOCLI-%d", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": externalRef,
 			"items": []map[string]any{
