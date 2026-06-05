@@ -12,6 +12,23 @@ type chkDedupFixtures struct {
 	admin     apiSession
 }
 
+// genCPF returns an 11-digit CPF string derived from seed.
+func genCPF(seed int64) string {
+	s := fmt.Sprintf("%d", seed)
+	if len(s) > 11 {
+		s = s[len(s)-11:]
+	}
+	return s
+}
+
+// doDedupConfirm sends a checkout/confirm and returns the decoded body.
+func doDedupConfirm(t *testing.T, h *apiHarness, fx chkDedupFixtures, body map[string]any) map[string]any {
+	t.Helper()
+	rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, body)
+	assertStatus(t, rec, http.StatusOK)
+	return decodeJSON(t, rec)
+}
+
 func setupChkDedupFixtures(t *testing.T, h *apiHarness, tag string, runID int64) chkDedupFixtures {
 	t.Helper()
 
@@ -248,6 +265,98 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		}
 		if asString(t, body["unique_id"]) == "" {
 			t.Fatal("expected non-empty unique_id")
+		}
+	})
+
+	t.Run("cpf_only_identical_payload_dedup", func(t *testing.T) {
+		runID := baseRunID + 7
+		fx := setupChkDedupFixtures(t, h, "cpfdedup", runID)
+		cpf := genCPF(10000000000 + runID)
+
+		r1 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-CPFDEDUP-A-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":                cpf,
+		})
+		r2 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-CPFDEDUP-B-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":                cpf,
+		})
+
+		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
+			t.Fatalf("expected same unique_id for identical CPF payload, got %q vs %q",
+				r1["unique_id"], r2["unique_id"])
+		}
+	})
+
+	t.Run("cpf_only_different_cpf_produces_different_checkout", func(t *testing.T) {
+		runID := baseRunID + 8
+		fx := setupChkDedupFixtures(t, h, "cpfdiff", runID)
+
+		r1 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-CPFDIFF-A-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":                genCPF(20000000000 + runID),
+		})
+		r2 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-CPFDIFF-B-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":                genCPF(30000000000 + runID),
+		})
+
+		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
+			t.Fatal("expected different unique_id for different CPFs")
+		}
+	})
+
+	t.Run("telephone_only_identical_payload_dedup", func(t *testing.T) {
+		runID := baseRunID + 9
+		fx := setupChkDedupFixtures(t, h, "teldedup", runID)
+		tel := fmt.Sprintf("%d", 11900000000+runID%1000000)
+
+		r1 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-TELDEDUP-A-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":          tel,
+		})
+		r2 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-TELDEDUP-B-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":          tel,
+		})
+
+		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
+			t.Fatalf("expected same unique_id for identical telephone payload, got %q vs %q",
+				r1["unique_id"], r2["unique_id"])
+		}
+	})
+
+	t.Run("telephone_only_different_telephone_produces_different_checkout", func(t *testing.T) {
+		runID := baseRunID + 10
+		fx := setupChkDedupFixtures(t, h, "teldiff", runID)
+
+		r1 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-TELDIFF-A-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":          fmt.Sprintf("%d", 21900000000+runID%1000000),
+		})
+		r2 := doDedupConfirm(t, h, fx, map[string]any{
+			"value_paid":         "3.00",
+			"external_reference": fmt.Sprintf("EXT-TELDIFF-B-%d", runID),
+			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":          fmt.Sprintf("%d", 22900000000+runID%1000000),
+		})
+
+		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
+			t.Fatal("expected different unique_id for different telephones")
 		}
 	})
 }

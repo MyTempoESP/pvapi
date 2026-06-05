@@ -45,12 +45,15 @@ func SetCheckoutShopClientID(
 // - If the email already belongs to a client, returns the existing client ID with isNew=false.
 // - If the email belongs to a non-client user, returns ErrDuplicatedResource.
 // - The password hash is pre-computed (bcrypt is heavy — hash outside the tx).
+// - telephone and cpf are stored on the client row for new accounts.
 func Create(
 	ctx context.Context,
 	tx pgx.Tx,
 	clientName,
 	clientEmail string,
 	passwordHash []byte,
+	telephone string,
+	cpf string,
 ) (clientID int, isNew bool, err error) {
 	userID, err := usermodel.FindByEmail(ctx, tx, clientEmail)
 
@@ -68,7 +71,8 @@ func Create(
 		err = tx.QueryRow(
 			ctx, query.CreateClientQuery,
 			userID,
-			nil, // telephone is not captured during checkout
+			telephone,
+			cpf,
 		).Scan(&clientID)
 		if err != nil {
 			return 0, false, fmt.Errorf("error creating client: %w", err)
@@ -97,6 +101,8 @@ func Create(
 // CreateAndAssociateByCheckout wraps Create plus writing client_id to
 // checkouts, checkout_shop, and package_reserved tables using the
 // given checkout_id. It opens its own transaction.
+// telephone and cpf are normalized values; empty means not provided.
+// For existing clients, only explicitly provided fields are updated.
 func CreateAndAssociateByCheckout(
 	ctx context.Context,
 	pool *pgxpool.Pool,
@@ -104,14 +110,24 @@ func CreateAndAssociateByCheckout(
 	clientEmail string,
 	passwordHash []byte,
 	checkoutID int,
+	telephone string,
+	cpf string,
 ) (isNew bool, err error) {
 	err = util.TransactionAware(ctx, pool,
 		func(ctx context.Context, tx pgx.Tx) error {
-			clientID, isNewFlag, err := Create(ctx, tx, clientName, clientEmail, passwordHash)
+			clientID, isNewFlag, err := Create(ctx, tx, clientName, clientEmail, passwordHash, telephone, cpf)
 			if err != nil {
 				return err
 			}
 			isNew = isNewFlag
+
+			// For existing clients, update only the fields that were actually provided
+			if !isNewFlag && (telephone != "" || cpf != "") {
+				if _, err := tx.Exec(ctx, query.UpdateClientFieldsQuery, clientID, telephone, cpf); err != nil {
+					return fmt.Errorf("error updating existing client fields: %w", err)
+				}
+			}
+
 			if err := SetCheckoutClientID(ctx, tx, clientID, checkoutID); err != nil {
 				return err
 			}

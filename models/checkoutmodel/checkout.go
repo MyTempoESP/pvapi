@@ -29,6 +29,8 @@ type ConfirmRequest struct {
 	Items             []ConfirmItem `json:"items" binding:"required,min=1,dive"`
 	ClientEmail       string        `json:"client_email"`
 	ClientName        string        `json:"client_name"`
+	Telephone         string        `json:"telephone"`
+	CPF               string        `json:"cpf"`
 }
 
 type PackageStock struct {

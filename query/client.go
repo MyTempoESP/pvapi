@@ -2,10 +2,18 @@ package query
 
 const (
 	CreateClientQuery = `
-INSERT INTO clients (user_id, telephone)
-VALUES ($1, $2)
+INSERT INTO clients (user_id, telephone, cpf)
+VALUES ($1, NULLIF($2, ''), NULLIF($3, ''))
 ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
 RETURNING id
+`
+
+	UpdateClientFieldsQuery = `
+UPDATE clients
+SET
+	telephone = CASE WHEN $2::TEXT != '' THEN $2::TEXT ELSE telephone END,
+	cpf       = CASE WHEN $3::TEXT != '' THEN $3::TEXT ELSE cpf END
+WHERE id = $1
 `
 
 	ListShopClientsQuery = `

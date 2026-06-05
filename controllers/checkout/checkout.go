@@ -12,6 +12,7 @@ import (
 	"linhazero.com/pvapi/models/checkoutmodel"
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/checkoutclient"
 )
 
 func ConfirmHandler(
@@ -25,6 +26,18 @@ func ConfirmHandler(
 			util.HandleBadRequest(c, err)
 			return
 		}
+
+		// Resolve identity from raw request fields before Confirm
+		ci := checkoutclient.Resolve(
+			req.ClientEmail,
+			req.Telephone,
+			req.CPF,
+			req.ClientName,
+		)
+
+		// Effective email (real or synthetic) participates in content
+		// hash for dedup, preventing cross-customer collisions.
+		req.ClientEmail = ci.EffectiveEmail
 
 		resp, err := checkoutmodel.Confirm(
 			c.Request.Context(),
@@ -58,9 +71,9 @@ func ConfirmHandler(
 			"qr_code":   resp.QrCode,
 		})
 
-		// Best-effort email after response is sent
-		if req.ClientEmail != "" {
-			sendConfirmationAfterCheckout(c, pool, m, req, resp)
+		// Best-effort client creation and email after response is sent
+		if ci.EffectiveEmail != "" {
+			sendConfirmationAfterCheckout(c, pool, m, ci, req.Items, resp)
 		}
 	}
 }
@@ -69,21 +82,11 @@ func sendConfirmationAfterCheckout(
 	c *gin.Context,
 	pool *pgxpool.Pool,
 	m mail.Mailer,
-	req checkoutmodel.ConfirmRequest,
+	ci checkoutclient.CheckoutClientOutput,
+	items []checkoutmodel.ConfirmItem,
 	resp checkoutmodel.ConfirmResponse,
 ) {
-	clientName := req.ClientName
-	if clientName == "" {
-		clientName = util.DeriveClientName(req.ClientEmail)
-	}
-
-	plaintext, err := util.GenerateRandomPassword(16)
-	if err != nil {
-		util.LogError(c, "failed to generate random password", "error", err)
-		return
-	}
-
-	hash, err := util.HashPassword(plaintext)
+	hash, err := util.HashPassword(ci.Password)
 	if err != nil {
 		util.LogError(c, "failed to hash password", "error", err)
 		return
@@ -93,33 +96,33 @@ func sendConfirmationAfterCheckout(
 
 	isNew, err := clientmodel.CreateAndAssociateByCheckout(
 		ctx, pool,
-		clientName, req.ClientEmail,
+		ci.ClientName, ci.EffectiveEmail,
 		hash,
 		resp.CheckoutID,
+		ci.NormalizedPhone,
+		ci.ValidatedCPF,
 	)
 	if err != nil {
 		util.LogError(c, "failed to create client from checkout",
 			"error", err,
-			"email", req.ClientEmail,
 			"checkout_id", resp.CheckoutID,
 		)
 		return
 	}
 
 	util.LogInfo(c, "client created/reused from checkout",
-		"email", req.ClientEmail,
 		"checkout_id", resp.CheckoutID,
 		"is_new", isNew,
 	)
 
-	if m == nil {
+	if m == nil || ci.IsSyntheticEmail {
 		return
 	}
 
 	// Resolve pickup groups for the email
 	groups, err := checkoutmodel.ResolvePickupEmailData(
 		ctx, pool,
-		req.Items,
+		items,
 	)
 	if err != nil {
 		util.LogError(c, "failed to resolve pickup email data",
@@ -133,8 +136,8 @@ func sendConfirmationAfterCheckout(
 		QrCode:    resp.QrCode,
 		Groups:    groups,
 		IsNewUser: isNew,
-		Name:      clientName,
-		Email:     req.ClientEmail,
+		Name:      ci.ClientName,
+		Email:     ci.EffectiveEmail,
 	}
 
 	if isNew {
@@ -142,26 +145,26 @@ func sendConfirmationAfterCheckout(
 		resetURL, resetErr := env.SMTPResetLink()
 		if loginErr != nil || resetErr != nil || loginURL == "" || resetURL == "" {
 			util.LogWarn(c, "mail: login link or reset link not configured, skipping login details",
-				"email", req.ClientEmail,
+				"email", ci.EffectiveEmail,
 			)
 		} else {
-			emailData.Password = plaintext
+			emailData.Password = ci.Password
 			emailData.LoginURL = loginURL
 			emailData.ResetURL = resetURL
 		}
 	}
 
 	if err := m.SendPickupConfirmation(
-		ctx, req.ClientEmail,
+		ctx, ci.EffectiveEmail,
 		emailData,
 	); err != nil {
 		util.LogError(c, "failed to send pickup confirmation email",
 			"error", err,
-			"email", req.ClientEmail,
+			"email", ci.EffectiveEmail,
 		)
 	} else {
 		util.LogInfo(c, "pickup confirmation email sent",
-			"email", req.ClientEmail,
+			"email", ci.EffectiveEmail,
 		)
 	}
 }
