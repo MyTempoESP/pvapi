@@ -15,12 +15,10 @@ info:
     2. Confirmar checkout via `POST /checkouts/confirm` com os `package_id`
        obtidos no passo anterior — sem carrinho intermediário.
 
-    **Criação automática de cliente:**
-     - Se `client_email` for informado no checkout, uma conta de cliente é
-       criada (best-effort, após a resposta HTTP). Se SMTP estiver configurado,
-       um email de boas-vindas com senha gerada é enviado.
-     - O parâmetro `client_name` é opcional — um nome é derivado do email
-       quando omitido.
+    **Identificação do cliente:**
+     - `cpf` e `telephone` identificam o cliente no checkout.
+     - A senha da conta é os dígitos do telefone se informado, ou aleatória (16 chars).
+     - CPF e telephone nunca aparecem na resposta do checkout nem em logs.
 
     **Idempotência:**
      - `POST /checkouts/confirm` é idempotente via `external_reference`.
@@ -56,10 +54,9 @@ paths:
         Os `package_id` são obtidos no campo `pickups` dos produtos
         (`GET /produtos` ou `GET /produtos/:product`).
 
-        **Criação automática de cliente:** se `client_email` for informado,
-        uma conta de cliente é criada (best-effort) após o checkout. Um nome
-        é derivado do email caso `client_name` seja omitido. Se SMTP estiver
-        configurado, um email de boas-vindas com a senha gerada é enviado.
+        **Identificação do cliente:** `cpf` e `telephone` identificam
+        o cliente. A senha é os dígitos do telefone se informado, ou
+        aleatória (16 chars).
       operationId: confirmarCheckout
       requestBody:
         required: true
@@ -281,19 +278,23 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/ItemCheckout"
-        client_email:
+        telephone:
           type: string
-          description: Email para criação automática da conta de cliente após o checkout
+          description: Telefone do cliente. Dígitos são extraídos; formatação é ignorada. Usado como senha da conta quando informado, e como identidade quando CPF não é fornecido.
+        cpf:
+          type: string
+          description: CPF do cliente. Deve ter exatamente 11 dígitos após remoção de formatação. Identifica o cliente; tem prioridade sobre telephone.
         client_name:
           type: string
-          description: Nome para a conta de cliente (derivado do email se omitido)
+          description: Nome do cliente (opcional).
       example:
         value_paid: "600"
         external_reference: "pay_abc123"
         items:
           - package_id: 42
             quantity: 1
-        client_email: "cliente@email.com"
+        telephone: "11988887777"
+        cpf: "12345678901"
         client_name: "Nome do Cliente"
 
     RespostaCheckout:

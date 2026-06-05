@@ -229,10 +229,26 @@ if menu == "Checkout":
             "E-mail do cliente (opcional)",
             value="",
             placeholder="cliente@exemplo.com",
-            help="Se informado, cria conta de cliente e envia e-mail de confirmação.",
+            help="Se informado, cria conta de cliente e envia e-mail de confirmação. Pode ser omitido se telephone ou CPF forem fornecidos.",
         )
     with col4:
         client_name = st.text_input("Nome do cliente (opcional)", value="", placeholder="Fulano de Tal")
+
+    col5, col6 = st.columns(2)
+    with col5:
+        telephone = st.text_input(
+            "Telefone (opcional)",
+            value="",
+            placeholder="11988887777",
+            help="Dígitos são extraídos; formatação é ignorada. Usado como senha da conta e como identidade fallback.",
+        )
+    with col6:
+        cpf = st.text_input(
+            "CPF (opcional)",
+            value="",
+            placeholder="12345678901",
+            help="11 dígitos; formatação é ignorada. Usado como identidade fallback (prioridade sobre telephone).",
+        )
 
     # Summary of selected items
     if st.session_state.selected_items:
@@ -260,6 +276,10 @@ if menu == "Checkout":
                 payload["client_email"] = client_email.strip()
                 if client_name.strip():
                     payload["client_name"] = client_name.strip()
+            if telephone.strip():
+                payload["telephone"] = telephone.strip()
+            if cpf.strip():
+                payload["cpf"] = cpf.strip()
 
             with st.spinner("Finalizando compra..."):
                 r = req(
