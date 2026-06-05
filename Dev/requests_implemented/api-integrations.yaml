@@ -189,38 +189,6 @@ paths:
                 $ref: "#/components/schemas/RespostaListaRemessasPublicas"
 
   # ═══════════════════════════════════════════════════════════════
-  # Remessas por loja
-  # ═══════════════════════════════════════════════════════════════
-  /estabelecimentos/{shop}/remessas:
-    get:
-      tags: [Remessas]
-      summary: Lista remessas de uma loja específica
-      description: |
-        Retorna todas as remessas/consignments vinculadas a uma loja
-        específica, identificada pelo slug.
-      operationId: listarRemessasPorLoja
-      parameters:
-        - name: shop
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Slug da loja (identificador textual)
-      responses:
-        "200":
-          description: Lista de remessas da loja
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespostaListaRemessas"
-        "404":
-          description: Loja não encontrada
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RespostaErro"
-
-  # ═══════════════════════════════════════════════════════════════
   # Estabelecimentos (lojas)
   # ═══════════════════════════════════════════════════════════════
   /estabelecimentos:
