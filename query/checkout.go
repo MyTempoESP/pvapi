@@ -7,15 +7,18 @@ INSERT INTO checkouts
 		value,
 		status,
 		description,
-		external_reference
+		external_reference,
+		content_hash
 	)
 VALUES
 	(
 		@value,
 		'paid',
 		@description,
-		@external_reference
+		@external_reference,
+		@content_hash
 	)
+ON CONFLICT (content_hash) DO NOTHING
 RETURNING id, unique_id
 `
 
@@ -49,10 +52,10 @@ JOIN products p ON p.id = d.product_id
 JOIN consignments c ON c.id = d.consignment_id
 `
 
-	FindCheckoutByExternalRefQuery = `
+	FindCheckoutByContentHashQuery = `
 SELECT id, unique_id
 FROM checkouts
-WHERE external_reference = $1
+WHERE content_hash = $1
 `
 
 	CheckPackageAvailabilityQuery = `

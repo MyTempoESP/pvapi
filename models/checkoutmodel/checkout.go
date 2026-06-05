@@ -14,6 +14,7 @@ import (
 	"linhazero.com/pvapi/mail"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
+	"linhazero.com/pvapi/util/checkouthash"
 	"linhazero.com/pvapi/util/qrcode"
 )
 
@@ -24,7 +25,7 @@ type ConfirmItem struct {
 
 type ConfirmRequest struct {
 	ValuePaid         string        `json:"value_paid" binding:"required"`
-	ExternalReference string        `json:"external_reference" binding:"required"`
+	ExternalReference string        `json:"external_reference"`
 	Items             []ConfirmItem `json:"items" binding:"required,min=1,dive"`
 	ClientEmail       string        `json:"client_email"`
 	ClientName        string        `json:"client_name"`
@@ -53,38 +54,66 @@ func Confirm(
 ) (ConfirmResponse, error) {
 	var resp ConfirmResponse
 
+	hashItems := make([]checkouthash.Item, len(req.Items))
+	for i, it := range req.Items {
+		hashItems[i] = checkouthash.Item{PackageID: it.PackageID, Quantity: it.Quantity}
+	}
+
+	contentHash, err := checkouthash.Hash(req.ValuePaid, hashItems, req.ClientEmail)
+	if err != nil {
+		return resp, fmt.Errorf("failed to compute content hash: %w", err)
+	}
+
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return resp, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	checkoutID, uniqueID, done, err := checkIdempotency(
-		ctx, tx, req.ExternalReference,
-	)
-	if err != nil {
-		return resp, err
-	}
-	if done {
-		return ConfirmResponse{UniqueID: uniqueID, Status: "paid", CheckoutID: checkoutID}, tx.Commit(ctx)
-	}
-
-	if err := validateStock(ctx, tx, req.Items); err != nil {
-		return resp, err
-	}
-
 	value, err := decimal.NewFromString(req.ValuePaid)
 	if err != nil {
 		return resp, fmt.Errorf("invalid value_paid: %w", err)
 	}
 
-	checkoutID, uniqueID, err = writeCheckout(
-		ctx, tx,
-		req.ExternalReference,
-		value,
-		req.Items,
+	totalItems := 0
+	for _, item := range req.Items {
+		totalItems += item.Quantity
+	}
+
+	// Try INSERT with ON CONFLICT DO NOTHING — the idempotency mechanism.
+	// If the same content_hash already exists, INSERT is a no-op.
+	checkoutID, uniqueID, err := insertCheckoutContentHash(
+		ctx, tx, value, req.ExternalReference, contentHash, totalItems,
 	)
 	if err != nil {
+		return resp, err
+	}
+
+	if checkoutID == 0 {
+		// Duplicate content hash — fetch existing checkout
+		checkoutID, uniqueID, err = findCheckoutByContentHash(ctx, tx, contentHash)
+		if err != nil {
+			return resp, err
+		}
+
+		qr, err := qrcode.Encode(uniqueID)
+		if err != nil {
+			return resp, fmt.Errorf("failed to generate qr code: %w", err)
+		}
+
+		resp.CheckoutID = checkoutID
+		resp.UniqueID = uniqueID
+		resp.Status = "paid"
+		resp.QrCode = qr
+		return resp, tx.Commit(ctx)
+	}
+
+	// New checkout — validate stock and write remaining data
+	if err := validateStock(ctx, tx, req.Items); err != nil {
+		return resp, err
+	}
+
+	if err := writeCheckoutData(ctx, tx, checkoutID, uniqueID, req.Items); err != nil {
 		return resp, err
 	}
 
@@ -102,26 +131,6 @@ func Confirm(
 	resp.Status = "paid"
 	resp.QrCode = qr
 	return resp, nil
-}
-
-func checkIdempotency(
-	ctx context.Context,
-	tx pgx.Tx,
-	externalReference string,
-) (checkoutID int, uniqueID string, done bool, err error) {
-	err = tx.QueryRow(
-		ctx,
-		query.FindCheckoutByExternalRefQuery,
-		externalReference,
-	).Scan(&checkoutID, &uniqueID)
-
-	if err == nil {
-		return checkoutID, uniqueID, true, nil
-	}
-	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, "", false, nil
-	}
-	return 0, "", false, fmt.Errorf("failed to check idempotency: %w", err)
 }
 
 func validateStock(
@@ -253,23 +262,17 @@ func formatPickupAddress(row pickupEmailRow) *mail.PickupAddress {
 	return &mail.PickupAddress{Formatted: b.String()}
 }
 
-func writeCheckout(
+// insertCheckoutContentHash inserts a checkout with content-hash dedup.
+// Returns (0, "", nil) when the content_hash already exists.
+func insertCheckoutContentHash(
 	ctx context.Context,
 	tx pgx.Tx,
-	externalReference string,
 	value decimal.Decimal,
-	items []ConfirmItem,
+	externalReference string,
+	contentHash string,
+	totalItems int,
 ) (checkoutID int, uniqueID string, err error) {
-	totalItems := 0
-	for _, item := range items {
-		totalItems += item.Quantity
-	}
-
-	description := fmt.Sprintf(
-		"Checkout %s — %d items",
-		externalReference,
-		totalItems,
-	)
+	description := buildDescription(externalReference, totalItems)
 
 	err = tx.QueryRow(
 		ctx,
@@ -278,12 +281,55 @@ func writeCheckout(
 			"value":              value,
 			"description":        description,
 			"external_reference": externalReference,
+			"content_hash":       contentHash,
 		},
 	).Scan(&checkoutID, &uniqueID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// ON CONFLICT DO NOTHING — no row returned, existing checkout
+		return 0, "", nil
+	}
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to insert checkout: %w", err)
 	}
+	return checkoutID, uniqueID, nil
+}
 
+// findCheckoutByContentHash fetches an existing checkout by its content hash.
+func findCheckoutByContentHash(
+	ctx context.Context,
+	tx pgx.Tx,
+	contentHash string,
+) (checkoutID int, uniqueID string, err error) {
+	err = tx.QueryRow(
+		ctx,
+		query.FindCheckoutByContentHashQuery,
+		contentHash,
+	).Scan(&checkoutID, &uniqueID)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to find existing checkout: %w", err)
+	}
+	return checkoutID, uniqueID, nil
+}
+
+// buildDescription returns the checkout description.
+// Falls back to a generic label when external_reference is empty.
+func buildDescription(externalReference string, totalItems int) string {
+	reference := externalReference
+	if reference == "" {
+		reference = "Checkout"
+	}
+	return fmt.Sprintf("%s — %d items", reference, totalItems)
+}
+
+// writeCheckoutData writes the remaining checkout data (package reservations,
+// financial breakdown, discrepancy) after a new checkout row is inserted.
+func writeCheckoutData(
+	ctx context.Context,
+	tx pgx.Tx,
+	checkoutID int,
+	uniqueID string,
+	items []ConfirmItem,
+) error {
 	batch := &pgx.Batch{}
 	for _, item := range items {
 		batch.Queue(
@@ -295,18 +341,18 @@ func writeCheckout(
 	}
 
 	if err := util.Bake(ctx, tx, batch); err != nil {
-		return 0, "", fmt.Errorf("failed to reserve stock: %w", err)
+		return fmt.Errorf("failed to reserve stock: %w", err)
 	}
 
 	// Insert per-shop financial breakdown
-	_, err = tx.Exec(
+	_, err := tx.Exec(
 		ctx,
 		query.InsertCheckoutShopQuery,
 		checkoutID,
 		uniqueID,
 	)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to insert checkout_shop: %w", err)
+		return fmt.Errorf("failed to insert checkout_shop: %w", err)
 	}
 
 	// Compute and store value_discrepancy
@@ -316,8 +362,8 @@ func writeCheckout(
 		checkoutID,
 	)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to update value_discrepancy: %w", err)
+		return fmt.Errorf("failed to update value_discrepancy: %w", err)
 	}
 
-	return checkoutID, uniqueID, nil
+	return nil
 }
