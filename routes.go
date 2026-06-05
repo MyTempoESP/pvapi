@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/controllers/bankaccount"
-	"linhazero.com/pvapi/controllers/cart"
 	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/controllers/checkout"
 	"linhazero.com/pvapi/controllers/client"
@@ -207,14 +206,6 @@ func setupRoutes(
 			"/moderacao/saques/:id/rejeitar",
 			saque.AdminRejectHandler(pool),
 		)
-	}
-
-	carts := t.Group("/carrinho")
-	{
-		carts.GET("/dados", cart.ViewHandler(pool))
-		carts.POST("/adicionar", cart.AddProductHandler(pool))
-		carts.DELETE("/remover/:item", cart.RemoveHandler(pool))
-		carts.PUT("/atualizar/:item", cart.QuantityHandler(pool))
 	}
 
 	payments := t.Group("/payments")

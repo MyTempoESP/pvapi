@@ -25,38 +25,6 @@ type Client struct {
 	LastPurchase   *time.Time      `db:"last_purchase"`
 }
 
-// AssociateToCart sets the client_id on a cart and marks the session as finished.
-// This is the original consignment-flow association.
-func AssociateToCart(
-	ctx context.Context,
-	tx pgx.Tx,
-	clientID,
-	cartID int,
-) error {
-	_, err := tx.Exec(
-		ctx, query.ClientAssociateToCartQuery,
-		clientID,
-		cartID,
-	)
-	return err
-}
-
-// SetCartClientID sets only the client_id on a cart without touching session_id.
-// Used for post-checkout client association.
-func SetCartClientID(
-	ctx context.Context,
-	tx pgx.Tx,
-	clientID,
-	cartID int,
-) error {
-	_, err := tx.Exec(
-		ctx, query.UpdateCartClientIDQuery,
-		clientID,
-		cartID,
-	)
-	return err
-}
-
 // SetCheckoutShopClientID sets the client_id on checkout_shop rows for the
 // given checkout_id directly (no cart join).
 func SetCheckoutShopClientID(

@@ -1,11 +1,11 @@
 ---
 # pvapi-j1g6
 title: Rewrite client overview queries
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-06-04T23:05:32Z
-updated_at: 2026-06-04T23:05:38Z
+updated_at: 2026-06-05T00:02:12Z
 blocked_by:
     - pvapi-z9zw
 ---
@@ -28,3 +28,18 @@ Changes:
 ## Blocked by
 
 - pvapi-z9zw
+
+
+## Summary of Changes
+
+Rewrote `ClientOverviewCountsQuery` and `ClientOverviewPackagesQuery` in `query/client_overview.go` to use `pr.client_id` instead of joining through `checkouts.client_id`.
+
+Changes:
+- ****: Removed  entirely. Now filters directly with .
+- ****: Replaced  with . Kept the JOIN to  for .
+- No test changes needed — all 5  subtests pass.
+
+**Acceptance criteria verified:**
+- [x] Client overview endpoint returns correct order counts and packages
+- [x] No reference to `carts` table in overview queries
+- [x] Client overview test passes

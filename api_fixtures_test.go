@@ -261,18 +261,6 @@ func (h *apiHarness) addProductToConsignment(t *testing.T, session *apiSession, 
 	assertStatus(t, rec, http.StatusOK)
 }
 
-func (h *apiHarness) createCartItem(t *testing.T, sessionID string, productID, quantity int) {
-	t.Helper()
-
-	rec := h.doJSON(t, http.MethodPost, "/carrinho/adicionar", nil, map[string]any{
-		"product_id":      productID,
-		"quantity":        quantity,
-		"session_id":      sessionID,
-		"personalization": map[string]any{},
-	})
-	assertStatus(t, rec, http.StatusOK)
-}
-
 func (h *apiHarness) getPackageID(t *testing.T, productID int, runID int64) int {
 	t.Helper()
 
@@ -339,7 +327,6 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 	packageID := h.getPackageID(t, prd.ID, runID)
 
 	sessionID := fmt.Sprintf("earnings-checkout-%d", runID)
-	h.createCartItem(t, sessionID, prd.ID, 1)
 
 	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
 		"value_paid":         "3.00",

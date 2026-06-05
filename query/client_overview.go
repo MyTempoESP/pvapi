@@ -6,8 +6,7 @@ SELECT
 	COUNT(DISTINCT pr.checkout_id) AS total_orders,
 	COUNT(*) FILTER (WHERE pr.status != 'recebido') AS pending_count
 FROM package_reserved pr
-JOIN checkouts chk ON chk.id = pr.checkout_id
-WHERE chk.client_id = $1
+WHERE pr.client_id = $1
 `
 
 	ClientOverviewPackagesQuery = `
@@ -40,7 +39,7 @@ LEFT JOIN products prod ON prod.id = pkg.product_id
 LEFT JOIN consignments con ON con.id = pr.consignment_id
 LEFT JOIN pickup_locations pl ON pl.id = con.pickup_location_id
 LEFT JOIN aliased_addresses_view addr ON addr.address_id = pl.address_id
-WHERE chk.client_id = $1
+WHERE pr.client_id = $1
 ORDER BY pr.reserved_at DESC
 `
 )

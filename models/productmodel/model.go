@@ -600,28 +600,6 @@ func Take(
 }
 
 
-func TakeFromCart(
-	ctx context.Context,
-	tx pgx.Tx,
-	productID int,
-	cartItemID int,
-	qty int,
-) (err error) {
-	var currentQty int
-
-	if err = tx.QueryRow(
-		ctx,
-		query.VerifyCartItemQuantity,
-		productID,
-		cartItemID,
-	).Scan(&currentQty); err != nil {
-		return
-	}
-
-	return Take(ctx, tx, productID, qty, currentQty)
-}
-
-
 func TakeFromPackage(
 	ctx context.Context,
 	tx pgx.Tx,
