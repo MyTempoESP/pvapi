@@ -40,6 +40,16 @@ func (p AddProductRequest) Prepare(consignmentID int) AddProductAction {
 	}
 }
 
+type AddPickupAction struct {
+	ConsignmentID int
+	PickupID      int
+}
+
+type RemovePickupAction struct {
+	ConsignmentID int
+	PickupID      int
+}
+
 type RemoveProductAction struct {
 	ProductID     int
 	ConsignmentID int

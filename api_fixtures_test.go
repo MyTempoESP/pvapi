@@ -225,7 +225,7 @@ func (h *apiHarness) createConsignment(t *testing.T, session *apiSession, pickup
 	t.Helper()
 
 	rec := h.doJSON(t, http.MethodPost, "/remessas", session, map[string]any{
-		"destinationId": pickupID,
+		"destinationId": []any{pickupID},
 		"monitorId":     monitorID,
 		"status":        "CONFERIR - DEVOLUCAO",
 		"monitorProfit": 3,
@@ -313,7 +313,7 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 
 	// Use PERCENT comission so net earnings are positive
 	rec := h.doJSON(t, http.MethodPost, "/remessas", session, map[string]any{
-		"destinationId":           pickup.ID,
+		"destinationId":           []any{pickup.ID},
 		"monitorId":               monitor.ID,
 		"status":                  "CONFERIR - DEVOLUCAO",
 		"monitorProfitPercentage": 1,

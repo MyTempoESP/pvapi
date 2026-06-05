@@ -233,6 +233,76 @@ func RemoveProductHandler(
 	}
 }
 
+func AddPickupHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		consignmentID, err := strconv.Atoi(c.Param("consignment"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		var body struct {
+			DestinationID int `json:"destinationId" binding:"required"`
+		}
+		if err := c.ShouldBind(&body); err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		action := consignmentmodel.AddPickupAction{
+			ConsignmentID: consignmentID,
+			PickupID:      body.DestinationID,
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			action.Exec,
+		)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Ponto de retirada adicionado à remessa com sucesso")
+	}
+}
+
+func RemovePickupHandler(
+	pool *pgxpool.Pool,
+) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		consignmentID, err := strconv.Atoi(c.Param("consignment"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		pickupID, err := strconv.Atoi(c.Param("pickup"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		action := consignmentmodel.RemovePickupAction{
+			ConsignmentID: consignmentID,
+			PickupID:      pickupID,
+		}
+
+		err = util.TransactionAware(
+			c.Request.Context(), pool,
+			action.Exec,
+		)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "Ponto de retirada removido da remessa com sucesso")
+	}
+}
+
 func CreateHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

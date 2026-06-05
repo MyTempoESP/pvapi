@@ -122,6 +122,20 @@ func (c *ConsignmentGate) Dispatch(
 		return false, nil
 	}
 
+	if r.EndPoint("/pontos") {
+		if r.Method == "POST" {
+			return c.Modify(u, r)
+		}
+		return false, nil
+	}
+
+	if r.EndPoint("/pontos/:pickup") {
+		if r.Method == "DELETE" {
+			return c.Modify(u, r)
+		}
+		return false, nil
+	}
+
 	if r.Method == "GET" {
 		if id == "" {
 			return c.List(u, r)

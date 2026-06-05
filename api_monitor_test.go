@@ -92,8 +92,8 @@ func TestMonitor(t *testing.T) {
 		if _, ok := item["createdAt"]; !ok {
 			t.Fatal("expected createdAt field")
 		}
-		if _, ok := item["destination"]; !ok {
-			t.Fatal("expected destination field")
+		if _, ok := item["destinations"]; !ok {
+			t.Fatal("expected destinations field")
 		}
 	})
 

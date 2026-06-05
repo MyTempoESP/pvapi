@@ -54,7 +54,7 @@ func TestCheckoutShopFreeze(t *testing.T) {
 
 	// Use PERCENT commission for shop2
 	rec := h.doJSON(t, http.MethodPost, "/remessas", &shop2Session, map[string]any{
-		"destinationId":           pickup2.ID,
+		"destinationId":           []any{pickup2.ID},
 		"monitorId":               monitor2.ID,
 		"status":                  "CONFERIR - DEVOLUCAO",
 		"monitorProfitPercentage": 3,

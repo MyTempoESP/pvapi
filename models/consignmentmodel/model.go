@@ -133,10 +133,6 @@ func (c ConsignmentUpdateBlueprint) Save(
 
 	fields := make(map[string]any)
 
-	if c.PickupID != nil {
-		fields["pickup_location_id"] = *c.PickupID
-	}
-
 	if c.ConsigneeID != nil {
 		fields["consignee_id"] = *c.ConsigneeID
 	}
@@ -180,19 +176,119 @@ func (c ConsignmentBlueprint) Save(
 	ctx context.Context,
 	base db.Queryable,
 ) (int, error) {
-	return model.Create(
+	id, err := model.Create(
 		ctx,
 		base,
 		query.CreateConsignmentQuery,
 		util.Args{
 			"shop_id":            c.ShopID,
-			"pickup_location_id": c.PickupID,
 			"consignee_id":       c.ConsigneeID,
 			"comission_type":     c.ComissionType,
 			"comission_value":    c.ComissionValue,
 			"status":             c.Status,
 		},
 	)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(c.PickupIDs) > 0 {
+		for _, pickupID := range c.PickupIDs {
+			_, err = base.Exec(
+				ctx,
+				query.AddConsignmentPickupQuery,
+				id, pickupID,
+			)
+			if err != nil {
+				return 0, fmt.Errorf(
+					"could not add pickup %d to consignment %d: %w",
+					pickupID, id, err,
+				)
+			}
+		}
+	}
+
+	return id, nil
+}
+
+type pickupRow struct {
+	ConsignmentID int    `db:"consignment_id"`
+	PickupID      int    `db:"pickup_location_id"`
+	PickupName    string `db:"pickup_location_name"`
+}
+
+func BatchFetchConsignmentPickups(
+	ctx context.Context,
+	base db.Queryable,
+	consignmentIDs []int,
+) (map[int][]Pickup, error) {
+	if len(consignmentIDs) == 0 {
+		return map[int][]Pickup{}, nil
+	}
+
+	ids := make([]any, len(consignmentIDs))
+	for i, id := range consignmentIDs {
+		ids[i] = id
+	}
+
+	rows, err := util.WithCollect[pickupRow](
+		ctx, base,
+		query.BatchFetchConsignmentPickupsQuery,
+		ids,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[int][]Pickup, len(consignmentIDs))
+	for _, r := range rows {
+		result[r.ConsignmentID] = append(result[r.ConsignmentID], Pickup{
+			ID:   r.PickupID,
+			Name: r.PickupName,
+		})
+	}
+
+	for _, id := range consignmentIDs {
+		if _, ok := result[id]; !ok {
+			result[id] = []Pickup{}
+		}
+	}
+
+	return result, nil
+}
+
+func (a AddPickupAction) Exec(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
+	_, err := tx.Exec(
+		ctx, query.AddConsignmentPickupQuery,
+		a.ConsignmentID, a.PickupID,
+	)
+	if err != nil {
+		return fmt.Errorf(
+			"could not add pickup %d to consignment %d: %w",
+			a.PickupID, a.ConsignmentID, err,
+		)
+	}
+	return nil
+}
+
+func (a RemovePickupAction) Exec(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
+	_, err := tx.Exec(
+		ctx, query.RemoveConsignmentPickupQuery,
+		a.ConsignmentID, a.PickupID,
+	)
+	if err != nil {
+		return fmt.Errorf(
+			"could not remove pickup %d from consignment %d: %w",
+			a.PickupID, a.ConsignmentID, err,
+		)
+	}
+	return nil
 }
 
 func List(
@@ -200,12 +296,17 @@ func List(
 	base db.Queryable,
 	shopID int,
 ) ([]Consignment, error) {
-	return util.WithCollect[Consignment](
+	consignments, err := util.WithCollect[Consignment](
 		ctx,
 		base,
 		query.ListConsignmentsByShopQuery,
 		shopID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithPickups(ctx, base, consignments)
 }
 
 func ListAllByShop(
@@ -213,12 +314,17 @@ func ListAllByShop(
 	base db.Queryable,
 	shopID int,
 ) ([]Consignment, error) {
-	return util.WithCollect[Consignment](
+	consignments, err := util.WithCollect[Consignment](
 		ctx,
 		base,
 		query.ListAllConsignmentsByShopQuery,
 		shopID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithPickups(ctx, base, consignments)
 }
 
 func ListByConsignee(
@@ -226,12 +332,17 @@ func ListByConsignee(
 	base db.Queryable,
 	consigneeID int,
 ) ([]Consignment, error) {
-	return util.WithCollect[Consignment](
+	consignments, err := util.WithCollect[Consignment](
 		ctx,
 		base,
 		query.ListConsignmentsByConsigneeQuery,
 		consigneeID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithPickups(ctx, base, consignments)
 }
 
 func ListByConsigneeWithStats(
@@ -239,12 +350,17 @@ func ListByConsigneeWithStats(
 	base db.Queryable,
 	consigneeID int,
 ) ([]ConsignmentWithStats, error) {
-	return util.WithCollect[ConsignmentWithStats](
+	consignments, err := util.WithCollect[ConsignmentWithStats](
 		ctx,
 		base,
 		query.ListConsignmentsByConsigneeQuery,
 		consigneeID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithStatsPickups(ctx, base, consignments)
 }
 
 func ListAllByConsigneeWithStats(
@@ -252,23 +368,33 @@ func ListAllByConsigneeWithStats(
 	base db.Queryable,
 	consigneeID int,
 ) ([]ConsignmentWithStats, error) {
-	return util.WithCollect[ConsignmentWithStats](
+	consignments, err := util.WithCollect[ConsignmentWithStats](
 		ctx,
 		base,
 		query.ListAllConsignmentsByConsigneeQuery,
 		consigneeID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithStatsPickups(ctx, base, consignments)
 }
 
 func PublicList(
 	ctx context.Context,
 	base db.Queryable,
 ) ([]Consignment, error) {
-	return util.WithCollect[Consignment](
+	consignments, err := util.WithCollect[Consignment](
 		ctx,
 		base,
 		query.ListAllActiveConsignmentsQuery,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithPickups(ctx, base, consignments)
 }
 
 func PublicListFiltered(
@@ -299,9 +425,6 @@ func PublicListFiltered(
 
 		"shop_id",
 		"shop_name",
-
-		"pickup_location_id",
-		"pickup_location_name",
 	).From("consignments_listing_view").
 		Where("consignment_id IN (SELECT id FROM consignments_active)").
 		Where(sq.Eq{"shop_id": shopIDs})
@@ -311,7 +434,12 @@ func PublicListFiltered(
 		return nil, fmt.Errorf("build shop-filter consignment query: %w", err)
 	}
 
-	return util.WithCollect[Consignment](ctx, base, sql, args...)
+	consignments, err := util.WithCollect[Consignment](ctx, base, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichWithPickups(ctx, base, consignments)
 }
 
 func ListProducts(
@@ -332,12 +460,30 @@ func Find(
 	base db.Queryable,
 	id any,
 ) (DetailedConsignment, error) {
-	return util.WithCollectExactlyOneRow[DetailedConsignment](
+	consignment, err := util.WithCollectExactlyOneRow[DetailedConsignment](
 		ctx,
 		base,
 		query.FindConsignmentQuery,
 		id,
 	)
+	if err != nil {
+		return consignment, err
+	}
+
+	intID, ok := id.(int)
+	if !ok {
+		return consignment, nil
+	}
+
+	pickupMap, err := BatchFetchConsignmentPickups(
+		ctx, base, []int{intID},
+	)
+	if err != nil {
+		return consignment, err
+	}
+
+	consignment.Pickups = pickupMap[intID]
+	return consignment, nil
 }
 
 func Delete(
@@ -349,4 +495,54 @@ func Delete(
 	return err
 }
 
+func enrichWithPickups(
+	ctx context.Context,
+	base db.Queryable,
+	consignments []Consignment,
+) ([]Consignment, error) {
+	if len(consignments) == 0 {
+		return consignments, nil
+	}
 
+	ids := make([]int, len(consignments))
+	for i, c := range consignments {
+		ids[i] = c.ID
+	}
+
+	pickupMap, err := BatchFetchConsignmentPickups(ctx, base, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range consignments {
+		consignments[i].Pickups = pickupMap[consignments[i].ID]
+	}
+
+	return consignments, nil
+}
+
+func enrichWithStatsPickups(
+	ctx context.Context,
+	base db.Queryable,
+	consignments []ConsignmentWithStats,
+) ([]ConsignmentWithStats, error) {
+	if len(consignments) == 0 {
+		return consignments, nil
+	}
+
+	ids := make([]int, len(consignments))
+	for i, c := range consignments {
+		ids[i] = c.ID
+	}
+
+	pickupMap, err := BatchFetchConsignmentPickups(ctx, base, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range consignments {
+		consignments[i].Pickups = pickupMap[consignments[i].ID]
+	}
+
+	return consignments, nil
+}

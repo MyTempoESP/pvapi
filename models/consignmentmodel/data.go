@@ -43,24 +43,24 @@ type Consignment struct {
 
 	Shop
 	Consignee
-	Pickup
+	Pickups []Pickup `db:"-"`
 }
 
 type ConsignmentWithStats struct {
-	ID             int             `db:"consignment_id"`
-	ComissionType  string          `db:"consignment_comission_type"`
-	ComissionValue decimal.Decimal `db:"consignment_comission_value"`
-	Status         string          `db:"consignment_status"`
-	CreatedAt      time.Time       `db:"consignment_created_at"`
-	Slug           string          `db:"consignment_slug"`
-	Code           string          `db:"consignment_code"`
+	ID                int             `db:"consignment_id"`
+	ComissionType     string          `db:"consignment_comission_type"`
+	ComissionValue    decimal.Decimal `db:"consignment_comission_value"`
+	Status            string          `db:"consignment_status"`
+	CreatedAt         time.Time       `db:"consignment_created_at"`
+	Slug              string          `db:"consignment_slug"`
+	Code              string          `db:"consignment_code"`
 
-	TotalProducts    int `db:"total_products"`
+	TotalProducts     int `db:"total_products"`
 	ConfirmedProducts int `db:"confirmed_products"`
 
 	Shop
 	Consignee
-	Pickup
+	Pickups []Pickup `db:"-"`
 }
 
 type DetailedConsignment struct {

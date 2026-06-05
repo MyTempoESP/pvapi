@@ -309,7 +309,8 @@ SELECT
 	a.addrcomplement
 FROM packages pkg
 JOIN consignments_active c ON c.id = pkg.consignment_id
-JOIN pickup_locations pl ON pl.id = c.pickup_location_id
+JOIN consignment_pickup_locations cpl ON cpl.consignment_id = c.id
+JOIN pickup_locations pl ON pl.id = cpl.pickup_location_id
 JOIN aliased_addresses_view a ON a.address_id = pl.address_id
 WHERE pkg.product_id = ANY($1)
   AND pkg.quantity > 0

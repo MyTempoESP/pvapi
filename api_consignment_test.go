@@ -60,7 +60,6 @@ func TestConsignment(t *testing.T) {
 
 	t.Run("update_consignment", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
-			"destinationId": pickup.ID,
 			"monitorId":     monitor.ID,
 			"status":        "CONFERIR - DEVOLUCAO",
 			"monitorProfit": 5,

@@ -5,7 +5,6 @@ const (
 INSERT INTO consignments
     (
 	shop_id,
-	pickup_location_id,
 	consignee_id,
 	comission_type,
 	comission_value,
@@ -16,7 +15,6 @@ INSERT INTO consignments
 VALUES
     (
         @shop_id,
-	@pickup_location_id,
 	@consignee_id,
 	@comission_type,
 	@comission_value,
@@ -41,10 +39,7 @@ SELECT
 	consignee_name,
 
 	shop_id,
-	shop_name,
-
-	pickup_location_id,
-	pickup_location_name
+	shop_name
 FROM consignments_listing_view
 WHERE shop_id = $1
   AND consignment_id IN (SELECT id FROM consignments_active)
@@ -64,10 +59,7 @@ SELECT
 	consignee_name,
 
 	shop_id,
-	shop_name,
-
-	pickup_location_id,
-	pickup_location_name
+	shop_name
 FROM consignments_listing_view
 WHERE shop_id = $1
 `
@@ -89,10 +81,7 @@ SELECT
 	consignee_name,
 
 	shop_id,
-	shop_name,
-
-	pickup_location_id,
-	pickup_location_name
+	shop_name
 FROM consignments_listing_view c
 WHERE consignee_id = $1
   AND consignment_id IN (SELECT id FROM consignments_active)
@@ -115,10 +104,7 @@ SELECT
 	consignee_name,
 
 	shop_id,
-	shop_name,
-
-	pickup_location_id,
-	pickup_location_name
+	shop_name
 FROM consignments_listing_view c
 WHERE consignee_id = $1
 `
@@ -137,10 +123,7 @@ SELECT
 	consignee_name,
 
 	shop_id,
-	shop_name,
-
-	pickup_location_id,
-	pickup_location_name
+	shop_name
 FROM consignments_listing_view
 WHERE consignment_id IN (SELECT id FROM consignments_active)
 `
@@ -160,10 +143,7 @@ SELECT
 	consignee_name,
 
 	shop_id,
-	shop_name,
-
-	pickup_location_id,
-	pickup_location_name
+	shop_name
 FROM consignments_listing_view
 WHERE consignment_id = $1
 `
@@ -174,7 +154,27 @@ SET status = 'ARQUIVADO'
 WHERE id = $1
 `
 
+	AddConsignmentPickupQuery = `
+INSERT INTO consignment_pickup_locations (consignment_id, pickup_location_id)
+VALUES ($1, $2)
+ON CONFLICT (consignment_id, pickup_location_id) DO NOTHING
+`
 
+	RemoveConsignmentPickupQuery = `
+DELETE FROM consignment_pickup_locations
+WHERE consignment_id = $1 AND pickup_location_id = $2
+`
+
+	BatchFetchConsignmentPickupsQuery = `
+SELECT
+	cpl.consignment_id,
+	pl.id   AS pickup_location_id,
+	pl.name AS pickup_location_name
+FROM consignment_pickup_locations cpl
+JOIN pickup_locations pl ON pl.id = cpl.pickup_location_id
+WHERE cpl.consignment_id = ANY($1)
+ORDER BY pl.name
+`
 
 	VerifyPackageQuantity = `
 SELECT quantity FROM packages

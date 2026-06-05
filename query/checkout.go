@@ -85,7 +85,8 @@ FROM (
 JOIN packages pkg ON pkg.id = ci.package_id
 JOIN products p ON p.id = pkg.product_id
 JOIN consignments con ON con.id = pkg.consignment_id
-JOIN pickup_locations pl ON pl.id = con.pickup_location_id
+JOIN consignment_pickup_locations cpl ON cpl.consignment_id = con.id
+JOIN pickup_locations pl ON pl.id = cpl.pickup_location_id
 LEFT JOIN aliased_addresses_view a ON a.address_id = pl.address_id
 GROUP BY pl.id, pl.name, p.id, p.name,
 	a.addrstreet, a.addrnumber, a.addrcity, a.addrstate,

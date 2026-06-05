@@ -25,6 +25,17 @@ type PackageResource struct {
 	Quantity int             `json:"quantity"`
 }
 
+type DestinationsResource []PickupResource
+
+type PickupResource struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+func NewPickupResourceFromPickup(p Pickup) PickupResource {
+	return PickupResource{ID: p.ID, Name: p.Name}
+}
+
 type ConsignmentResource struct {
 	ID             int             `json:"id"`
 	ComissionType  string          `json:"commission_type"`
@@ -33,21 +44,21 @@ type ConsignmentResource struct {
 	Slug           string          `json:"slug"`
 	Status         string          `json:"status"`
 
-	PickupName    string `json:"destination"`
-	ConsigneeName string `json:"responsibleMonitor"`
+	Destinations    DestinationsResource `json:"destinations"`
+	ConsigneeName   string               `json:"responsibleMonitor"`
 
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type ConsignmentWithStatsResource struct {
-	Code          string    `json:"code"`
-	ID            int       `json:"id"`
-	Status        string    `json:"status"`
-	Destination   string    `json:"destination"`
-	MonitorName   string    `json:"monitorName"`
-	CreatedAt     time.Time `json:"createdAt"`
-	TotalProducts     int       `json:"totalProducts"`
-	ConfirmedProducts int       `json:"confirmedProducts"`
+	Code              string               `json:"code"`
+	ID                int                  `json:"id"`
+	Status            string               `json:"status"`
+	Destinations      DestinationsResource `json:"destinations"`
+	MonitorName       string               `json:"monitorName"`
+	CreatedAt         time.Time            `json:"createdAt"`
+	TotalProducts     int                  `json:"totalProducts"`
+	ConfirmedProducts int                  `json:"confirmedProducts"`
 }
 
 func (c ConsignmentWithStats) ToResource() ConsignmentWithStatsResource {
@@ -55,7 +66,7 @@ func (c ConsignmentWithStats) ToResource() ConsignmentWithStatsResource {
 		Code:              c.Code,
 		ID:                c.ID,
 		Status:            c.Status,
-		Destination:       c.Pickup.Name,
+		Destinations:      pickupsToDestinations(c.Pickups),
 		MonitorName:       c.Consignee.Name,
 		CreatedAt:         c.CreatedAt,
 		TotalProducts:     c.TotalProducts,
@@ -71,8 +82,8 @@ type PublicConsignmentResource struct {
 	Slug           string          `json:"slug"`
 	Status         string          `json:"status"`
 
-	PickupName    string `json:"destination"`
-	ConsigneeName string `json:"responsibleMonitor"`
+	Destinations    DestinationsResource `json:"destinations"`
+	ConsigneeName   string               `json:"responsibleMonitor"`
 
 	Shop struct {
 		ID   int    `json:"id"`
@@ -80,6 +91,17 @@ type PublicConsignmentResource struct {
 	} `json:"shop"`
 
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func pickupsToDestinations(pickups []Pickup) DestinationsResource {
+	if pickups == nil {
+		return DestinationsResource{}
+	}
+	res := make(DestinationsResource, len(pickups))
+	for i, p := range pickups {
+		res[i] = NewPickupResourceFromPickup(p)
+	}
+	return res
 }
 
 func (c Consignment) ToResource() ConsignmentResource {
@@ -91,7 +113,7 @@ func (c Consignment) ToResource() ConsignmentResource {
 		Slug:           c.Slug,
 		Status:         c.Status,
 
-		PickupName:    c.Pickup.Name,
+		Destinations:  pickupsToDestinations(c.Pickups),
 		ConsigneeName: c.Consignee.Name,
 
 		CreatedAt: c.CreatedAt,
@@ -107,7 +129,7 @@ func (c Consignment) ToPublicResource() PublicConsignmentResource {
 		Slug:           c.Slug,
 		Status:         c.Status,
 
-		PickupName:    c.Pickup.Name,
+		Destinations:  pickupsToDestinations(c.Pickups),
 		ConsigneeName: c.Consignee.Name,
 
 		CreatedAt: c.CreatedAt,

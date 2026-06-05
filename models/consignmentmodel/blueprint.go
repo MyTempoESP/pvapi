@@ -4,7 +4,7 @@ import "github.com/shopspring/decimal"
 
 type ConsignmentBlueprint struct {
 	ShopID      int
-	PickupID    int
+	PickupIDs   []int
 	ConsigneeID int
 
 	ComissionType  string
@@ -15,7 +15,6 @@ type ConsignmentBlueprint struct {
 
 type ConsignmentUpdateBlueprint struct {
 	ID             int
-	PickupID       *int
 	ConsigneeID    *int
 	ComissionType  *string
 	ComissionValue *decimal.Decimal
