@@ -291,16 +291,24 @@ if menu == "Checkout":
                 data = r.json()
                 unique_id = data.get("unique_id", "?")
                 status = data.get("status", "?")
-                qr_code = data.get("qr_code", "")
+                qr_codes = data.get("qr_codes", [])
                 st.balloons()
                 st.success(
                     f"**Compra confirmada!**  \n"
                     f"ID único: `{unique_id}`  \n"
                     f"Status: `{status}`"
                 )
-                if qr_code:
-                    st.code(qr_code, language="text")
-                    st.caption("QR Code para retirada")
+                if qr_codes:
+                    st.subheader("📱 QR Codes para retirada")
+                    for entry in qr_codes:
+                        pkg_id = entry.get("package_id", "?")
+                        qr_data_uri = entry.get("qr_code", "")
+                        col_qr, col_label = st.columns([1, 3])
+                        with col_qr:
+                            # QR code is a data URI — render directly as image
+                            st.image(qr_data_uri, width=200)
+                        with col_label:
+                            st.markdown(f"**Pacote {pkg_id}**")
                 st.session_state.selected_items = {}
             else:
                 show_response(r)
