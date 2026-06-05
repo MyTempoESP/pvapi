@@ -63,6 +63,25 @@ func (c ConsignmentWithStats) ToResource() ConsignmentWithStatsResource {
 	}
 }
 
+type PublicConsignmentResource struct {
+	ID             int             `json:"id"`
+	ComissionType  string          `json:"commission_type"`
+	ComissionValue decimal.Decimal `json:"commission_value"`
+	Code           string          `json:"code"`
+	Slug           string          `json:"slug"`
+	Status         string          `json:"status"`
+
+	PickupName    string `json:"destination"`
+	ConsigneeName string `json:"responsibleMonitor"`
+
+	Shop struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"shop"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func (c Consignment) ToResource() ConsignmentResource {
 	return ConsignmentResource{
 		ID:             c.ID,
@@ -77,6 +96,25 @@ func (c Consignment) ToResource() ConsignmentResource {
 
 		CreatedAt: c.CreatedAt,
 	}
+}
+
+func (c Consignment) ToPublicResource() PublicConsignmentResource {
+	r := PublicConsignmentResource{
+		ID:             c.ID,
+		ComissionType:  c.ComissionType,
+		ComissionValue: c.ComissionValue,
+		Code:           c.Code,
+		Slug:           c.Slug,
+		Status:         c.Status,
+
+		PickupName:    c.Pickup.Name,
+		ConsigneeName: c.Consignee.Name,
+
+		CreatedAt: c.CreatedAt,
+	}
+	r.Shop.ID = c.Shop.ID
+	r.Shop.Name = c.Shop.Name
+	return r
 }
 
 func (p ConsignmentProduct) ToResource() ProductResource {

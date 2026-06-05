@@ -271,6 +271,49 @@ func PublicList(
 	)
 }
 
+func PublicListFiltered(
+	ctx context.Context,
+	base db.Queryable,
+	shopIDs []int,
+) ([]Consignment, error) {
+	if len(shopIDs) == 0 {
+		return PublicList(ctx, base)
+	}
+
+	ids := make([]any, len(shopIDs))
+	for i, id := range shopIDs {
+		ids[i] = id
+	}
+
+	q := util.SQL.Select(
+		"consignment_id",
+		"consignment_comission_type",
+		"consignment_comission_value",
+		"consignment_status",
+		"consignment_created_at",
+		"consignment_slug",
+		"consignment_code",
+
+		"consignee_id",
+		"consignee_name",
+
+		"shop_id",
+		"shop_name",
+
+		"pickup_location_id",
+		"pickup_location_name",
+	).From("consignments_listing_view").
+		Where("consignment_id IN (SELECT id FROM consignments_active)").
+		Where(sq.Eq{"shop_id": shopIDs})
+
+	sql, args, err := q.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build shop-filter consignment query: %w", err)
+	}
+
+	return util.WithCollect[Consignment](ctx, base, sql, args...)
+}
+
 func ListProducts(
 	ctx context.Context,
 	base db.Queryable,

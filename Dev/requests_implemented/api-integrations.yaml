@@ -170,16 +170,23 @@ paths:
       summary: Lista todas as remessas ativas
       description: |
         Retorna a lista de remessas/consignments ativas com status
-        aprovado, incluindo informações de ponto de retirada e
-        monitor responsável.
+        aprovado, incluindo informações de ponto de retirada,
+        monitor responsável e loja proprietária.
       operationId: listarRemessasPublicas
+      parameters:
+        - name: loja
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: ID da loja (pode ser repetido para múltiplas lojas, ex. ?loja=1&loja=2)
       responses:
         "200":
           description: Lista de remessas ativas
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RespostaListaRemessas"
+                $ref: "#/components/schemas/RespostaListaRemessasPublicas"
 
   # ═══════════════════════════════════════════════════════════════
   # Remessas por loja
@@ -376,6 +383,49 @@ components:
           format: date-time
           description: Data de criação
 
+    RecursoRemessaPublica:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID da remessa
+        commission_type:
+          type: string
+          description: Tipo de comissão (fixed / percentage)
+        commission_value:
+          type: number
+          description: Valor da comissão (decimal)
+        code:
+          type: string
+          description: Código da remessa
+        slug:
+          type: string
+          description: Slug identificador
+        status:
+          type: string
+          description: Status da remessa
+        destination:
+          type: string
+          description: Nome do ponto de retirada
+        responsibleMonitor:
+          type: string
+          description: Nome do monitor responsável
+        shop:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: ID da loja
+            name:
+              type: string
+              description: Nome da loja
+          required: [id, name]
+          description: Loja proprietária da remessa
+        created_at:
+          type: string
+          format: date-time
+          description: Data de criação
+
     RespostaListaRemessas:
       type: object
       required: [success, message, data]
@@ -389,6 +439,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RecursoRemessa"
+
+    RespostaListaRemessasPublicas:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: "remessas listadas com sucesso"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecursoRemessaPublica"
 
     # ── Produto ─────────────────────────────────────────────────
     EspecificacaoProduto:

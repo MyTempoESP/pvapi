@@ -166,6 +166,63 @@ func TestConsignment(t *testing.T) {
 		if !containsID(consignments, cons.ID) {
 			t.Fatalf("consignment %d not found in public listing: %s", cons.ID, rec.Body.String())
 		}
+
+		// each consignment must include a shop object
+		for _, c := range consignments {
+			cm := asMap(t, c)
+			shopObj := asMap(t, cm["shop"])
+			if asInt(t, shopObj["id"]) == 0 {
+				t.Fatalf("consignment %v has no shop.id", cm["id"])
+			}
+			if asString(t, shopObj["name"]) == "" {
+				t.Fatalf("consignment %v has no shop.name", cm["id"])
+			}
+		}
+	})
+
+	t.Run("public_list_filtered_by_shop", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/remessas-publicas?loja=%d", shop.ID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("consignment %d not found in filtered listing: %s", cons.ID, rec.Body.String())
+		}
+
+		for _, c := range consignments {
+			cm := asMap(t, c)
+			shopObj := asMap(t, cm["shop"])
+			if asInt(t, shopObj["id"]) != shop.ID {
+				t.Fatalf("expected shop.id %d, got %v", shop.ID, shopObj["id"])
+			}
+		}
+	})
+
+	t.Run("public_list_filtered_by_multiple_shops", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/remessas-publicas?loja=%d&loja=%d", shop.ID, shop.ID),
+			nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if !containsID(consignments, cons.ID) {
+			t.Fatalf("consignment %d not found in multi-shop filtered listing: %s", cons.ID, rec.Body.String())
+		}
+	})
+
+	t.Run("public_list_filtered_by_nonexistent_shop", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/remessas-publicas?loja=99999", nil, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		consignments := asSlice(t, body["data"])
+		if len(consignments) != 0 {
+			t.Fatalf("expected empty array for nonexistent shop, got %v", consignments)
+		}
 	})
 
 	t.Run("public_list_by_shop_endpoint", func(t *testing.T) {

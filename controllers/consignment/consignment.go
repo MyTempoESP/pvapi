@@ -15,23 +15,49 @@ func PublicListHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		consignments, err := consignmentmodel.PublicList(
-			c.Request.Context(),
-			pool,
-		)
+		rawShopIDs := c.Request.URL.Query()["loja"]
+		shopIDs := parseQueryInts(rawShopIDs)
+
+		consignments, err := func() ([]consignmentmodel.Consignment, error) {
+			if len(shopIDs) > 0 {
+				return consignmentmodel.PublicListFiltered(
+					c.Request.Context(), pool, shopIDs,
+				)
+			}
+			return consignmentmodel.PublicList(
+				c.Request.Context(), pool,
+			)
+		}()
 
 		if err != nil {
 			util.HandleGuessFromDBOperation(c, err)
 			return
 		}
 
-		collection := util.ResourceCollection(consignments)
+		collection := util.ToResourceCollection(
+			consignments,
+			consignmentmodel.Consignment.ToPublicResource,
+		)
 
 		util.Wrap(
 			c, "remessas listadas com sucesso",
 			collection,
 		)
 	}
+}
+
+func parseQueryInts(raw []string) []int {
+	if len(raw) == 0 {
+		return nil
+	}
+	ints := make([]int, 0, len(raw))
+	for _, s := range raw {
+		n, err := strconv.Atoi(s)
+		if err == nil {
+			ints = append(ints, n)
+		}
+	}
+	return ints
 }
 
 func ListByConsigneeHandler(

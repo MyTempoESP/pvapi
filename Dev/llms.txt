@@ -241,9 +241,13 @@ Error responses:
 
 ### GET /remessas-publicas - List active consignments
 
-Returns all active consignments with approved status, including pickup point info and responsible monitor.
+Returns all active consignments with approved status, including pickup point info, responsible monitor, and owning shop.
 
-No parameters.
+Query parameters:
+
+| Param | Type | Description |
+|-------|------|-------------|
+| loja | integer | Shop ID filter (repeatable for multiple shops, e.g. `?loja=1&loja=2`) |
 
 Response 200:
 ```json
@@ -260,6 +264,10 @@ Response 200:
       "status": "approved",
       "destination": "Ponto de retirada A",
       "responsibleMonitor": "Nome do Monitor",
+      "shop": {
+        "id": 1,
+        "name": "Loja Exemplo"
+      },
       "created_at": "2025-01-01T00:00:00Z"
     }
   ]
@@ -276,6 +284,7 @@ Response 200:
 | status | string | Remessa status |
 | destination | string | Pickup point name |
 | responsibleMonitor | string | Responsible monitor name |
+| shop | object | Owning shop `{ id, name }` |
 | created_at | string | Creation date (ISO 8601) |
 
 ---
