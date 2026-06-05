@@ -3,8 +3,9 @@
 
 BEGIN;
 
--- Drop all views that depend on consignments.pickup_location_id via SELECT *
+-- Drop all views that depend on consignments.pickup_location_id
 DROP VIEW IF EXISTS consignments_active CASCADE;
+DROP VIEW IF EXISTS consignments_listing_view;
 
 -- Recreate consignments_active without pickup_location_id
 CREATE VIEW consignments_active AS
@@ -91,6 +92,27 @@ INSERT INTO public.consignment_pickup_locations (consignment_id, pickup_location
 SELECT id, pickup_location_id
 FROM public.consignments
 WHERE pickup_location_id IS NOT NULL;
+
+-- Recreate consignments_listing_view without pickup_location_id
+CREATE OR REPLACE VIEW consignments_listing_view AS
+SELECT
+    c.id              AS consignment_id,
+    c.comission_type  AS consignment_comission_type,
+    c.comission_value AS consignment_comission_value,
+    c.status          AS consignment_status,
+    c.created_at      AS consignment_created_at,
+    c.slug            AS consignment_slug,
+    c.code            AS consignment_code,
+
+    m.consignee_id AS consignee_id,
+    m.user_name    AS consignee_name,
+
+    s.shop_id AS shop_id,
+    s.name    AS shop_name
+FROM consignments c
+LEFT JOIN shops_info_view      s USING (shop_id)
+LEFT JOIN consignees_info_view m USING (consignee_id)
+;
 
 -- Remove old FK constraint
 ALTER TABLE IF EXISTS public.consignments
