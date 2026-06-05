@@ -38,13 +38,13 @@ LEFT JOIN packages pkg ON pkg.id = pr.package_id
 LEFT JOIN products prod ON prod.id = pkg.product_id
 LEFT JOIN consignments con ON con.id = pr.consignment_id
 LEFT JOIN LATERAL (
-	SELECT pl2.id AS pickup_id, pl2.name AS pickup_name, pl2.pickup_at AS pickup_datetime
+	SELECT pl2.id AS pickup_id, pl2.name AS pickup_name, pl2.pickup_at AS pickup_datetime, pl2.address_id AS pickup_address_id
 	FROM consignment_pickup_locations cpl
 	JOIN pickup_locations pl2 ON pl2.id = cpl.pickup_location_id
 	WHERE cpl.consignment_id = con.id
 	LIMIT 1
 ) pick ON true
-LEFT JOIN aliased_addresses_view addr ON addr.address_id = pick.pickup_id
+LEFT JOIN aliased_addresses_view addr ON addr.address_id = pick.pickup_address_id
 WHERE pr.client_id = $1
 ORDER BY pr.reserved_at DESC
 `
