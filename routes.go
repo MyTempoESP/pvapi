@@ -182,6 +182,11 @@ func setupRoutes(
 		clients.GET("", client.ListHandler(pool))
 	}
 
+	engClients := t.Group("/clients", withAuth)
+	{
+		engClients.GET("/:id/sales", client.SalesHandler(pool))
+	}
+
 	usuario := t.Group("/usuario", withAuth)
 	{
 		usuario.GET("/cliente/overview", client.OverviewHandler(pool))

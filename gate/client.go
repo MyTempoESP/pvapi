@@ -14,10 +14,17 @@ func (client *ClientGate) Dispatch(
 	u User,
 	r Resource,
 ) (bool, error) {
+	// Try both param names: /clientes/:client and /clients/:id
 	id := r.Params.ByName("client")
+	if id == "" {
+		id = r.Params.ByName("id")
+	}
 	r.Metadata["id"] = id
 
 	if r.Method == "GET" {
+		if r.EndPoint("/sales") {
+			return client.Sales(u, r)
+		}
 		if id == "" {
 			return client.List(u, r)
 		}
@@ -49,6 +56,10 @@ func (client *ClientGate) List(u User, r Resource) (bool, error) {
 
 func (client *ClientGate) Modify(u User, r Resource) (bool, error) {
 	return false, nil
+}
+
+func (client *ClientGate) Sales(u User, r Resource) (bool, error) {
+	return u.Role == roles.Shop, nil
 }
 
 func (client *ClientGate) Delete(u User, r Resource) (bool, error) {
