@@ -65,26 +65,17 @@ func TestClientSales(t *testing.T) {
 		})
 		assertStatus(t, rec, http.StatusOK)
 
-		var userID int
-		err := h.pool.QueryRow(
-			context.Background(),
-			`SELECT id FROM users WHERE email = $1`, clientEmail,
-		).Scan(&userID)
-		if err != nil {
-			t.Fatalf("lookup user: %v", err)
-		}
+		userID := lookupUserID(t, h, clientEmail)
 
-		var clientID int
-		err = h.pool.QueryRow(
-			context.Background(),
-			`INSERT INTO clients (user_id) VALUES ($1) RETURNING id`, userID,
-		).Scan(&clientID)
+		// Create a client record for the user (no checkouts)
+		_, err := h.pool.Exec(context.Background(),
+			`INSERT INTO clients (user_id) VALUES ($1)`, userID)
 		if err != nil {
 			t.Fatalf("create client: %v", err)
 		}
 
 		rec2 := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/clients/%d/sales", clientID),
+			fmt.Sprintf("/clients/%d/sales", userID),
 			&shopSession, "", nil)
 		assertStatus(t, rec2, http.StatusOK)
 
@@ -115,11 +106,11 @@ func TestClientSales(t *testing.T) {
 		})
 		assertStatus(t, rec, http.StatusOK)
 
-		// Look up client_id
+		userID := lookupUserID(t, h, clientEmail)
 		clientID := lookupClientID(t, h, clientEmail)
 
 		rec2 := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/clients/%d/sales", clientID),
+			fmt.Sprintf("/clients/%d/sales", userID),
 			&fx.shopSession, "", nil)
 		assertStatus(t, rec2, http.StatusOK)
 
@@ -196,10 +187,10 @@ func TestClientSales(t *testing.T) {
 		})
 		assertStatus(t, rec2, http.StatusOK)
 
-		clientID := lookupClientID(t, h, clientEmail)
+		userID := lookupUserID(t, h, clientEmail)
 
 		rec3 := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/clients/%d/sales", clientID),
+			fmt.Sprintf("/clients/%d/sales", userID),
 			&fx.shopSession, "", nil)
 		assertStatus(t, rec3, http.StatusOK)
 
@@ -237,11 +228,11 @@ func TestClientSales(t *testing.T) {
 		})
 		assertStatus(t, rec, http.StatusOK)
 
-		clientID := lookupClientID(t, h, clientEmail)
+		userID := lookupUserID(t, h, clientEmail)
 
 		// Initially status should be "Pendente" (package just created)
 		rec2 := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/clients/%d/sales", clientID),
+			fmt.Sprintf("/clients/%d/sales", userID),
 			&fx.shopSession, "", nil)
 		assertStatus(t, rec2, http.StatusOK)
 
@@ -257,6 +248,7 @@ func TestClientSales(t *testing.T) {
 		}
 
 		// Mark all packages as received
+		clientID := lookupClientID(t, h, clientEmail)
 		_, err := h.pool.Exec(context.Background(),
 			`UPDATE package_reserved SET status = 'recebido'
 			 WHERE checkout_id = (
@@ -268,7 +260,7 @@ func TestClientSales(t *testing.T) {
 
 		// Now status should be "Concluída"
 		rec3 := h.doRequest(t, http.MethodGet,
-			fmt.Sprintf("/clients/%d/sales", clientID),
+			fmt.Sprintf("/clients/%d/sales", userID),
 			&fx.shopSession, "", nil)
 		assertStatus(t, rec3, http.StatusOK)
 
@@ -283,6 +275,20 @@ func TestClientSales(t *testing.T) {
 			t.Fatalf("expected status 'Concluída', got %q", sales2[0]["status"])
 		}
 	})
+}
+
+// lookupUserID queries the users table for a user by email, returning the user ID.
+func lookupUserID(t *testing.T, h *apiHarness, email string) int {
+	t.Helper()
+
+	var userID int
+	err := h.pool.QueryRow(context.Background(),
+		`SELECT id FROM users WHERE email = $1`, email,
+	).Scan(&userID)
+	if err != nil {
+		t.Fatalf("lookup user id for %q: %v", email, err)
+	}
+	return userID
 }
 
 // lookupClientID queries the clients table for a client associated with the

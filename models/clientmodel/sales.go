@@ -137,9 +137,10 @@ func sortStrings(s []string) {
 	}
 }
 
-// ClientExists checks whether a client record with the given ID exists.
-func ClientExists(ctx context.Context, pool *pgxpool.Pool, clientID int) (bool, error) {
-	var exists bool
-	err := pool.QueryRow(ctx, query.CheckClientExistsQuery, clientID).Scan(&exists)
-	return exists, err
+// ClientIDByUserID returns the client ID for a given user ID, or an error if
+// the user does not have a client record.
+func ClientIDByUserID(ctx context.Context, pool *pgxpool.Pool, userID int) (int, error) {
+	var clientID int
+	err := pool.QueryRow(ctx, query.FindClientByUserQuery, userID).Scan(&clientID)
+	return clientID, err
 }

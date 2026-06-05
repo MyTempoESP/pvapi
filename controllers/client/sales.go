@@ -13,8 +13,8 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
-// SalesHandler returns sales for a given client, scoped to the authenticated
-// shop. Only shop users can access this endpoint.
+// SalesHandler returns sales for a given user (by user ID), scoped to the
+// authenticated shop. Only shop users can access this endpoint.
 func SalesHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authUser := authmodel.GetUserFromContext(c)
@@ -24,20 +24,16 @@ func SalesHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		clientID, err := strconv.Atoi(c.Param("id"))
+		userID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			util.Handle404(c, fmt.Errorf("invalid client id"))
+			util.Handle404(c, fmt.Errorf("invalid user id"))
 			return
 		}
 
-		exists, err := clientmodel.ClientExists(
-			c.Request.Context(), pool, clientID,
+		clientID, err := clientmodel.ClientIDByUserID(
+			c.Request.Context(), pool, userID,
 		)
 		if err != nil {
-			util.Handle500(c, err)
-			return
-		}
-		if !exists {
 			util.Handle404(c, fmt.Errorf("client not found"))
 			return
 		}
