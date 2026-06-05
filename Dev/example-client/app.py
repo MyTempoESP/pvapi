@@ -17,9 +17,7 @@ _DEFAULTS = {
     "cart_session_id": f"cart_{int(time.time())}",
     "auth_token": None,
     "products": None,
-    "cart_items": None,
-    "packages": None,
-    "selected_package_id": None,
+    "selected_items": {},
     "bank_account_id": None,
 }
 for key, val in _DEFAULTS.items():
@@ -87,148 +85,157 @@ if menu == "Checkout":
     st.header("🛍️ Checkout")
 
     # ── Session ID ──────────────────────────────────────────────────────────
-    st.subheader("Sessão do carrinho")
+    st.subheader("Sessão")
     sid = st.text_input(
         "ID da sessão",
         value=st.session_state.cart_session_id,
-        help="Identificador único do carrinho. Gerado automaticamente.",
+        help="Identificador único da sessão de checkout. Gerado automaticamente.",
     )
     st.session_state.cart_session_id = sanitize_session_id(sid)
 
-    # ── Section 1: Products ────────────────────────────────────────────────
-    st.subheader("1. Produtos disponíveis")
-    if st.button("📦 Carregar produtos"):
-        with st.spinner("Carregando produtos..."):
-            r = req("GET", "/produtos")
+    # ── Section 1: Lojas ───────────────────────────────────────────────────
+    st.subheader("1. Lojas")
+    if "shops" not in st.session_state:
+        st.session_state.shops = None
+
+    if st.button("🏪 Carregar lojas", key="load_shops_btn"):
+        with st.spinner("Carregando lojas..."):
+            r = req("GET", "/estabelecimentos")
             if r.ok:
                 data = r.json()
-                st.session_state.products = data if isinstance(data, list) else data.get("produtos", [])
-                st.success(f"{len(st.session_state.products)} produtos carregados.")
+                st.session_state.shops = data.get("shops", data if isinstance(data, list) else [])
+                st.success(f"{len(st.session_state.shops)} lojas carregadas.")
             else:
-                st.session_state.products = []
+                st.session_state.shops = []
                 show_response(r)
 
-    if st.session_state.products:
+    selected_shop_id = None
+    if st.session_state.shops:
+        shop_options = {
+            f"{s.get('name', '?')} (ID {s.get('id', '?')})": s.get("id")
+            for s in st.session_state.shops
+        }
+        selected_shop_label = st.selectbox(
+            "Filtrar por loja (opcional)",
+            ["Todas"] + list(shop_options.keys()),
+            key="shop_filter",
+        )
+        if selected_shop_label != "Todas":
+            selected_shop_id = shop_options[selected_shop_label]
+
+    # ── Section 2: Products ────────────────────────────────────────────────
+    st.subheader("2. Produtos disponíveis")
+    col_load, col_clear = st.columns([1, 1])
+    with col_load:
+        if st.button("📦 Carregar produtos", key="load_products_btn"):
+            params = {}
+            if selected_shop_id:
+                params["loja"] = [str(selected_shop_id)]
+            with st.spinner("Carregando produtos..."):
+                r = req("GET", "/produtos", params=params if params else None)
+                if r.ok:
+                    data = r.json()
+                    st.session_state.products = data if isinstance(data, list) else data.get("produtos", [])
+                    st.success(f"{len(st.session_state.products)} produtos carregados.")
+                else:
+                    st.session_state.products = []
+                    show_response(r)
+    with col_clear:
+        if st.button("🧹 Limpar seleção", key="clear_selection_btn"):
+            st.session_state.selected_items = {}
+            st.rerun()
+
+    if not st.session_state.products:
+        st.info("Clique em **Carregar produtos** para ver a lista.")
+    else:
+        # Build lookup: package_id -> {product info, package info}
+        pkg_lookup = {}
+        for prod in st.session_state.products:
+            pickups = prod.get("pickups") or []
+            for pkg in pickups:
+                pid = pkg.get("package_id")
+                if pid is not None:
+                    pkg_lookup[pid] = {
+                        "product_name": prod.get("name", "?"),
+                        "product_id": prod.get("id"),
+                        "product_price": prod.get("price", "?"),
+                        "package_price": pkg.get("price", "?"),
+                        "package_stock": pkg.get("quantity", 0),
+                        "pickup_name": pkg.get("pickup_name", "?"),
+                        "pickup_date": pkg.get("pickup_date", ""),
+                        "address": pkg.get("address", {}),
+                    }
+
+        # Show products table
+        st.markdown("**Produtos**")
         st.dataframe(
             [
                 {
                     "ID": p.get("id"),
-                    "Nome": p.get("nome") or p.get("name", ""),
-                    "Preço": p.get("preco") or p.get("price", ""),
+                    "Nome": p.get("name", "?"),
+                    "Preço": p.get("price", "?"),
+                    "Pacotes": len(p.get("pickups") or []),
                 }
                 for p in st.session_state.products
             ],
             use_container_width=True,
+            hide_index=True,
         )
-    else:
-        st.info("Clique em **Carregar produtos** para ver a lista.")
 
-    # ── Section 2: Cart ────────────────────────────────────────────────────
-    st.subheader("2. Carrinho")
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
-        add_product_id = st.number_input("ID do produto", min_value=1, value=1, key="add_pid")
-    with col2:
-        add_qty = st.number_input("Quantidade", min_value=1, value=1, key="add_qty")
-    with col3:
-        st.write("")  # spacer
-        st.write("")
-        if st.button("➕ Adicionar ao carrinho", use_container_width=True):
-            payload = {
-                "product_id": int(add_product_id),
-                "quantity": int(add_qty),
-                "session_id": st.session_state.cart_session_id,
-                "personalization": {},
-            }
-            with st.spinner("Adicionando..."):
-                r = req("POST", "/carrinho/adicionar", data=payload)
-            if r.ok:
-                st.success("Produto adicionado ao carrinho!")
-                st.session_state.cart_items = None  # force reload
-            else:
-                show_response(r)
+        # Show packages with quantity inputs
+        if pkg_lookup:
+            st.markdown("---")
+            st.subheader("3. Selecionar pacotes")
+            st.caption("Escolha os pacotes e quantidades desejadas.")
 
-    if st.button("🛒 Ver carrinho"):
-        with st.spinner("Carregando carrinho..."):
-            r = req("GET", f"/carrinho/dados?session_id={st.session_state.cart_session_id}")
-        if r.ok:
-            data = r.json()
-            items = data if isinstance(data, list) else data.get("items", [])
-            st.session_state.cart_items = items
+            for pkg_id, info in sorted(pkg_lookup.items(), key=lambda x: x[1]["product_name"]):
+                addr = info["address"]
+                addr_str = ""
+                if addr:
+                    parts = [
+                        addr.get("street", ""),
+                        addr.get("number", ""),
+                        addr.get("neighborhood", ""),
+                        addr.get("city", ""),
+                        addr.get("state", ""),
+                    ]
+                    addr_str = ", ".join(p for p in parts if p)
+
+                qty_key = f"qty_pkg_{pkg_id}"
+                cur_qty = st.session_state.selected_items.get(pkg_id, 0)
+
+                col_info, col_qty = st.columns([4, 1])
+                with col_info:
+                    st.markdown(
+                        f"**Pacote {pkg_id}** — {info['product_name']} — "
+                        f"R$ {info['package_price']} — estoque: {info['package_stock']}  \n"
+                        f"Retirada: **{info['pickup_name']}**  \n"
+                        f"{addr_str}"
+                    )
+                with col_qty:
+                    new_qty = st.number_input(
+                        "Qtd",
+                        min_value=0,
+                        max_value=info["package_stock"],
+                        value=cur_qty,
+                        key=qty_key,
+                    )
+                    if new_qty != cur_qty:
+                        if new_qty > 0:
+                            st.session_state.selected_items[pkg_id] = new_qty
+                        elif pkg_id in st.session_state.selected_items:
+                            del st.session_state.selected_items[pkg_id]
+                st.markdown("---")
         else:
-            st.session_state.cart_items = []
-            show_response(r)
-
-    if st.session_state.cart_items:
-        st.dataframe(
-            [
-                {
-                    "Item ID": it.get("id") or it.get("item_id", ""),
-                    "Produto": it.get("nome") or it.get("name") or it.get("product_name", ""),
-                    "Quantidade": it.get("quantity", it.get("quantidade", "")),
-                }
-                for it in st.session_state.cart_items
-            ],
-            use_container_width=True,
-        )
-    else:
-        st.info("Adicione produtos ao carrinho e clique em **Ver carrinho**.")
-
-    # ── Section 3: Packages ────────────────────────────────────────────────
-    st.subheader("3. Pacotes de retirada")
-    if st.button("📋 Carregar pacotes"):
-        with st.spinner("Carregando pacotes..."):
-            r = req("GET", f"/carrinho/pacotes?session_id={st.session_state.cart_session_id}")
-        if r.ok:
-            data = r.json()
-            products_data = data if isinstance(data, list) else data.get("products", [])
-            all_pkgs = []
-            for prod in products_data:
-                for pkg in prod.get("packages", []):
-                    pickup = pkg.get("pickup", {})
-                    if isinstance(pickup, dict):
-                        pkg["_pickup_name"] = pickup.get("name", pickup.get("nome", ""))
-                    else:
-                        pkg["_pickup_name"] = str(pickup)
-                    all_pkgs.append(pkg)
-            st.session_state.packages = all_pkgs
-        else:
-            st.session_state.packages = []
-            show_response(r)
-
-    if st.session_state.packages:
-        pkg_options = {}
-        for pkg in st.session_state.packages:
-            pid = pkg.get("package_id") or pkg.get("id")
-            price = pkg.get("price") or pkg.get("preco", "?")
-            stock = pkg.get("stock") or pkg.get("estoque", "?")
-            pickup_name = pkg.get("_pickup_name", "?")
-            label = f"ID {pid} — R$ {price} — estoque: {stock} — retirada: {pickup_name}"
-            pkg_options[label] = pid
-
-        selected_label = st.radio(
-            "Selecione um pacote",
-            list(pkg_options.keys()),
-            index=None,
-        )
-        if selected_label:
-            st.session_state.selected_package_id = pkg_options[selected_label]
-    else:
-        st.info("Clique em **Carregar pacotes** para ver as opções.")
+            st.info("Nenhum pacote disponível nos produtos carregados.")
 
     # ── Section 4: Confirm ─────────────────────────────────────────────────
     st.subheader("4. Confirmar compra")
     col1, col2 = st.columns(2)
     with col1:
-        value_paid = st.text_input("Valor pago (R$)", value="", placeholder="ex: 6.00")
+        value_paid = st.text_input("Valor pago (R$)", value="", placeholder="ex: 50.00")
     with col2:
         ext_ref = st.text_input("Referência externa", value="", placeholder="ex: EXT-123")
-
-    col_q1, col_q2 = st.columns(2)
-    with col_q1:
-        confirm_qty = st.number_input("Quantidade", min_value=1, value=1, key="confirm_qty")
-    with col_q2:
-        st.write("")
 
     col3, col4 = st.columns(2)
     with col3:
@@ -236,22 +243,27 @@ if menu == "Checkout":
             "E-mail do cliente (opcional)",
             value="",
             placeholder="cliente@exemplo.com",
-            help="Se informado, cria conta de cliente e envia e-mail de boas-vindas.",
+            help="Se informado, cria conta de cliente e envia e-mail de confirmação.",
         )
     with col4:
         client_name = st.text_input("Nome do cliente (opcional)", value="", placeholder="Fulano de Tal")
 
+    # Summary of selected items
+    if st.session_state.selected_items:
+        st.caption(
+            f"{sum(st.session_state.selected_items.values())} itens em "
+            f"{len(st.session_state.selected_items)} pacotes selecionados."
+        )
+
     if st.button("✅ Confirmar compra", type="primary", use_container_width=True):
         if not value_paid:
             st.error("Informe o valor pago.")
-        elif st.session_state.selected_package_id is None:
-            st.error("Selecione um pacote de retirada (seção 3).")
+        elif not st.session_state.selected_items:
+            st.error("Selecione pelo menos um pacote (seção 3).")
         else:
             items = [
-                {
-                    "package_id": st.session_state.selected_package_id,
-                    "quantity": confirm_qty,
-                }
+                {"package_id": int(pkg_id), "quantity": qty}
+                for pkg_id, qty in st.session_state.selected_items.items()
             ]
             payload = {
                 "value_paid": value_paid,
@@ -273,13 +285,19 @@ if menu == "Checkout":
                 data = r.json()
                 unique_id = data.get("unique_id", "?")
                 status = data.get("status", "?")
+                qr_code = data.get("qr_code", "")
                 st.balloons()
-                st.success(f"**Compra confirmada!**  \nID único: `{unique_id}`  \nStatus: `{status}`")
+                st.success(
+                    f"**Compra confirmada!**  \n"
+                    f"ID único: `{unique_id}`  \n"
+                    f"Status: `{status}`"
+                )
+                if qr_code:
+                    st.code(qr_code, language="text")
+                    st.caption("QR Code para retirada")
                 # new session for next purchase
                 st.session_state.cart_session_id = f"cart_{int(time.time())}"
-                st.session_state.cart_items = None
-                st.session_state.packages = None
-                st.session_state.selected_package_id = None
+                st.session_state.selected_items = {}
             else:
                 show_response(r)
 
@@ -703,7 +721,7 @@ elif menu == "Requisição HTTP":
             "Endpoint",
             value="/produtos",
             placeholder="/produtos",
-            help="Caminho da API, ex: /produtos, /login, /carrinho/dados",
+            help="Caminho da API, ex: /produtos, /login, /checkouts/confirm",
         )
 
     use_auth = st.checkbox("Autenticar", value=False, key="req_auth")

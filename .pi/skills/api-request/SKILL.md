@@ -95,7 +95,6 @@ The full pvauto API surface is documented across the specialized skills:
 | Skill | Domain |
 |-------|--------|
 | `bank-saque` | `/login`, `/estabelecimentos/contasbancarias`, `/estabelecimentos/saques` |
-| `cart-checkout` | `/produtos`, `/carrinho/*`, `/checkouts/*` |
 
 This `api-request` skill wraps all of them generically. Use it for ad-hoc exploration, one-off calls, or endpoints not yet covered by a specialized skill.
 
