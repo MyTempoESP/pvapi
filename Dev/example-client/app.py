@@ -70,7 +70,7 @@ st.markdown("Interface de demonstração para a API do **pvauto.linhazero.com**"
 
 # ── Sidebar navigation ──────────────────────────────────────────────────────
 
-menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Monitores", "Requisição HTTP"])
+menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Monitores", "Admin Tokens", "Requisição HTTP"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CHECKOUT
@@ -78,6 +78,18 @@ menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Monitores", "Requ
 
 if menu == "Checkout":
     st.header("🛍️ Checkout")
+
+    # ── Section 0: API Key ────────────────────────────────────────────────
+    st.subheader("0. Chave de API (API Token)")
+    st.caption("O endpoint /checkouts/confirm requer autenticação via API token (Bearer pv_...).")
+
+    api_token = st.text_input(
+        "API Token (Bearer)",
+        value=st.session_state.get("checkout_api_token", ""),
+        placeholder="pv_...",
+        key="checkout_api_token",
+        type="password",
+    )
 
     # ── Section 1: Lojas ───────────────────────────────────────────────────
     st.subheader("1. Lojas")
@@ -281,37 +293,41 @@ if menu == "Checkout":
             if cpf.strip():
                 payload["cpf"] = cpf.strip()
 
-            with st.spinner("Finalizando compra..."):
-                r = req(
-                    "POST",
-                    "/checkouts/confirm",
-                    data=payload,
-                )
-            if r.ok:
-                data = r.json()
-                unique_id = data.get("unique_id", "?")
-                status = data.get("status", "?")
-                qr_codes = data.get("qr_codes", [])
-                st.balloons()
-                st.success(
-                    f"**Compra confirmada!**  \n"
-                    f"ID único: `{unique_id}`  \n"
-                    f"Status: `{status}`"
-                )
-                if qr_codes:
-                    st.subheader("📱 QR Codes para retirada")
-                    for entry in qr_codes:
-                        pkg_id = entry.get("package_id", "?")
-                        qr_data_uri = entry.get("qr_code", "")
-                        col_qr, col_label = st.columns([1, 3])
-                        with col_qr:
-                            # QR code is a data URI — render directly as image
-                            st.image(qr_data_uri, width=200)
-                        with col_label:
-                            st.markdown(f"**Pacote {pkg_id}**")
-                st.session_state.selected_items = {}
+            api_token = st.session_state.get("checkout_api_token", "").strip()
+            if not api_token:
+                st.error("Informe o API Token (seção 0).")
             else:
-                show_response(r)
+                with st.spinner("Finalizando compra..."):
+                    r = req(
+                        "POST",
+                        "/checkouts/confirm",
+                        data=payload,
+                        token=api_token,
+                    )
+                if r.ok:
+                    data = r.json()
+                    unique_id = data.get("unique_id", "?")
+                    status = data.get("status", "?")
+                    qr_codes = data.get("qr_codes", [])
+                    st.balloons()
+                    st.success(
+                        f"**Compra confirmada!**  \n"
+                        f"ID único: `{unique_id}`  \n"
+                        f"Status: `{status}`"
+                    )
+                    if qr_codes:
+                        st.subheader("📱 QR Codes para retirada")
+                        for entry in qr_codes:
+                            pkg_id = entry.get("package_id", "?")
+                            qr_data_uri = entry.get("qr_code", "")
+                            col_qr, col_label = st.columns([1, 3])
+                            with col_qr:
+                                st.image(qr_data_uri, width=200)
+                            with col_label:
+                                st.markdown(f"**Pacote {pkg_id}**")
+                    st.session_state.selected_items = {}
+                else:
+                    show_response(r)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # BANCO & SAQUE
@@ -714,6 +730,139 @@ elif menu == "Monitores":
                 r = req("DELETE", f"/monitores/{del_id}", token=st.session_state.auth_token)
             if r.ok:
                 st.success(f"Monitor `{del_id}` excluído!")
+            else:
+                show_response(r)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADMIN TOKENS
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif menu == "Admin Tokens":
+    st.header("🔑 Admin Tokens")
+    st.markdown("CRUD de API tokens para clientes da API (endpoints `/admin/api-clients`).")
+
+    # ── Section 1: Login ───────────────────────────────────────────────────
+    st.subheader("1. Login (admin)")
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        at_email = st.text_input("E-mail", value="", key="at_email")
+    with col2:
+        at_pass = st.text_input("Senha", type="password", value="", key="at_pass")
+    with col3:
+        st.write("")
+        st.write("")
+        if st.button("🔑 Entrar", use_container_width=True, key="at_login_btn"):
+            with st.spinner("Autenticando..."):
+                r = req("POST", "/login", data={"email": at_email, "password": at_pass})
+            if r.ok:
+                data = r.json()
+                token = data.get("access_token") or data.get("token", "")
+                if token:
+                    st.session_state.auth_token = token
+                    st.success("Login realizado com sucesso!")
+                else:
+                    st.error("Token não encontrado na resposta.")
+                    show_response(r)
+            else:
+                st.session_state.auth_token = None
+                show_response(r)
+
+    if st.session_state.auth_token:
+        st.info("✅ Autenticado. Token armazenado na sessão.")
+    else:
+        st.info("Faça login como admin para gerenciar API tokens.")
+
+    # ── Section 2: Create API Client ───────────────────────────────────────
+    st.subheader("2. Criar API client")
+    col1, col2 = st.columns(2)
+    with col1:
+        at_name = st.text_input("Nome", placeholder="Meu Integrador", key="at_name")
+    with col2:
+        at_client_email = st.text_input("E-mail", placeholder="integrador@exemplo.com", key="at_client_email")
+
+    if st.button("🔑 Criar API token", type="primary", use_container_width=True, key="at_create_btn"):
+        if not at_name or not at_client_email:
+            st.error("Preencha nome e e-mail.")
+        elif not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            with st.spinner("Criando API client..."):
+                r = req(
+                    "POST",
+                    "/admin/api-clients",
+                    data={"name": at_name.strip(), "email": at_client_email.strip()},
+                    token=st.session_state.auth_token,
+                )
+            if r.ok:
+                data = r.json()
+                api_client = data.get("api_client", {})
+                plain_token = data.get("token", "")
+                st.success(f"API client criado! ID: `{api_client.get('id')}`")
+                if plain_token:
+                    st.code(plain_token, language="text")
+                    st.warning("⚠️ Guarde este token! Ele não será exibido novamente.")
+                st.balloons()
+            else:
+                show_response(r)
+
+    # ── Section 3: List API Clients ────────────────────────────────────────
+    st.subheader("3. Listar API clients")
+    if st.button("📋 Listar API clients", use_container_width=True, key="at_list_btn"):
+        if not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            with st.spinner("Listando API clients..."):
+                r = req("GET", "/admin/api-clients", token=st.session_state.auth_token)
+            if r.ok:
+                data = r.json()
+                clients = data.get("api_clients", [])
+                if clients:
+                    st.dataframe(
+                        [
+                            {
+                                "ID": c.get("id"),
+                                "Nome": c.get("name", ""),
+                                "E-mail": c.get("email", ""),
+                                "Criado em": c.get("created_at", "")[:10] if c.get("created_at") else "",
+                                "Revogado": "Sim" if c.get("revoked_at") else "Não",
+                            }
+                            for c in clients
+                        ],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                else:
+                    st.info("Nenhum API client encontrado.")
+            else:
+                show_response(r)
+
+    # ── Section 4: View API Client ─────────────────────────────────────────
+    st.subheader("4. Visualizar API client")
+    at_view_id = st.number_input("ID do API client", min_value=1, value=1, key="at_view_id")
+    if st.button("🔍 Visualizar", use_container_width=True, key="at_view_btn"):
+        if not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            with st.spinner("Consultando..."):
+                r = req("GET", f"/admin/api-clients/{at_view_id}", token=st.session_state.auth_token)
+            if r.ok:
+                data = r.json()
+                api_client = data.get("api_client", {})
+                st.code(json.dumps(api_client, indent=2, ensure_ascii=False), language="json")
+            else:
+                show_response(r)
+
+    # ── Section 5: Revoke API Client ───────────────────────────────────────
+    st.subheader("5. Revogar API client")
+    at_revoke_id = st.number_input("ID do API client para revogar", min_value=1, value=1, key="at_revoke_id")
+    if st.button("🗑️ Revogar token", use_container_width=True, key="at_revoke_btn"):
+        if not st.session_state.auth_token:
+            st.error("Faça login primeiro (seção 1).")
+        else:
+            with st.spinner("Revogando..."):
+                r = req("DELETE", f"/admin/api-clients/{at_revoke_id}", token=st.session_state.auth_token)
+            if r.ok:
+                st.success(f"API client `{at_revoke_id}` revogado!")
             else:
                 show_response(r)
 
