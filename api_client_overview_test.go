@@ -103,7 +103,7 @@ func TestClientOverview(t *testing.T) {
 
 		sessionID := fmt.Sprintf("ov-multi-%d", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, h.defaultAPISession, map[string]any{
 			"value_paid":         "6.00",
 			"external_reference": fmt.Sprintf("EXT-OV-MULTI-%d", runID),
 			"items": []map[string]any{
@@ -184,7 +184,7 @@ func TestClientOverview(t *testing.T) {
 
 		// First checkout — will be updated to 'recebido' after
 		sessionID1 := fmt.Sprintf("ov-mix-1-%d", runID)
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-OV-MIX1-%d", runID),
 			"items": []map[string]any{
@@ -223,7 +223,7 @@ func TestClientOverview(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		sessionID2 := fmt.Sprintf("ov-mix-2-%d", runID)
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-OV-MIX2-%d", runID),
 			"items": []map[string]any{

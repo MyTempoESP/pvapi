@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"linhazero.com/pvapi/middleware/apitoken"
 	"linhazero.com/pvapi/models/checkoutmodel"
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
@@ -36,10 +37,13 @@ func ConfirmHandler(
 		// hash for dedup, preventing cross-customer collisions.
 		req.ClientEmail = ci.EffectiveEmail
 
+		apiClientID := apitoken.GetAPIClientID(c)
+
 		resp, err := checkoutmodel.Confirm(
 			c.Request.Context(),
 			pool,
 			req,
+			apiClientID,
 		)
 
 		if err != nil {

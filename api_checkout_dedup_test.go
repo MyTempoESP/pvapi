@@ -24,7 +24,7 @@ func genCPF(seed int64) string {
 // doDedupConfirm sends a checkout/confirm and returns the decoded body.
 func doDedupConfirm(t *testing.T, h *apiHarness, fx chkDedupFixtures, body map[string]any) map[string]any {
 	t.Helper()
-	rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, body)
+	rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body)
 	assertStatus(t, rec, http.StatusOK)
 	return decodeJSON(t, rec)
 }
@@ -78,7 +78,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		}
 
 		// First request
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, body)
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body)
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
@@ -91,7 +91,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 			},
 			"client_email": fmt.Sprintf("dedup1-%d@example.com", runID),
 		}
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, body2)
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body2)
 		assertStatus(t, rec2, http.StatusOK)
 		r2 := decodeJSON(t, rec2)
 
@@ -117,7 +117,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 
 		email := fmt.Sprintf("dedup2-%d@example.com", runID)
 
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-DEDUP2A-%d", runID),
 			"items": []map[string]any{
@@ -128,7 +128,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "5.00",
 			"external_reference": fmt.Sprintf("EXT-DEDUP2B-%d", runID),
 			"items": []map[string]any{
@@ -167,7 +167,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 
 		email := fmt.Sprintf("dedup3-%d@example.com", runID)
 
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-DEDUP3A-%d", runID),
 			"items": []map[string]any{
@@ -178,7 +178,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-DEDUP3B-%d", runID),
 			"items": []map[string]any{
@@ -203,7 +203,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		email1 := fmt.Sprintf("dedup4a-%d@example.com", runID)
 		email2 := fmt.Sprintf("dedup4b-%d@example.com", runID)
 
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": sharedRef,
 			"items": []map[string]any{
@@ -214,7 +214,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "5.00",
 			"external_reference": sharedRef, // same ref, different payload
 			"items": []map[string]any{
@@ -234,7 +234,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		runID := baseRunID + 5
 		fx := setupChkDedupFixtures(t, h, "noextref", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid": "3.00",
 			"items": []map[string]any{
 				{"package_id": fx.packageID, "quantity": 1},
@@ -254,7 +254,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		runID := baseRunID + 6
 		fx := setupChkDedupFixtures(t, h, "emptyextref", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": "",
 			"items": []map[string]any{

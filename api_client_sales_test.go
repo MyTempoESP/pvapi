@@ -95,7 +95,7 @@ func TestClientSales(t *testing.T) {
 		clientEmail := fmt.Sprintf("sales-one-%d@example.com", runID)
 
 		sessionID := fmt.Sprintf("sales-one-%d", runID)
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-SALES-ONE-%d", runID),
 			"items": []map[string]any{
@@ -151,7 +151,7 @@ func TestClientSales(t *testing.T) {
 
 		// First checkout
 		sessionID1 := fmt.Sprintf("sales-multi-1-%d", runID)
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-SALES-MULTI1-%d", runID),
 			"items": []map[string]any{
@@ -177,7 +177,7 @@ func TestClientSales(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		sessionID2 := fmt.Sprintf("sales-multi-2-%d", runID)
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-SALES-MULTI2-%d", runID),
 			"items": []map[string]any{
@@ -217,7 +217,7 @@ func TestClientSales(t *testing.T) {
 
 		// Checkout
 		sessionID := fmt.Sprintf("sales-mix-%d", runID)
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-SALES-MIX-%d", runID),
 			"items": []map[string]any{

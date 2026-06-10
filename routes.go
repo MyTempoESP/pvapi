@@ -4,6 +4,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	apitokenctrl "linhazero.com/pvapi/controllers/apitoken"
 	"linhazero.com/pvapi/controllers/bankaccount"
 	"linhazero.com/pvapi/controllers/category"
 	"linhazero.com/pvapi/controllers/checkout"
@@ -17,6 +18,7 @@ import (
 	"linhazero.com/pvapi/controllers/saque"
 	"linhazero.com/pvapi/controllers/shop"
 	"linhazero.com/pvapi/controllers/user"
+	apitokenmw "linhazero.com/pvapi/middleware/apitoken"
 	"linhazero.com/pvapi/middleware/auth"
 	"linhazero.com/pvapi/util"
 )
@@ -194,6 +196,11 @@ func setupRoutes(
 	{
 		admin.GET("/saques", saque.AdminListHandler(pool))
 
+		admin.POST("/api-clients", apitokenctrl.CreateHandler(pool))
+		admin.GET("/api-clients", apitokenctrl.ListHandler(pool))
+		admin.GET("/api-clients/:id", apitokenctrl.ViewHandler(pool))
+		admin.DELETE("/api-clients/:id", apitokenctrl.RevokeHandler(pool))
+
 		admin.GET(
 			"/moderacao/pendentes",
 			product.ListPendingModerationHandler(pool))
@@ -226,6 +233,7 @@ func setupRoutes(
 	}
 
 	checkouts := t.Group("/checkouts")
+	checkouts.Use(apitokenmw.Require(pool))
 	{
 		checkouts.POST("/confirm", checkout.ConfirmHandler(pool))
 	}

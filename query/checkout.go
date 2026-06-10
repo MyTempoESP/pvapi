@@ -8,7 +8,8 @@ INSERT INTO checkouts
 		status,
 		description,
 		external_reference,
-		content_hash
+		content_hash,
+		api_client_id
 	)
 VALUES
 	(
@@ -16,7 +17,8 @@ VALUES
 		'paid',
 		@description,
 		@external_reference,
-		@content_hash
+		@content_hash,
+		@api_client_id
 	)
 ON CONFLICT (content_hash) DO NOTHING
 RETURNING id, unique_id

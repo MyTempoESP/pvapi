@@ -55,6 +55,7 @@ func Confirm(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	req ConfirmRequest,
+	apiClientID int,
 ) (ConfirmResponse, error) {
 	var resp ConfirmResponse
 
@@ -87,7 +88,7 @@ func Confirm(
 	// Try INSERT with ON CONFLICT DO NOTHING — the idempotency mechanism.
 	// If the same content_hash already exists, INSERT is a no-op.
 	checkoutID, uniqueID, err := insertCheckoutContentHash(
-		ctx, tx, value, req.ExternalReference, contentHash, totalItems,
+		ctx, tx, value, req.ExternalReference, contentHash, totalItems, apiClientID,
 	)
 	if err != nil {
 		return resp, err
@@ -177,18 +178,23 @@ func insertCheckoutContentHash(
 	externalReference string,
 	contentHash string,
 	totalItems int,
+	apiClientID int,
 ) (checkoutID int, uniqueID string, err error) {
 	description := buildDescription(externalReference, totalItems)
+
+	args := util.Merge(util.Args{
+		"value":              value,
+		"description":        description,
+		"external_reference": externalReference,
+		"content_hash":       contentHash,
+	}, util.Args{
+		"api_client_id": nilIfZero(apiClientID),
+	})
 
 	err = tx.QueryRow(
 		ctx,
 		query.InsertCheckoutQuery,
-		util.Args{
-			"value":              value,
-			"description":        description,
-			"external_reference": externalReference,
-			"content_hash":       contentHash,
-		},
+		args,
 	).Scan(&checkoutID, &uniqueID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// ON CONFLICT DO NOTHING — no row returned, existing checkout
@@ -225,6 +231,14 @@ func buildDescription(externalReference string, totalItems int) string {
 		reference = "Checkout"
 	}
 	return fmt.Sprintf("%s — %d items", reference, totalItems)
+}
+
+// nilIfZero converts a zero int to nil for nullable DB columns.
+func nilIfZero(v int) any {
+	if v == 0 {
+		return nil
+	}
+	return v
 }
 
 // writeCheckoutData writes package reservations, generates QR codes per

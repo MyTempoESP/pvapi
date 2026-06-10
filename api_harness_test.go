@@ -19,11 +19,13 @@ import (
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/middleware/auth"
 	"linhazero.com/pvapi/middleware/logmw"
+	"linhazero.com/pvapi/models/apitokenmodel"
 	"linhazero.com/pvapi/seed"
 )
 
 type apiSession struct {
-	cookies []*http.Cookie
+	cookies     []*http.Cookie
+	bearerToken string
 }
 
 type uploadFile struct {
@@ -33,8 +35,10 @@ type uploadFile struct {
 }
 
 type apiHarness struct {
-	router *gin.Engine
-	pool   *pgxpool.Pool
+	router             *gin.Engine
+	pool               *pgxpool.Pool
+	apiClientToken     string
+	defaultAPISession *apiSession
 }
 
 var png1x1 = []byte{
@@ -122,9 +126,23 @@ func newAPIHarness(t *testing.T) *apiHarness {
 
 	t.Cleanup(pool.Close)
 
+	// Create a default API client for tests that hit /checkouts/confirm
+	_, apiToken, err := apitokenmodel.Create(
+		context.Background(), pool,
+		"Test API Client", "test-api@lzero.org",
+	)
+	if err != nil {
+		pool.Close()
+		t.Fatalf("create API client: %v", err)
+	}
+
 	return &apiHarness{
-		router: router,
-		pool:   pool,
+		router:         router,
+		pool:           pool,
+		apiClientToken: apiToken,
+		defaultAPISession: &apiSession{
+			bearerToken: apiToken,
+		},
 	}
 }
 
@@ -220,6 +238,9 @@ func (h *apiHarness) doRequest(
 	if session != nil {
 		for _, cookie := range session.cookies {
 			req.AddCookie(cookie)
+		}
+		if session.bearerToken != "" {
+			req.Header.Set("Authorization", "Bearer "+session.bearerToken)
 		}
 	}
 

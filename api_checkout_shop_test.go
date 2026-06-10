@@ -89,7 +89,7 @@ func TestCheckoutShopFreeze(t *testing.T) {
 
 	// Checkout with value_paid different from actual to test discrepancy
 	externalRef := fmt.Sprintf("EXT-REF-CS-%d", runID)
-	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 		"value_paid":         "99.99",
 		"external_reference": externalRef,
 		"items": []map[string]any{
@@ -323,7 +323,7 @@ func TestCheckoutShopClientID(t *testing.T) {
 		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
 		externalRef := fmt.Sprintf("EXT-REF-CLI-%d", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": externalRef,
 			"items": []map[string]any{
@@ -375,7 +375,7 @@ func TestCheckoutShopClientID(t *testing.T) {
 
 		externalRef := fmt.Sprintf("EXT-REF-NOCLI-%d", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": externalRef,
 			"items": []map[string]any{

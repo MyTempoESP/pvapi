@@ -63,7 +63,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		clientEmail := fmt.Sprintf("chkcli-happy-%d@example.com", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CHKCLI-%d", runID),
 			"items": []map[string]any{
@@ -100,7 +100,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		clientEmail := fmt.Sprintf("chkcli-reuse-%d@example.com", runID)
 
 		// First checkout creates the client
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REUSE1-%d", runID),
 			"items": []map[string]any{
@@ -124,7 +124,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REUSE2-%d", runID),
 			"items": []map[string]any{
@@ -155,7 +155,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 3
 		fx := setupChkCliFixtures(t, h, "noemail", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-NOEMAIL-%d", runID),
 			"items": []map[string]any{
@@ -175,7 +175,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		fx := setupChkCliFixtures(t, h, "name", runID)
 
 		clientEmail := fmt.Sprintf("chkcli-name-%d@example.com", runID)
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-NAME-%d", runID),
 			"items": []map[string]any{
@@ -210,7 +210,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 5
 		fx := setupChkCliFixtures(t, h, "failok", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-FAILOK-%d", runID),
 			"items": []map[string]any{
@@ -241,7 +241,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		clientEmail := fmt.Sprintf("telpw-%d@example.com", runID)
 		telephone := "11988887777"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-TELPW-%d", runID),
 			"items": []map[string]any{
@@ -274,7 +274,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 		syntheticEmail := cpf + "@br"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFONLY-%d", runID),
 			"items": []map[string]any{
@@ -306,7 +306,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		telephone := "21988887777"
 		syntheticEmail := telephone + "@tele"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-TELONLY-%d", runID),
 			"items": []map[string]any{
@@ -341,7 +341,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		telephone := "11988887777"
 		syntheticEmail := cpf + "@br"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFTEL-%d", runID),
 			"items": []map[string]any{
@@ -377,7 +377,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 		telephone := "11988887777"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-REALWINS-%d", runID),
 			"items": []map[string]any{
@@ -412,7 +412,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		t.Setenv("PV_API_PASSWORD_RESET_LINK", "https://pvaauto.example.com/reset")
 
 		// First checkout with original telephone
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-TELUPD1-%d", runID),
 			"items": []map[string]any{
@@ -438,7 +438,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		// Second checkout with different telephone
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-TELUPD2-%d", runID),
 			"items": []map[string]any{
@@ -471,7 +471,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 
 		// First checkout with CPF
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFPRES1-%d", runID),
 			"items": []map[string]any{
@@ -498,7 +498,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		// Second checkout WITHOUT CPF → existing CPF must be preserved
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFPRES2-%d", runID),
 			"items": []map[string]any{
@@ -522,7 +522,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		originalPhone := "11988887777"
 
 		// First checkout with telephone (no CPF)
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-PROVONLY1-%d", runID),
 			"items": []map[string]any{
@@ -552,7 +552,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		if len(newCPF) > 11 {
 			newCPF = newCPF[len(newCPF)-11:]
 		}
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-PROVONLY2-%d", runID),
 			"items": []map[string]any{
@@ -580,7 +580,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		telephone := "11988887777"
 		syntheticEmail := telephone + "@tele"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-INVCPF-%d", runID),
 			"items": []map[string]any{
@@ -603,7 +603,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		fx := setupChkCliFixtures(t, h, "emptel", runID)
 
 		// Telephone with only non-digits should be treated as not provided
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-EMPTEL-%d", runID),
 			"items": []map[string]any{
@@ -620,7 +620,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		runID := baseRunID + 20
 		fx := setupChkCliFixtures(t, h, "nopii", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-NOPII-%d", runID),
 			"items": []map[string]any{
@@ -650,7 +650,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		// First checkout with telephone AND email (real email is in hash)
 		clientEmail := fmt.Sprintf("deduptel-%d@example.com", runID)
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-DEDUP1-%d", runID),
 			"items": []map[string]any{
@@ -664,7 +664,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		uid1 := asString(t, body1["unique_id"])
 
 		// Second checkout: same items/value/email, different telephone → should dedup
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-DEDUP1-%d", runID),
 			"items": []map[string]any{
@@ -694,7 +694,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		formatted := cpf[:3] + "." + cpf[3:6] + "." + cpf[6:9] + "-" + cpf[9:]
 		syntheticEmail := cpf + "@br"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFFMT-%d", runID),
 			"items": []map[string]any{
@@ -720,7 +720,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 		syntheticEmail := cpf + "@br"
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", nil, map[string]any{
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"external_reference": fmt.Sprintf("EXT-REF-CPFNAME-%d", runID),
 			"items": []map[string]any{
