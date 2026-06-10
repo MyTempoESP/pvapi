@@ -21,13 +21,12 @@ type ConfirmItem struct {
 }
 
 type ConfirmRequest struct {
-	ValuePaid         string        `json:"value_paid" binding:"required"`
-	ExternalReference string        `json:"external_reference"`
-	Items             []ConfirmItem `json:"items" binding:"required,min=1,dive"`
-	ClientEmail       string        `json:"client_email"`
-	ClientName        string        `json:"client_name"`
-	Telephone         string        `json:"telephone"`
-	CPF               string        `json:"cpf"`
+	ValuePaid   string        `json:"value_paid" binding:"required"`
+	Items       []ConfirmItem `json:"items" binding:"required,min=1,dive"`
+	ClientEmail string        `json:"client_email"`
+	ClientName  string        `json:"client_name"`
+	Telephone   string        `json:"telephone"`
+	CPF         string        `json:"cpf"`
 }
 
 type PackageStock struct {
@@ -88,7 +87,7 @@ func Confirm(
 	// Try INSERT with ON CONFLICT DO NOTHING — the idempotency mechanism.
 	// If the same content_hash already exists, INSERT is a no-op.
 	checkoutID, uniqueID, err := insertCheckoutContentHash(
-		ctx, tx, value, req.ExternalReference, contentHash, totalItems, apiClientID,
+		ctx, tx, value, contentHash, totalItems, apiClientID,
 	)
 	if err != nil {
 		return resp, err
@@ -175,18 +174,16 @@ func insertCheckoutContentHash(
 	ctx context.Context,
 	tx pgx.Tx,
 	value decimal.Decimal,
-	externalReference string,
 	contentHash string,
 	totalItems int,
 	apiClientID int,
 ) (checkoutID int, uniqueID string, err error) {
-	description := buildDescription(externalReference, totalItems)
+	description := buildDescription(totalItems)
 
 	args := util.Merge(util.Args{
-		"value":              value,
-		"description":        description,
-		"external_reference": externalReference,
-		"content_hash":       contentHash,
+		"value":        value,
+		"description":  description,
+		"content_hash": contentHash,
 	}, util.Args{
 		"api_client_id": nilIfZero(apiClientID),
 	})
@@ -223,14 +220,9 @@ func findCheckoutByContentHash(
 	return checkoutID, uniqueID, nil
 }
 
-// buildDescription returns the checkout description.
-// Falls back to a generic label when external_reference is empty.
-func buildDescription(externalReference string, totalItems int) string {
-	reference := externalReference
-	if reference == "" {
-		reference = "Checkout"
-	}
-	return fmt.Sprintf("%s — %d items", reference, totalItems)
+// buildDescription returns the checkout description as a static label.
+func buildDescription(totalItems int) string {
+	return fmt.Sprintf("Checkout — %d items", totalItems)
 }
 
 // nilIfZero converts a zero int to nil for nullable DB columns.

@@ -105,7 +105,6 @@ func TestClientOverview(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, h.defaultAPISession, map[string]any{
 			"value_paid":         "6.00",
-			"external_reference": fmt.Sprintf("EXT-OV-MULTI-%d", runID),
 			"items": []map[string]any{
 				{"package_id": fx.packageID, "quantity": 2},
 			},
@@ -186,7 +185,6 @@ func TestClientOverview(t *testing.T) {
 		sessionID1 := fmt.Sprintf("ov-mix-1-%d", runID)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-OV-MIX1-%d", runID),
 			"items": []map[string]any{
 				{"package_id": fx.packageID, "quantity": 1},
 			},
@@ -225,7 +223,6 @@ func TestClientOverview(t *testing.T) {
 		sessionID2 := fmt.Sprintf("ov-mix-2-%d", runID)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-OV-MIX2-%d", runID),
 			"items": []map[string]any{
 				{"package_id": pkgID2, "quantity": 1},
 			},

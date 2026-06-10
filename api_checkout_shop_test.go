@@ -88,15 +88,10 @@ func TestCheckoutShopFreeze(t *testing.T) {
 
 
 	// Checkout with value_paid different from actual to test discrepancy
-	externalRef := fmt.Sprintf("EXT-REF-CS-%d", runID)
-	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-		"value_paid":         "99.99",
-		"external_reference": externalRef,
-		"items": []map[string]any{
-			{"package_id": pkgID1, "quantity": 1},
-			{"package_id": pkgID2, "quantity": 1},
-		},
-	})
+	chkRec := h.confirmCheckout(t, "99.99", []map[string]any{
+		{"package_id": pkgID1, "quantity": 1},
+		{"package_id": pkgID2, "quantity": 1},
+	}, nil)
 	assertStatus(t, chkRec, http.StatusOK)
 	chkBody := decodeJSON(t, chkRec)
 	uniqueID := asString(t, chkBody["unique_id"])
@@ -321,17 +316,15 @@ func TestCheckoutShopClientID(t *testing.T) {
 		pkgID := h.getPackageID(t, prd.ID, runID)
 
 		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
-		externalRef := fmt.Sprintf("EXT-REF-CLI-%d", runID)
 
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": externalRef,
-			"items": []map[string]any{
-				{"package_id": pkgID, "quantity": 1},
-			},
+		rec := h.confirmCheckout(t, "3.00", []map[string]any{
+			{"package_id": pkgID, "quantity": 1},
+		}, map[string]any{
 			"client_email": clientEmail,
 		})
 		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		uniqueID := asString(t, body["unique_id"])
 
 		// Query checkout_shop rows for this checkout and verify client_id
 		type csClientRow struct {
@@ -341,9 +334,8 @@ func TestCheckoutShopClientID(t *testing.T) {
 			context.Background(),
 			`SELECT cs.client_id
 			 FROM checkout_shop cs
-			 JOIN checkouts chk ON chk.id = cs.checkout_id
-			 WHERE chk.external_reference = $1`,
-			externalRef,
+			 WHERE cs.checkout_unique_id = $1::uuid`,
+			uniqueID,
 		)
 		if err != nil {
 			t.Fatalf("query checkout_shop: %v", err)
@@ -373,16 +365,12 @@ func TestCheckoutShopClientID(t *testing.T) {
 		runID := baseRunID + 2
 		pkgID := h.getPackageID(t, prd.ID, runID)
 
-		externalRef := fmt.Sprintf("EXT-REF-NOCLI-%d", runID)
-
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": externalRef,
-			"items": []map[string]any{
-				{"package_id": pkgID, "quantity": 1},
-			},
-		})
+		rec := h.confirmCheckout(t, "3.00", []map[string]any{
+			{"package_id": pkgID, "quantity": 1},
+		}, nil)
 		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		uniqueID := asString(t, body["unique_id"])
 
 		type csClientRow struct {
 			ClientID *int `db:"client_id"`
@@ -391,9 +379,8 @@ func TestCheckoutShopClientID(t *testing.T) {
 			context.Background(),
 			`SELECT cs.client_id
 			 FROM checkout_shop cs
-			 JOIN checkouts chk ON chk.id = cs.checkout_id
-			 WHERE chk.external_reference = $1`,
-			externalRef,
+			 WHERE cs.checkout_unique_id = $1::uuid`,
+			uniqueID,
 		)
 		if err != nil {
 			t.Fatalf("query checkout_shop: %v", err)

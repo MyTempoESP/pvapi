@@ -2,7 +2,9 @@
 
 Base URL: `https://pvauto.linhazero.com`
 
-This is a public, unauthenticated API for integrating with the PvAuto platform. All endpoints accept and return JSON. The API covers four domains: Products, Checkout, Consignments (remessas), and Establishments (lojas).
+All endpoints accept and return JSON. The API covers four domains: Products, Checkout, Consignments (remessas), and Establishments (lojas).
+
+**Authentication:** Product, consignment, and establishment endpoints are public (unauthenticated). **Checkout endpoints require a Bearer token** (`Authorization: Bearer pv_...`). API tokens are provisioned via the admin panel.
 
 ---
 
@@ -11,7 +13,7 @@ This is a public, unauthenticated API for integrating with the PvAuto platform. 
 There is no cart system. The integration flow is:
 
 1. **Browse products** via `GET /produtos` — each product already includes `pickups` (available packages with prices, stock, and pickup location addresses).
-2. **Confirm checkout** via `POST /checkouts/confirm` — directly with the `package_id` from the pickups you selected.
+2. **Confirm checkout** via `POST /checkouts/confirm` — directly with the `package_id` from the pickups you selected. Requires a valid API Bearer token.
 
 No intermediate cart, no `session_id`. Choose your packages directly from the product listing and proceed to checkout.
 
@@ -181,7 +183,11 @@ Error responses: 404.
 
 ### POST /checkouts/confirm - Confirm checkout
 
-Reserves stock and generates a QR code for pickup. **Idempotent**: the same `external_reference` always returns the original `unique_id` without duplicating the transaction.
+**Requires authentication:** `Authorization: Bearer pv_...` header.
+
+Reserves stock and generates QR codes for pickup. **Idempotent** via content-hash dedup: a SHA-256 hash of the canonical payload (`value_paid` + sorted `items` + optional `client_email`) serves as the deduplication key. Repeating the same payload returns the original `unique_id` without duplicating the transaction.
+
+`external_reference` is an optional descriptive tag — it does **not** control idempotency.
 
 Package IDs are obtained from the `pickups` field of products (`GET /produtos` or `GET /produtos/:product`).
 
@@ -208,12 +214,12 @@ Request body (JSON):
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | value_paid | string | yes | Amount paid as a decimal string (e.g. "600") |
-| external_reference | string | yes | Unique external reference (idempotency key) |
+| external_reference | string | no | Optional descriptive reference (does NOT control idempotency) |
 | items | array | yes | At least 1 item |
 | items[].package_id | integer | yes | Package ID from product pickups (min 1) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
-| client_email | string | no | Email for client account identity. If omitted, telephone or CPF can be used instead (see Client Account Auto-Creation) |
-| client_name | string | no | Name for the client account (derived from email if omitted) |
+| client_email | string | no | Email for client account identity. If omitted, telephone or CPF can be used instead (see Client Account Auto-Creation). Also participates in content-hash dedup when present |
+| client_name | string | no | Name for the client account (derived from effective email if omitted) |
 | telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no email or CPF is given |
 | cpf | string | no | Client CPF. Must be exactly 11 digits after stripping formatting. Used as identity fallback when no email is given; CPF takes priority over telephone |
 
@@ -234,16 +240,17 @@ Response 200:
 |-------|------|-------------|
 | unique_id | string (UUID) | Unique transaction identifier |
 | status | string | Transaction status ("paid") |
-| qr_codes | array | One QR code per reserved package, each with `package_id` and `qr_code` |
+| qr_codes | array | One QR code per reserved package, each with `package_id` and `qr_code` (data URI, PNG base64) |
 
 Error responses:
 - **400** - Invalid request
+- **401** - Missing or invalid API token
 - **409** - Insufficient stock
 - **422** - Package not found
 
 ---
 
-## Consignments / Remessas (`/remessas-publicas`, `/estabelecimentos/{shop}/remessas`)
+## Consignments / Remessas (`/remessas-publicas`)
 
 ### GET /remessas-publicas - List active consignments
 
@@ -292,23 +299,6 @@ Response 200:
 | responsibleMonitor | string | Responsible monitor name |
 | shop | object | Owning shop `{ id, name }` |
 | created_at | string | Creation date (ISO 8601) |
-
----
-
-### GET /estabelecimentos/{shop}/remessas - List consignments by shop
-
-Returns consignments linked to a specific shop, identified by its slug.
-
-Path parameters:
-
-| Param | Type | Description |
-|-------|------|-------------|
-| shop | string | Shop slug (textual identifier) |
-
-Response 200: Same structure as `GET /remessas-publicas`.
-
-Error responses:
-- **404** - Shop not found
 
 ---
 
@@ -375,13 +365,15 @@ All errors follow the same structure:
 }
 ```
 
-HTTP status codes used: 400, 404, 409, 422.
+HTTP status codes used: 400, 401, 404, 409, 422.
 
 ---
 
 ## Idempotency
 
-The checkout endpoint (`POST /checkouts/confirm`) guarantees idempotency via the `external_reference` field. Repeating the same `external_reference` returns the same `unique_id` without creating duplicate transactions or double-reserving stock.
+The checkout endpoint (`POST /checkouts/confirm`) guarantees idempotency via **content-hash dedup**. A SHA-256 hash of the canonical payload — `value_paid`, sorted `items` (by `package_id`), and `client_email` (when present) — serves as the deduplication key. Repeating the same payload returns the same `unique_id` without creating duplicate transactions.
+
+`external_reference` is purely descriptive and does **not** control idempotency. It can be omitted or repeated freely.
 
 ## Client Account Auto-Creation
 
@@ -391,7 +383,7 @@ The platform auto-creates or associates a client account after each checkout (be
 
 When the checkout includes identification fields (`client_email`, `telephone`, `cpf`), the platform resolves an **effective email** to either create or look up the client account:
 
-1. **Real email** (`client_email`): if provided, this is the effective email. All other fields (telephone, CPF) are stored as supplementary data.
+1. **Real email** (`client_email`): if provided, this is the effective email. All other fields (telephone, CPF) are stored as supplementary data. The effective email also participates in content-hash dedup to prevent cross-customer collisions.
 2. **CPF fallback**: if no email is given but a valid CPF (exactly 11 digits after stripping formatting) is provided, a synthetic email `<cpf>@br` is generated.
 3. **Telephone fallback**: if neither email nor valid CPF is given, but a telephone with at least one digit is provided, a synthetic email `<normalized_phone>@tele` is generated.
 4. **No identity**: if none of the above resolve, no account is created.

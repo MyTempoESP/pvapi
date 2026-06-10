@@ -24,7 +24,25 @@ func genCPF(seed int64) string {
 // doDedupConfirm sends a checkout/confirm and returns the decoded body.
 func doDedupConfirm(t *testing.T, h *apiHarness, fx chkDedupFixtures, body map[string]any) map[string]any {
 	t.Helper()
-	rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body)
+	valuePaid := asString(t, body["value_paid"])
+	rawItems := body["items"]
+	var items []map[string]any
+	switch v := rawItems.(type) {
+	case []map[string]any:
+		items = v
+	case []any:
+		items = make([]map[string]any, len(v))
+		for i, item := range v {
+			items[i] = item.(map[string]any)
+		}
+	}
+	extras := make(map[string]any)
+	for k, v := range body {
+		if k != "value_paid" && k != "items" {
+			extras[k] = v
+		}
+	}
+	rec := h.confirmCheckout(t, valuePaid, items, extras)
 	assertStatus(t, rec, http.StatusOK)
 	return decodeJSON(t, rec)
 }
@@ -68,30 +86,16 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		runID := baseRunID + 1
 		fx := setupChkDedupFixtures(t, h, "dedup1", runID)
 
-		body := map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-DEDUP1A-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": fmt.Sprintf("dedup1-%d@example.com", runID),
-		}
+		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
+		extras := map[string]any{"client_email": fmt.Sprintf("dedup1-%d@example.com", runID)}
 
 		// First request
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body)
+		rec1 := h.confirmCheckout(t, "3.00", items, extras)
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
 		// Second request — same payload (same value_paid, items, email)
-		body2 := map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-DEDUP1B-%d", runID), // different ref, same content
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": fmt.Sprintf("dedup1-%d@example.com", runID),
-		}
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body2)
+		rec2 := h.confirmCheckout(t, "3.00", items, extras)
 		assertStatus(t, rec2, http.StatusOK)
 		r2 := decodeJSON(t, rec2)
 
@@ -115,27 +119,14 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		runID := baseRunID + 2
 		fx := setupChkDedupFixtures(t, h, "dedup2", runID)
 
-		email := fmt.Sprintf("dedup2-%d@example.com", runID)
+		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
+		extras := map[string]any{"client_email": fmt.Sprintf("dedup2-%d@example.com", runID)}
 
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-DEDUP2A-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": email,
-		})
+		rec1 := h.confirmCheckout(t, "3.00", items, extras)
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "5.00",
-			"external_reference": fmt.Sprintf("EXT-DEDUP2B-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": email,
-		})
+		rec2 := h.confirmCheckout(t, "5.00", items, extras)
 		assertStatus(t, rec2, http.StatusOK)
 		r2 := decodeJSON(t, rec2)
 
@@ -166,27 +157,18 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
 		email := fmt.Sprintf("dedup3-%d@example.com", runID)
+		extras := map[string]any{"client_email": email}
 
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-DEDUP3A-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": email,
-		})
+		rec1 := h.confirmCheckout(t, "3.00", []map[string]any{
+			{"package_id": fx.packageID, "quantity": 1},
+		}, extras)
 		assertStatus(t, rec1, http.StatusOK)
 		r1 := decodeJSON(t, rec1)
 
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-DEDUP3B-%d", runID),
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-				{"package_id": pkgID2, "quantity": 1},
-			},
-			"client_email": email,
-		})
+		rec2 := h.confirmCheckout(t, "3.00", []map[string]any{
+			{"package_id": fx.packageID, "quantity": 1},
+			{"package_id": pkgID2, "quantity": 1},
+		}, extras)
 		assertStatus(t, rec2, http.StatusOK)
 		r2 := decodeJSON(t, rec2)
 
@@ -195,81 +177,7 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		}
 	})
 
-	t.Run("same_external_reference_different_payloads_are_distinct", func(t *testing.T) {
-		runID := baseRunID + 4
-		fx := setupChkDedupFixtures(t, h, "dedup4", runID)
 
-		sharedRef := fmt.Sprintf("EXT-SHARED-%d", runID)
-		email1 := fmt.Sprintf("dedup4a-%d@example.com", runID)
-		email2 := fmt.Sprintf("dedup4b-%d@example.com", runID)
-
-		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": sharedRef,
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": email1,
-		})
-		assertStatus(t, rec1, http.StatusOK)
-		r1 := decodeJSON(t, rec1)
-
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "5.00",
-			"external_reference": sharedRef, // same ref, different payload
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": email2,
-		})
-		assertStatus(t, rec2, http.StatusOK)
-		r2 := decodeJSON(t, rec2)
-
-		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
-			t.Fatal("expected different unique_id when same external_reference has different content")
-		}
-	})
-
-	t.Run("missing_external_reference_succeeds", func(t *testing.T) {
-		runID := baseRunID + 5
-		fx := setupChkDedupFixtures(t, h, "noextref", runID)
-
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid": "3.00",
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-		})
-		assertStatus(t, rec, http.StatusOK)
-		body := decodeJSON(t, rec)
-		if asString(t, body["status"]) != "paid" {
-			t.Fatalf("expected status 'paid', got %v", body["status"])
-		}
-		if asString(t, body["unique_id"]) == "" {
-			t.Fatal("expected non-empty unique_id")
-		}
-	})
-
-	t.Run("empty_external_reference_succeeds", func(t *testing.T) {
-		runID := baseRunID + 6
-		fx := setupChkDedupFixtures(t, h, "emptyextref", runID)
-
-		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": "",
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-		})
-		assertStatus(t, rec, http.StatusOK)
-		body := decodeJSON(t, rec)
-		if asString(t, body["status"]) != "paid" {
-			t.Fatalf("expected status 'paid', got %v", body["status"])
-		}
-		if asString(t, body["unique_id"]) == "" {
-			t.Fatal("expected non-empty unique_id")
-		}
-	})
 
 	t.Run("cpf_only_identical_payload_dedup", func(t *testing.T) {
 		runID := baseRunID + 7
@@ -277,16 +185,14 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		cpf := genCPF(10000000000 + runID)
 
 		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-CPFDEDUP-A-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":                cpf,
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":        cpf,
 		})
 		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-CPFDEDUP-B-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":                cpf,
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":        cpf,
 		})
 
 		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
@@ -300,16 +206,14 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		fx := setupChkDedupFixtures(t, h, "cpfdiff", runID)
 
 		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-CPFDIFF-A-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":                genCPF(20000000000 + runID),
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":        genCPF(20000000000 + runID),
 		})
 		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-CPFDIFF-B-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":                genCPF(30000000000 + runID),
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"cpf":        genCPF(30000000000 + runID),
 		})
 
 		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
@@ -323,16 +227,14 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		tel := fmt.Sprintf("%d", 11900000000+runID%1000000)
 
 		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-TELDEDUP-A-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":          tel,
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":  tel,
 		})
 		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-TELDEDUP-B-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":          tel,
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":  tel,
 		})
 
 		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
@@ -346,16 +248,14 @@ func TestCheckoutContentHashDedup(t *testing.T) {
 		fx := setupChkDedupFixtures(t, h, "teldiff", runID)
 
 		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-TELDIFF-A-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":          fmt.Sprintf("%d", 21900000000+runID%1000000),
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":  fmt.Sprintf("%d", 21900000000+runID%1000000),
 		})
 		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid":         "3.00",
-			"external_reference": fmt.Sprintf("EXT-TELDIFF-B-%d", runID),
-			"items":              []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":          fmt.Sprintf("%d", 22900000000+runID%1000000),
+			"value_paid": "3.00",
+			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
+			"telephone":  fmt.Sprintf("%d", 22900000000+runID%1000000),
 		})
 
 		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {

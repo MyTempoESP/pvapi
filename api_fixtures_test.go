@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -337,13 +338,9 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 	packageID := h.getPackageID(t, prd.ID, runID)
 
 
-	chkRec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-		"value_paid":         "3.00",
-		"external_reference": fmt.Sprintf("EXT-REF-EARN-%d", runID),
-		"items": []map[string]any{
-			{"package_id": packageID, "quantity": 1},
-		},
-	})
+	chkRec := h.confirmCheckout(t, "3.00", []map[string]any{
+		{"package_id": packageID, "quantity": 1},
+	}, nil)
 	assertStatus(t, chkRec, http.StatusOK)
 
 	return packageID
@@ -385,3 +382,24 @@ func (h *apiHarness) createReport(t *testing.T, session *apiSession, input repor
 	body := decodeJSON(t, rec)
 	return reportFixtureResult{ID: asInt(t, body["id"])}
 }
+
+// confirmCheckout is a shared helper for checkout confirmation tests.
+// It accepts value_paid, items, and optional extras (client_email, client_name,
+// telephone, cpf), builds the request body, POSTs to /checkouts/confirm, and
+// returns the raw response recorder.
+func (h *apiHarness) confirmCheckout(t *testing.T, valuePaid string, items []map[string]any, extras map[string]any) *httptest.ResponseRecorder {
+	t.Helper()
+
+	body := map[string]any{
+		"value_paid": valuePaid,
+		"items":      items,
+	}
+
+	for k, v := range extras {
+		body[k] = v
+	}
+
+	return h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, body)
+}
+
+

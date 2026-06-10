@@ -7,7 +7,6 @@ INSERT INTO checkouts
 		value,
 		status,
 		description,
-		external_reference,
 		content_hash,
 		api_client_id
 	)
@@ -16,7 +15,6 @@ VALUES
 		@value,
 		'paid',
 		@description,
-		@external_reference,
 		@content_hash,
 		@api_client_id
 	)
