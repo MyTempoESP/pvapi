@@ -3,7 +3,6 @@
 import json
 import os
 import re
-import time
 from urllib.parse import urlencode, urlparse, parse_qs
 
 import requests
@@ -233,17 +232,15 @@ if menu == "Checkout":
     with col1:
         value_paid = st.text_input("Valor pago (R$)", value="", placeholder="ex: 50.00")
     with col2:
-        ext_ref = st.text_input("Referência externa", value="", placeholder="ex: EXT-123")
-
-    col3, col4 = st.columns(2)
-    with col3:
         client_email = st.text_input(
             "E-mail do cliente (opcional)",
             value="",
             placeholder="cliente@exemplo.com",
             help="Se informado, cria conta de cliente e envia e-mail de confirmação. Pode ser omitido se telephone ou CPF forem fornecidos.",
         )
-    with col4:
+
+    col3, col4 = st.columns(2)
+    with col3:
         client_name = st.text_input("Nome do cliente (opcional)", value="", placeholder="Fulano de Tal")
 
     col5, col6 = st.columns(2)
@@ -281,7 +278,6 @@ if menu == "Checkout":
             ]
             payload = {
                 "value_paid": value_paid,
-                "external_reference": ext_ref or f"EXT-{int(time.time())}",
                 "items": items,
             }
             if client_email.strip():

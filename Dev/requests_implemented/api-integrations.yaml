@@ -6,8 +6,11 @@ info:
     name: Proprietary
     url: https://pvauto.linhazero.com
   description: |
-    Rotas públicas para integração com a plataforma PvAuto:
+    API de integração com a plataforma PvAuto:
     catálogo de produtos, consulta de remessas públicas e checkout.
+
+    **Autenticação:** endpoints de produto, remessa e estabelecimento são
+    públicos. **Checkout exige token** (`Authorization: Bearer pv_...`).
 
     **Fluxo principal (cartless):**
     1. Consultar produtos via `GET /produtos` (cada produto já inclui `pickups`
@@ -16,14 +19,15 @@ info:
        obtidos no passo anterior — sem carrinho intermediário.
 
     **Identificação do cliente:**
-     - `cpf` e `telephone` identificam o cliente no checkout.
+     - Ao menos um de `client_email`, `cpf` ou `telephone` é obrigatório.
      - A senha da conta é os dígitos do telefone se informado, ou aleatória (16 chars).
      - CPF e telephone nunca aparecem na resposta do checkout nem em logs.
 
-    **Idempotência:**
-     - `POST /checkouts/confirm` é idempotente via `external_reference`.
-       Mesmo `external_reference` retorna o mesmo `unique_id`.
-security: []
+    **Rate limit:**
+     - `POST /checkouts/confirm` limita a 1 checkout por cliente a cada 60 segundos.
+       Requisições acima do limite retornam HTTP 429 com `retry_after` (segundos).
+security:
+  - BearerAuth: []
 
 servers:
   - url: https://pvauto.linhazero.com
@@ -43,20 +47,23 @@ paths:
   # ═══════════════════════════════════════════════════════════════
   /checkouts/confirm:
     post:
+      security:
+        - BearerAuth: []
       tags: [Checkout]
       summary: Confirma checkout (compra)
       description: |
-        Reserva estoque e gera QR code para retirada.
+        Reserva estoque e gera QR code para retirada. Requer token
+        de API (`Authorization: Bearer pv_...`).
 
-        **Idempotente** — o mesmo `external_reference` retorna o `unique_id`
-        original sem duplicar a transação.
+        **Rate limit:** 1 checkout por cliente a cada 60 segundos.
+        Exceder o limite retorna HTTP 429 com `retry_after`.
 
         Os `package_id` são obtidos no campo `pickups` dos produtos
         (`GET /produtos` ou `GET /produtos/:product`).
 
-        **Identificação do cliente:** `cpf` e `telephone` identificam
-        o cliente. A senha é os dígitos do telefone se informado, ou
-        aleatória (16 chars).
+        **Identificação do cliente:** ao menos um de `client_email`,
+        `cpf` ou `telephone` é obrigatório. A senha é os dígitos do
+        telefone se informado, ou aleatória (16 chars).
       operationId: confirmarCheckout
       requestBody:
         required: true
@@ -73,6 +80,12 @@ paths:
                 $ref: "#/components/schemas/RespostaCheckout"
         "400":
           $ref: "#/components/responses/ErroRequisicao"
+        "401":
+          description: Token de API ausente ou inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
         "409":
           description: Estoque insuficiente
           content:
@@ -85,6 +98,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespostaErro"
+        "429":
+          description: Rate limit excedido
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message, retry_after]
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                  retry_after:
+                    type: integer
+                    description: Segundos restantes para o próximo checkout
 
   # ═══════════════════════════════════════════════════════════════
   # Produtos
@@ -207,6 +236,11 @@ paths:
 # Componentes
 # ═════════════════════════════════════════════════════════════════
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API token provisionado via painel admin (prefixo `pv_`)
   schemas:
     # ── Genéricos ───────────────────────────────────────────────
     RespostaOk:
@@ -265,14 +299,11 @@ components:
 
     ConfirmarCheckoutRequest:
       type: object
-      required: [value_paid, external_reference, items]
+      required: [value_paid, items]
       properties:
         value_paid:
           type: string
           description: 'Valor pago (string decimal, ex: "600")'
-        external_reference:
-          type: string
-          description: Referência externa única (chave de idempotência). Mesmo valor sempre retorna o mesmo unique_id.
         items:
           type: array
           minItems: 1
@@ -284,15 +315,18 @@ components:
         cpf:
           type: string
           description: CPF do cliente. Deve ter exatamente 11 dígitos após remoção de formatação. Identifica o cliente; tem prioridade sobre telephone.
+        client_email:
+          type: string
+          description: Email do cliente. Tem prioridade máxima como identidade.
         client_name:
           type: string
           description: Nome do cliente (opcional).
       example:
         value_paid: "600"
-        external_reference: "pay_abc123"
         items:
           - package_id: 42
             quantity: 1
+        client_email: "cliente@email.com"
         telephone: "11988887777"
         cpf: "12345678901"
         client_name: "Nome do Cliente"

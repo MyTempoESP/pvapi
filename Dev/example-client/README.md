@@ -12,7 +12,7 @@ Fluxo completo de compra:
 1. **Lojas** — lista os estabelecimentos ativos via `GET /estabelecimentos` (opcional, para filtrar produtos).
 2. **Produtos disponíveis** — lista os produtos cadastrados via `GET /produtos`, com filtro por loja. Cada produto exibe seus pacotes de retirada (preço, estoque, ponto de retirada, endereço).
 3. **Selecionar pacotes** — escolhe pacotes e quantidades diretamente, sem carrinho intermediário.
-4. **Confirmar compra** — finaliza a compra via `POST /checkouts/confirm` com valor pago, referência externa, itens (`[{package_id, quantity}]`) e dados do cliente (e-mail, nome, telefone e CPF — todos opcionais; telefone e CPF servem como identidade alternativa quando e-mail não é informado). A resposta inclui a lista `qr_codes[]` com um QR code por pacote reservado (`{package_id, qr_code}`), renderizados como imagens.
+4. **Confirmar compra** — finaliza a compra via `POST /checkouts/confirm` com valor pago, itens (`[{package_id, quantity}]`) e dados do cliente (e-mail, nome, telefone e CPF — todos opcionais; ao menos um campo de identidade é obrigatório). A resposta inclui a lista `qr_codes[]` com um QR code por pacote reservado (`{package_id, qr_code}`), renderizados como imagens.
 
 ### 🏦 Banco & Saque
 Gestão de conta bancária e solicitação de saques (autenticado como estabelecimento):
