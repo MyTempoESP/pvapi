@@ -194,7 +194,6 @@ No query parameters.
 Request body (JSON):
 ```json
 {
-  "value_paid": "600",
   "items": [
     {
       "package_id": 42,
@@ -210,7 +209,6 @@ Request body (JSON):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| value_paid | string | yes | Amount paid as a decimal string (e.g. "600") |
 | items | array | yes | At least 1 item |
 | items[].package_id | integer | yes | Package ID from product pickups (min 1) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |

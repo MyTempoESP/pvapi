@@ -299,11 +299,8 @@ components:
 
     ConfirmarCheckoutRequest:
       type: object
-      required: [value_paid, items]
+      required: [items]
       properties:
-        value_paid:
-          type: string
-          description: 'Valor pago (string decimal, ex: "600")'
         items:
           type: array
           minItems: 1
@@ -322,7 +319,6 @@ components:
           type: string
           description: Nome do cliente (opcional).
       example:
-        value_paid: "600"
         items:
           - package_id: 42
             quantity: 1

@@ -230,8 +230,6 @@ if menu == "Checkout":
     st.subheader("4. Confirmar compra")
     col1, col2 = st.columns(2)
     with col1:
-        value_paid = st.text_input("Valor pago (R$)", value="", placeholder="ex: 50.00")
-    with col2:
         client_email = st.text_input(
             "E-mail do cliente (opcional)",
             value="",
@@ -239,7 +237,7 @@ if menu == "Checkout":
             help="Se informado, cria conta de cliente e envia e-mail de confirmação. Pode ser omitido se telephone ou CPF forem fornecidos.",
         )
 
-    col3, col4 = st.columns(2)
+    col3, _ = st.columns(2)
     with col3:
         client_name = st.text_input("Nome do cliente (opcional)", value="", placeholder="Fulano de Tal")
 
@@ -267,9 +265,7 @@ if menu == "Checkout":
         )
 
     if st.button("✅ Confirmar compra", type="primary", use_container_width=True):
-        if not value_paid:
-            st.error("Informe o valor pago.")
-        elif not st.session_state.selected_items:
+        if not st.session_state.selected_items:
             st.error("Selecione pelo menos um pacote (seção 3).")
         else:
             items = [
@@ -277,7 +273,6 @@ if menu == "Checkout":
                 for pkg_id, qty in st.session_state.selected_items.items()
             ]
             payload = {
-                "value_paid": value_paid,
                 "items": items,
             }
             if client_email.strip():
