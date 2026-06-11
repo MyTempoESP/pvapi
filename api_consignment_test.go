@@ -434,4 +434,48 @@ func TestConsignment(t *testing.T) {
 			t.Fatalf("consignee gated listing should include ARQUIVADO consignment %d", cons.ID)
 		}
 	})
+
+	// --- discount validation ---
+
+	t.Run("discount_above_100_rejected", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": productName,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste discount",
+					"category":    "porta-medalhas",
+					"discount":    101,
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected discount=101 to be rejected")
+		}
+	})
+
+	t.Run("negative_discount_rejected", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": productName,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste desconto negativo",
+					"category":    "porta-medalhas",
+					"discount":    -1,
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected discount=-1 to be rejected")
+		}
+	})
 }

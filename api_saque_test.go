@@ -201,9 +201,9 @@ func TestSaque(t *testing.T) {
 		balBA := h.createBankAccount(t, &balSession, "Conta Exact", "Nubank")
 
 		// Get the available balance by requesting a very large saque and reading the error
-		// The earnings per checkout: value=3, tax=(5/100)*3*1=0.15, commission=(1/100)*3*1=0.03, net=2.82
-		// So saque of 2.82 should succeed (exact balance)
-		result := h.createSaque(t, &balSession, "Saque valor exato", "2.82", balBA.ID)
+		// The earnings per checkout: effective_price=2.70, tax=0.14, commission=0.03, net=2.53
+		// So saque of 2.53 should succeed (exact balance)
+		result := h.createSaque(t, &balSession, "Saque valor exato", "2.53", balBA.ID)
 		if result.ID == 0 {
 			t.Fatal("expected non-zero saque ID for exact balance")
 		}
@@ -247,7 +247,7 @@ func TestSaque(t *testing.T) {
 		h.generateEarnings(t, &balSession, &admin, balShop, balRunID+1)
 		balBA := h.createBankAccount(t, &balSession, "Conta Pending", "Nubank")
 
-		// Earnings: 2 * 2.82 = 5.64
+		// Earnings: 2 * 2.53 = 5.06
 		// First saque of 1.00 should succeed
 		s1 := h.createSaque(t, &balSession, "Primeiro saque", "1.00", balBA.ID)
 		if s1.ID == 0 {
@@ -260,7 +260,7 @@ func TestSaque(t *testing.T) {
 			t.Fatal("expected second saque to succeed")
 		}
 
-		// Third saque should fail — only 3.64 remaining
+		// Third saque should fail — only 3.06 remaining
 		rec := h.doJSON(t, http.MethodPost, "/estabelecimentos/saques", &balSession, map[string]any{
 			"description":  "Terceiro saque que excede",
 			"asked_value":  "5.00",
@@ -575,8 +575,8 @@ func TestAdminSaqueModeration(t *testing.T) {
 		h.generateEarnings(t, &balSession, &admin, balShop, balRunID)
 		balBA := h.createBankAccount(t, &balSession, "Conta Bal Mod", "Nubank")
 
-		// Earnings = 2.82, create a saque for 2.82 (exact balance)
-		result := h.createSaque(t, &balSession, "Saque balanço exato", "2.82", balBA.ID)
+		// Earnings = 2.53, create a saque for 2.53 (exact balance)
+		result := h.createSaque(t, &balSession, "Saque balanço exato", "2.53", balBA.ID)
 		saqueID := result.ID
 
 		// Approve should succeed since balance >= 0
@@ -595,8 +595,8 @@ func TestAdminSaqueModeration(t *testing.T) {
 		h.generateEarnings(t, &balSession, &admin, balShop, balRunID)
 		balBA := h.createBankAccount(t, &balSession, "Conta Free", "Nubank")
 
-		// Earnings = 2.82, create a saque for 2.82
-		result := h.createSaque(t, &balSession, "Saque free", "2.82", balBA.ID)
+		// Earnings = 2.53, create a saque for 2.53
+		result := h.createSaque(t, &balSession, "Saque free", "2.53", balBA.ID)
 
 		// Reject it
 		rec := h.doJSON(t, http.MethodPost,
@@ -605,7 +605,7 @@ func TestAdminSaqueModeration(t *testing.T) {
 		assertStatus(t, rec, http.StatusOK)
 
 		// Now create another saque with same value — should succeed because balance is freed
-		result2 := h.createSaque(t, &balSession, "Saque after free", "2.82", balBA.ID)
+		result2 := h.createSaque(t, &balSession, "Saque after free", "2.53", balBA.ID)
 		if result2.ID == 0 {
 			t.Fatal("expected non-zero saque ID after rejection frees balance")
 		}

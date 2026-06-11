@@ -4,7 +4,6 @@ const (
 	InsertCheckoutQuery = `
 INSERT INTO checkouts
 	(
-		value,
 		status,
 		description,
 		api_client_id,
@@ -12,7 +11,6 @@ INSERT INTO checkouts
 	)
 VALUES
 	(
-		@value,
 		'paid',
 		@description,
 		@api_client_id,
@@ -26,7 +24,7 @@ WITH decrement AS (
 	UPDATE packages
 	SET quantity = quantity - $3
 	WHERE id = $1 AND quantity >= $3
-	RETURNING id, product_id, consignment_id, price
+	RETURNING id, product_id, consignment_id, price, discount
 )
 INSERT INTO package_reserved
 	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status)
@@ -34,17 +32,17 @@ SELECT
 	d.id,
 	$2,
 	$3::integer,
-	(p.platform_cut / 100.0) * d.price * $3::numeric,
+	(p.platform_cut / 100.0) * d.price * (1.0 - d.discount / 100.0) * $3::numeric,
 	CASE
 		-- FIXED: commission is the flat comission_value per checkout,
 		--        not added to the package price
 		WHEN c.comission_type = 'PERCENT'
-			THEN (c.comission_value / 100.0) * d.price * $3::numeric
+			THEN (c.comission_value / 100.0) * d.price * (1.0 - d.discount / 100.0) * $3::numeric
 		ELSE c.comission_value
 	END,
 	c.shop_id,
 	d.consignment_id,
-	d.price * $3::numeric,
+	d.price * (1.0 - d.discount / 100.0) * $3::numeric,
 	'pending'
 FROM decrement d
 JOIN products p ON p.id = d.product_id
@@ -118,17 +116,6 @@ SELECT
 FROM package_reserved pr
 WHERE pr.checkout_id = $1
 GROUP BY pr.shop_id
-`
-
-	UpdateCheckoutDiscrepancyQuery = `
-UPDATE checkouts chk
-SET value_discrepancy = chk.value - COALESCE(
-	(SELECT SUM(cs.shop_value)
-	 FROM checkout_shop cs
-	 WHERE cs.checkout_id = chk.id),
-	0
-)
-WHERE chk.id = $1
 `
 
 	UpdateCheckoutClientIDQuery = `

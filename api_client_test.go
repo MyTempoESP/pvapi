@@ -72,7 +72,6 @@ func TestClient(t *testing.T) {
 		// First checkout: 1x item at 3.00 each
 		sessionID1 := fmt.Sprintf("clientf-agg-1-%d", runID)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
 			"items": []map[string]any{
 				{"package_id": fx.packageID, "quantity": 1},
 			},
@@ -100,7 +99,6 @@ func TestClient(t *testing.T) {
 
 		sessionID2 := fmt.Sprintf("clientf-agg-2-%d", runID)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
 			"items": []map[string]any{
 				{"package_id": pkgID2, "quantity": 1},
 			},
@@ -120,10 +118,10 @@ func TestClient(t *testing.T) {
 			t.Fatalf("client with email %q not found", clientEmail)
 		}
 
-		// total_purchases should be "6.00" (2x 3.00)
+		// total_purchases should be "5.40" (2x 2.70 with 10%% discount)
 		totalPurchases := asString(t, client["total_purchases"])
-		if totalPurchases != "6.00" && totalPurchases != "6" {
-			t.Fatalf("expected total_purchases '6.00', got %q", totalPurchases)
+		if totalPurchases != "5.40" && totalPurchases != "5.4" {
+			t.Fatalf("expected total_purchases '5.40', got %q", totalPurchases)
 		}
 
 		// last_purchase should be present and non-nil

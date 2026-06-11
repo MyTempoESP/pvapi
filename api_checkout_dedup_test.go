@@ -55,11 +55,11 @@ func TestCheckoutRateLimit(t *testing.T) {
 		extras := map[string]any{"client_email": fmt.Sprintf("rldedup-%d@example.com", runID)}
 
 		// First request — succeeds
-		rec1 := h.confirmCheckout(t, "3.00", items, extras)
+		rec1 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec1, http.StatusOK)
 
 		// Second request — same payload, same client, within 60s window → 429
-		rec2 := h.confirmCheckout(t, "3.00", items, extras)
+		rec2 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec2, http.StatusTooManyRequests)
 
 		body2 := decodeJSON(t, rec2)
@@ -84,11 +84,11 @@ func TestCheckoutRateLimit(t *testing.T) {
 		extras := map[string]any{"client_email": email}
 
 		// First request — succeeds
-		rec1 := h.confirmCheckout(t, "3.00", items, extras)
+		rec1 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec1, http.StatusOK)
 
 		// Second request — different value_paid, same client, within window → 429
-		rec2 := h.confirmCheckout(t, "5.00", items, extras)
+		rec2 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec2, http.StatusTooManyRequests)
 	})
 
@@ -100,12 +100,12 @@ func TestCheckoutRateLimit(t *testing.T) {
 		email1 := fmt.Sprintf("rldiffcli-a-%d@example.com", runID)
 		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
 
-		rec1 := h.confirmCheckout(t, "3.00", items, map[string]any{"client_email": email1})
+		rec1 := h.confirmCheckout(t, items, map[string]any{"client_email": email1})
 		assertStatus(t, rec1, http.StatusOK)
 
 		// Second client — same payload but different email → succeeds
 		email2 := fmt.Sprintf("rldiffcli-b-%d@example.com", runID)
-		rec2 := h.confirmCheckout(t, "3.00", items, map[string]any{"client_email": email2})
+		rec2 := h.confirmCheckout(t, items, map[string]any{"client_email": email2})
 		assertStatus(t, rec2, http.StatusOK)
 
 		if asString(t, rec1.Body.String()) == asString(t, rec2.Body.String()) {
@@ -120,7 +120,7 @@ func TestCheckoutRateLimit(t *testing.T) {
 		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
 
 		// No email, no CPF, no telephone
-		rec := h.confirmCheckout(t, "3.00", items, map[string]any{})
+		rec := h.confirmCheckout(t, items, map[string]any{})
 		assertStatus(t, rec, http.StatusBadRequest)
 
 		body := decodeJSON(t, rec)
@@ -142,11 +142,11 @@ func TestCheckoutRateLimit(t *testing.T) {
 		extras := map[string]any{"cpf": cpf}
 
 		// First request — succeeds (client created via CPF)
-		rec1 := h.confirmCheckout(t, "3.00", items, extras)
+		rec1 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec1, http.StatusOK)
 
 		// Second request — same CPF within window → 429
-		rec2 := h.confirmCheckout(t, "3.00", items, extras)
+		rec2 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec2, http.StatusTooManyRequests)
 	})
 
@@ -159,10 +159,10 @@ func TestCheckoutRateLimit(t *testing.T) {
 		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
 		extras := map[string]any{"telephone": telephone}
 
-		rec1 := h.confirmCheckout(t, "3.00", items, extras)
+		rec1 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec1, http.StatusOK)
 
-		rec2 := h.confirmCheckout(t, "3.00", items, extras)
+		rec2 := h.confirmCheckout(t, items, extras)
 		assertStatus(t, rec2, http.StatusTooManyRequests)
 	})
 }

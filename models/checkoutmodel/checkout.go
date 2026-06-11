@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/shopspring/decimal"
 
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/query"
@@ -26,7 +25,6 @@ type ConfirmItem struct {
 }
 
 type ConfirmRequest struct {
-	ValuePaid   string        `json:"value_paid" binding:"required"`
 	Items       []ConfirmItem `json:"items" binding:"required,min=1,dive"`
 	ClientEmail string        `json:"client_email"`
 	ClientName  string        `json:"client_name"`
@@ -133,11 +131,6 @@ func Confirm(
 		}
 	}
 
-	value, err := decimal.NewFromString(req.ValuePaid)
-	if err != nil {
-		return resp, fmt.Errorf("invalid value_paid: %w", err)
-	}
-
 	totalItems := 0
 	for _, item := range req.Items {
 		totalItems += item.Quantity
@@ -146,7 +139,7 @@ func Confirm(
 	description := fmt.Sprintf("Checkout — %d items", totalItems)
 
 	checkoutID, uniqueID, err := insertCheckout(
-		ctx, tx, value, description, apiClientID, clientID,
+		ctx, tx, description, apiClientID, clientID,
 	)
 	if err != nil {
 		return resp, err
@@ -245,14 +238,12 @@ func validateStock(
 func insertCheckout(
 	ctx context.Context,
 	tx pgx.Tx,
-	value decimal.Decimal,
 	description string,
 	apiClientID int,
 	clientID int,
 ) (checkoutID int, uniqueID string, err error) {
 	args := util.Merge(
 		util.Args{
-			"value":       value,
 			"description": description,
 		},
 		util.Args{
@@ -322,16 +313,6 @@ func writeCheckoutData(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert checkout_shop: %w", err)
-	}
-
-	// Compute and store value_discrepancy
-	_, err = tx.Exec(
-		ctx,
-		query.UpdateCheckoutDiscrepancyQuery,
-		checkoutID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update value_discrepancy: %w", err)
 	}
 
 	return entries, nil

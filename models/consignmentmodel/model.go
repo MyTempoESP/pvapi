@@ -7,6 +7,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/shopspring/decimal"
 	"linhazero.com/pvapi/db"
 	"linhazero.com/pvapi/models/model"
 
@@ -20,6 +21,14 @@ func (a AddProductAction) Exec(
 	tx pgx.Tx,
 ) (err error) {
 	for _, p := range a.Products {
+		if p.Discount.LessThan(decimal.NewFromInt(0)) || p.Discount.GreaterThan(decimal.NewFromInt(100)) {
+			return fmt.Errorf(
+				"discount must be between 0 and 100, got %s: %w",
+				p.Discount.String(),
+				util.ErrBadRequest,
+			)
+		}
+
 		var exists int
 		err = tx.QueryRow(
 			ctx, query.ProductCheckExistsInConsignmentQuery,

@@ -87,8 +87,7 @@ func TestCheckoutShopFreeze(t *testing.T) {
 	//   Shop2 consignment: comission_value=3, comission_type='PERCENT'
 
 
-	// Checkout with value_paid different from actual to test discrepancy
-	chkRec := h.confirmCheckout(t, "99.99", []map[string]any{
+	chkRec := h.confirmCheckout(t, []map[string]any{
 		{"package_id": pkgID1, "quantity": 1},
 		{"package_id": pkgID2, "quantity": 1},
 	}, map[string]any{"client_email": "shopfreeze@example.com"})
@@ -131,10 +130,11 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		}
 
 		// Shop1: FIXED commission (comission_value=3)
-		// package price=3, checkout quantity=1
-		// shop_value = 3.00 * 1 = 3.00
-		// shop_tax = (5/100) * 3.00 * 1 = 0.15
-		// commission = 3.00
+		// package price=3, discount=10%%, checkout quantity=1
+		// effective_price = 3.00 * (1 - 0.10) = 2.70
+		// shop_value = 2.70 * 1 = 2.70
+		// shop_tax = (5/100) * 2.70 * 1 = 0.135 → numeric(12,2): 0.14
+		// commission = 3.00 (FIXED, unchanged by discount)
 		if shopRows[0].ShopID == shop1.ID || shopRows[1].ShopID == shop1.ID {
 			var s1 csRow
 			if shopRows[0].ShopID == shop1.ID {
@@ -142,11 +142,11 @@ func TestCheckoutShopFreeze(t *testing.T) {
 			} else {
 				s1 = shopRows[1]
 			}
-			if s1.ShopValue != 3.00 {
-				t.Errorf("shop1: expected shop_value=3.00, got %v", s1.ShopValue)
+			if s1.ShopValue != 2.70 {
+				t.Errorf("shop1: expected shop_value=2.70, got %v", s1.ShopValue)
 			}
-			if s1.ShopTax != 0.15 {
-				t.Errorf("shop1: expected shop_tax=0.15, got %v", s1.ShopTax)
+			if s1.ShopTax != 0.14 {
+				t.Errorf("shop1: expected shop_tax=0.14, got %v", s1.ShopTax)
 			}
 			if s1.ShopCommission != 3.00 {
 				t.Errorf("shop1: expected shop_commission=3.00, got %v", s1.ShopCommission)
@@ -154,9 +154,10 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		}
 
 		// Shop2: PERCENT commission (comission_value=3)
-		// shop_value = 3.00 * 1 = 3.00
-		// shop_tax = (5/100) * 3.00 * 1 = 0.15
-		// commission = (3.00/100) * 3.00 * 1 = 0.09
+		// effective_price = 2.70
+		// shop_value = 2.70
+		// shop_tax = 0.135 → numeric(12,2): 0.14
+		// commission = (3.00/100) * 2.70 * 1 = 0.081 → numeric(12,2): 0.08
 		if shopRows[0].ShopID == shop2.ID || shopRows[1].ShopID == shop2.ID {
 			var s2 csRow
 			if shopRows[0].ShopID == shop2.ID {
@@ -164,33 +165,15 @@ func TestCheckoutShopFreeze(t *testing.T) {
 			} else {
 				s2 = shopRows[1]
 			}
-			if s2.ShopValue != 3.00 {
-				t.Errorf("shop2: expected shop_value=3.00, got %v", s2.ShopValue)
+			if s2.ShopValue != 2.70 {
+				t.Errorf("shop2: expected shop_value=2.70, got %v", s2.ShopValue)
 			}
-			if s2.ShopTax != 0.15 {
-				t.Errorf("shop2: expected shop_tax=0.15, got %v", s2.ShopTax)
+			if s2.ShopTax != 0.14 {
+				t.Errorf("shop2: expected shop_tax=0.14, got %v", s2.ShopTax)
 			}
-			if s2.ShopCommission != 0.09 {
-				t.Errorf("shop2: expected shop_commission=0.09, got %v", s2.ShopCommission)
+			if s2.ShopCommission != 0.08 {
+				t.Errorf("shop2: expected shop_commission=0.08, got %v", s2.ShopCommission)
 			}
-		}
-	})
-
-	t.Run("value_discrepancy_computed", func(t *testing.T) {
-		var discrepancy float64
-		err := h.pool.QueryRow(
-			context.Background(),
-			`SELECT value_discrepancy FROM checkouts WHERE unique_id = $1::uuid`,
-			uniqueID,
-		).Scan(&discrepancy)
-		if err != nil {
-			t.Fatalf("query value_discrepancy: %v", err)
-		}
-
-		// value_paid = 99.99, shop_value shop1=3.00 + shop2=3.00 = 6.00
-		// discrepancy = 99.99 - 6.00 = 93.99
-		if discrepancy != 93.99 {
-			t.Errorf("expected value_discrepancy=93.99, got %v", discrepancy)
 		}
 	})
 
@@ -209,13 +192,13 @@ func TestCheckoutShopFreeze(t *testing.T) {
 
 		co := asMap(t, checkouts[0])
 		val := asString(t, co["value"])
-		if val != "3" && val != "3.00" {
-			t.Errorf("shop1: expected checkout value=3.00 (shop_value), got %q", val)
+		if val != "2.70" && val != "2.7" {
+			t.Errorf("shop1: expected checkout value=2.70 (shop_value), got %q", val)
 		}
 
 		tax := asString(t, co["tax"])
-		if tax != "0.15" {
-			t.Errorf("shop1: expected tax=0.15, got %q", tax)
+		if tax != "0.14" {
+			t.Errorf("shop1: expected tax=0.14, got %q", tax)
 		}
 
 		comm := asString(t, co["commission"])
@@ -243,11 +226,11 @@ func TestCheckoutShopFreeze(t *testing.T) {
 		taxesStr := asString(t, totals["taxes"])
 		commStr := asString(t, totals["commissions"])
 
-		if totalStr != "3" && totalStr != "3.00" {
-			t.Errorf("shop1 totals: expected total=3.00, got %q", totalStr)
+		if totalStr != "2.70" && totalStr != "2.7" {
+			t.Errorf("shop1 totals: expected total=2.70, got %q", totalStr)
 		}
-		if taxesStr != "0.15" {
-			t.Errorf("shop1 totals: expected taxes=0.15, got %q", taxesStr)
+		if taxesStr != "0.14" {
+			t.Errorf("shop1 totals: expected taxes=0.14, got %q", taxesStr)
 		}
 		if commStr != "3" && commStr != "3.00" {
 			t.Errorf("shop1 totals: expected commissions=3.00, got %q", commStr)
@@ -282,8 +265,9 @@ func TestCheckoutShopFreeze(t *testing.T) {
 			t.Fatalf("query available: %v", err)
 		}
 
-		if balance != -0.15 {
-			t.Errorf("shop1: expected available balance=-0.15, got %v", balance)
+		// shop_value=2.70 - shop_tax=0.14 - shop_commission=3.00 = -0.44
+		if balance != -0.44 {
+			t.Errorf("shop1: expected available balance=-0.44, got %v", balance)
 		}
 	})
 }
@@ -317,7 +301,7 @@ func TestCheckoutShopClientID(t *testing.T) {
 
 		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
 
-		rec := h.confirmCheckout(t, "3.00", []map[string]any{
+		rec := h.confirmCheckout(t, []map[string]any{
 			{"package_id": pkgID, "quantity": 1},
 		}, map[string]any{
 			"client_email": clientEmail,
@@ -366,7 +350,7 @@ func TestCheckoutShopClientID(t *testing.T) {
 		pkgID := h.getPackageID(t, prd.ID, runID)
 		clientEmail := fmt.Sprintf("chkshop-cli-%d@example.com", runID)
 
-		rec := h.confirmCheckout(t, "3.00", []map[string]any{
+		rec := h.confirmCheckout(t, []map[string]any{
 			{"package_id": pkgID, "quantity": 1},
 		}, map[string]any{"client_email": clientEmail})
 		assertStatus(t, rec, http.StatusOK)
