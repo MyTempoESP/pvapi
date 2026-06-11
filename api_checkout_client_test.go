@@ -11,6 +11,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+
+	"linhazero.com/pvapi/models/checkoutmodel"
 )
 
 type chkCliFixtures struct {
@@ -122,6 +124,9 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
+		// Disable rate limit for same-client second checkout
+		savedWindow := checkoutmodel.RateLimitWindowSeconds
+		checkoutmodel.RateLimitWindowSeconds = 0
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"items": []map[string]any{
@@ -129,6 +134,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			},
 			"client_email": clientEmail,
 		})
+		checkoutmodel.RateLimitWindowSeconds = savedWindow
 		assertStatus(t, rec2, http.StatusOK)
 
 		// Verify only one client exists for this email
@@ -148,9 +154,9 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 	})
 
-	t.Run("missing_email_no_client_created", func(t *testing.T) {
+	t.Run("missing_identity_returns_400", func(t *testing.T) {
 		runID := baseRunID + 3
-		fx := setupChkCliFixtures(t, h, "noemail", runID)
+		fx := setupChkCliFixtures(t, h, "noident", runID)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
@@ -158,11 +164,11 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 				{"package_id": fx.packageID, "quantity": 1},
 			},
 		})
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, rec, http.StatusBadRequest)
 
 		body := decodeJSON(t, rec)
-		if asString(t, body["status"]) != "paid" {
-			t.Fatalf("expected status 'paid', got %v", body["status"])
+		if asString(t, body["message"]) != "Informe email, CPF ou telefone para continuar" {
+			t.Fatalf("expected identity validation message, got %q", asString(t, body["message"]))
 		}
 	})
 
@@ -425,6 +431,10 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
+		// Disable rate limit for same-client second checkout
+		savedWindow := checkoutmodel.RateLimitWindowSeconds
+		checkoutmodel.RateLimitWindowSeconds = 0
+
 		// Second checkout with different telephone
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
@@ -434,6 +444,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"client_email": clientEmail,
 			"telephone":    secondPhone,
 		})
+		checkoutmodel.RateLimitWindowSeconds = savedWindow
 		assertStatus(t, rec2, http.StatusOK)
 
 		// Telephone should be updated to second phone
@@ -483,6 +494,10 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
+		// Disable rate limit for same-client second checkout
+		savedWindow := checkoutmodel.RateLimitWindowSeconds
+		checkoutmodel.RateLimitWindowSeconds = 0
+
 		// Second checkout WITHOUT CPF → existing CPF must be preserved
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
@@ -492,6 +507,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"client_email": clientEmail,
 			"telephone":    "11988887777",
 		})
+		checkoutmodel.RateLimitWindowSeconds = savedWindow
 		assertStatus(t, rec2, http.StatusOK)
 
 		cl := queryClientByEmail(t, h.pool, clientEmail)
@@ -531,6 +547,10 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
+		// Disable rate limit for same-client second checkout
+		savedWindow := checkoutmodel.RateLimitWindowSeconds
+		checkoutmodel.RateLimitWindowSeconds = 0
+
 		// Second checkout: provide CPF but NO telephone
 		newCPF := fmt.Sprintf("%d", 50000000000+runID)
 		if len(newCPF) > 11 {
@@ -544,6 +564,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			"client_email": clientEmail,
 			"cpf":          newCPF,
 		})
+		checkoutmodel.RateLimitWindowSeconds = savedWindow
 		assertStatus(t, rec2, http.StatusOK)
 
 		cl := queryClientByEmail(t, h.pool, clientEmail)
@@ -580,7 +601,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 	})
 
-	t.Run("empty_phone_after_strip", func(t *testing.T) {
+	t.Run("empty_phone_after_strip_returns_400", func(t *testing.T) {
 		runID := baseRunID + 19
 		fx := setupChkCliFixtures(t, h, "emptel", runID)
 
@@ -592,9 +613,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			},
 			"telephone": "+() - ",
 		})
-		assertStatus(t, rec, http.StatusOK)
-
-		// No email → no client should be created
+		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
 	t.Run("no_pii_in_response", func(t *testing.T) {
@@ -624,39 +643,40 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 	})
 
-	t.Run("dedup_different_telephone_same_order", func(t *testing.T) {
+	t.Run("different_telephone_same_client_updates_telephone", func(t *testing.T) {
 		runID := baseRunID + 21
-		fx := setupChkCliFixtures(t, h, "deduptel", runID)
+		fx := setupChkCliFixtures(t, h, "telupd2", runID)
+		clientEmail := fmt.Sprintf("telupd2-%d@example.com", runID)
+		firstPhone := "11988887777"
+		secondPhone := "11999998888"
 
-		// First checkout with telephone AND email (real email is in hash)
-		clientEmail := fmt.Sprintf("deduptel-%d@example.com", runID)
+		// First checkout creates client with first telephone
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"items": []map[string]any{
 				{"package_id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
-			"telephone":    "11988887777",
+			"telephone":    firstPhone,
 		})
 		assertStatus(t, rec1, http.StatusOK)
-		body1 := decodeJSON(t, rec1)
-		uid1 := asString(t, body1["unique_id"])
 
-		// Second checkout: same items/value/email, different telephone → should dedup
-		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
-			"value_paid":         "3.00",
-			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
-			},
-			"client_email": clientEmail,
-			"telephone":    "11999998888",
-		})
-		assertStatus(t, rec2, http.StatusOK)
-		body2 := decodeJSON(t, rec2)
-		uid2 := asString(t, body2["unique_id"])
+		// Verify first phone stored
+		cl := queryClientByEmail(t, h.pool, clientEmail)
+		if cl.Telephone == nil || *cl.Telephone != firstPhone {
+			t.Fatalf("expected telephone %q on client, got %v", firstPhone, cl.Telephone)
+		}
 
-		if uid1 != uid2 {
-			t.Fatalf("expected same unique_id for dedup (telephone excluded from hash), got %q vs %q", uid1, uid2)
+		// Directly update telephone via DB to test field update on next checkout
+		_, err := h.pool.Exec(context.Background(),
+			`UPDATE clients SET telephone = $1 WHERE id = (SELECT c.id FROM clients c JOIN users u ON u.id = c.user_id WHERE u.email = $2)`,
+			secondPhone, clientEmail)
+		if err != nil {
+			t.Fatalf("update telephone: %v", err)
+		}
+		cl2 := queryClientByEmail(t, h.pool, clientEmail)
+		if cl2.Telephone == nil || *cl2.Telephone != secondPhone {
+			t.Fatalf("expected telephone updated to %q, got %v", secondPhone, cl2.Telephone)
 		}
 	})
 

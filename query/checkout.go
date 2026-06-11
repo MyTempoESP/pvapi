@@ -7,18 +7,17 @@ INSERT INTO checkouts
 		value,
 		status,
 		description,
-		content_hash,
-		api_client_id
+		api_client_id,
+		client_id
 	)
 VALUES
 	(
 		@value,
 		'paid',
 		@description,
-		@content_hash,
-		@api_client_id
+		@api_client_id,
+		@client_id
 	)
-ON CONFLICT (content_hash) DO NOTHING
 RETURNING id, unique_id
 `
 
@@ -53,10 +52,12 @@ JOIN consignments c ON c.id = d.consignment_id
 RETURNING unique_id, package_id
 `
 
-	FindCheckoutByContentHashQuery = `
-SELECT id, unique_id
-FROM checkouts
-WHERE content_hash = $1
+	CheckRateLimitQuery = `
+SELECT EXTRACT(EPOCH FROM (NOW() - chk.processed_at))::bigint AS seconds_ago
+FROM checkouts chk
+WHERE chk.client_id = $1
+ORDER BY chk.processed_at DESC
+LIMIT 1
 `
 
 	CheckPackageAvailabilityQuery = `

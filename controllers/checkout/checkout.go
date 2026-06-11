@@ -1,17 +1,15 @@
 package checkout
 
 import (
-	"context"
 	"errors"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"linhazero.com/pvapi/middleware/apitoken"
 	"linhazero.com/pvapi/models/checkoutmodel"
-	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/util"
-	"linhazero.com/pvapi/util/checkoutclient"
 )
 
 func ConfirmHandler(
@@ -25,17 +23,16 @@ func ConfirmHandler(
 			return
 		}
 
-		// Resolve identity from raw request fields before Confirm
-		ci := checkoutclient.Resolve(
-			req.ClientEmail,
-			req.Telephone,
-			req.CPF,
-			req.ClientName,
-		)
-
-		// Effective email (real or synthetic) participates in content
-		// hash for dedup, preventing cross-customer collisions.
-		req.ClientEmail = ci.EffectiveEmail
+		// Require at least one identity field (client_email, cpf, or telephone)
+		if strings.TrimSpace(req.ClientEmail) == "" &&
+			strings.TrimSpace(req.CPF) == "" &&
+			strings.TrimSpace(req.Telephone) == "" {
+			c.AbortWithStatusJSON(400, gin.H{
+				"success": false,
+				"message": "Informe email, CPF ou telefone para continuar",
+			})
+			return
+		}
 
 		apiClientID := apitoken.GetAPIClientID(c)
 
@@ -47,6 +44,16 @@ func ConfirmHandler(
 		)
 
 		if err != nil {
+			var rlInfo *checkoutmodel.RateLimitInfo
+			if errors.As(err, &rlInfo) {
+				c.AbortWithStatusJSON(429, gin.H{
+					"success":      false,
+					"message":      rlInfo.Message,
+					"retry_after":  rlInfo.RetryAfter,
+				})
+				return
+			}
+
 			switch {
 			case errors.Is(err, checkoutmodel.ErrPackageNotFound):
 				c.AbortWithStatusJSON(422, gin.H{
@@ -57,6 +64,11 @@ func ConfirmHandler(
 				c.AbortWithStatusJSON(409, gin.H{
 					"success": false,
 					"message": err.Error(),
+				})
+			case errors.Is(err, checkoutmodel.ErrNoIdentity):
+				c.AbortWithStatusJSON(400, gin.H{
+					"success": false,
+					"message": "Informe email, CPF ou telefone para continuar",
 				})
 			default:
 				util.Handle500(c, err)
@@ -71,46 +83,5 @@ func ConfirmHandler(
 			"status":    resp.Status,
 			"qr_codes":  resp.QrCodes,
 		})
-
-		// Best-effort client association after response is sent
-		if ci.EffectiveEmail != "" {
-			associateClientAfterCheckout(c, pool, ci, resp)
-		}
 	}
-}
-
-func associateClientAfterCheckout(
-	c *gin.Context,
-	pool *pgxpool.Pool,
-	ci checkoutclient.CheckoutClientOutput,
-	resp checkoutmodel.ConfirmResponse,
-) {
-	hash, err := util.HashPassword(ci.Password)
-	if err != nil {
-		util.LogError(c, "failed to hash password", "error", err)
-		return
-	}
-
-	ctx := context.Background()
-
-	isNew, err := clientmodel.CreateAndAssociateByCheckout(
-		ctx, pool,
-		ci.ClientName, ci.EffectiveEmail,
-		hash,
-		resp.CheckoutID,
-		ci.NormalizedPhone,
-		ci.ValidatedCPF,
-	)
-	if err != nil {
-		util.LogError(c, "failed to create client from checkout",
-			"error", err,
-			"checkout_id", resp.CheckoutID,
-		)
-		return
-	}
-
-	util.LogInfo(c, "client created/reused from checkout",
-		"checkout_id", resp.CheckoutID,
-		"is_new", isNew,
-	)
 }

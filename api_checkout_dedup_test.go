@@ -7,63 +7,28 @@ import (
 	"time"
 )
 
-type chkDedupFixtures struct {
+type chkRateLimitFixtures struct {
 	packageID int
 	admin     apiSession
 }
 
-// genCPF returns an 11-digit CPF string derived from seed.
-func genCPF(seed int64) string {
-	s := fmt.Sprintf("%d", seed)
-	if len(s) > 11 {
-		s = s[len(s)-11:]
-	}
-	return s
-}
-
-// doDedupConfirm sends a checkout/confirm and returns the decoded body.
-func doDedupConfirm(t *testing.T, h *apiHarness, fx chkDedupFixtures, body map[string]any) map[string]any {
-	t.Helper()
-	valuePaid := asString(t, body["value_paid"])
-	rawItems := body["items"]
-	var items []map[string]any
-	switch v := rawItems.(type) {
-	case []map[string]any:
-		items = v
-	case []any:
-		items = make([]map[string]any, len(v))
-		for i, item := range v {
-			items[i] = item.(map[string]any)
-		}
-	}
-	extras := make(map[string]any)
-	for k, v := range body {
-		if k != "value_paid" && k != "items" {
-			extras[k] = v
-		}
-	}
-	rec := h.confirmCheckout(t, valuePaid, items, extras)
-	assertStatus(t, rec, http.StatusOK)
-	return decodeJSON(t, rec)
-}
-
-func setupChkDedupFixtures(t *testing.T, h *apiHarness, tag string, runID int64) chkDedupFixtures {
+func setupChkRateLimitFixtures(t *testing.T, h *apiHarness, tag string, runID int64) chkRateLimitFixtures {
 	t.Helper()
 
 	admin := h.login(t, "sistemas@lzero.org", "TestingPassword")
-	shopName := fmt.Sprintf("Loja ChkDedup %s %d", tag, runID)
-	shopEmail := fmt.Sprintf("api-chkdedup-%s-%d@example.com", tag, runID)
+	shopName := fmt.Sprintf("Loja ChkRL %s %d", tag, runID)
+	shopEmail := fmt.Sprintf("api-chkrl-%s-%d@example.com", tag, runID)
 	h.createShop(t, &admin, shopName, shopEmail, "11988887770")
 	shopSession := h.login(t, shopEmail, "11988887770")
 
 	monitor := h.createMonitor(t, &shopSession,
-		fmt.Sprintf("Monitor ChkDedup %s %d", tag, runID),
-		fmt.Sprintf("api-chkdedup-mon-%s-%d@example.com", tag, runID),
+		fmt.Sprintf("Monitor ChkRL %s %d", tag, runID),
+		fmt.Sprintf("api-chkrl-mon-%s-%d@example.com", tag, runID),
 		"27998209670")
 	pickup := h.createPickup(t, &shopSession)
 
-	cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-chkdedup-%s-%d", tag, runID))
-	productName := fmt.Sprintf("Produto ChkDedup %s %d", tag, runID)
+	cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-chkrl-%s-%d", tag, runID))
+	productName := fmt.Sprintf("Produto ChkRL %s %d", tag, runID)
 	prd := h.createProduct(t, &shopSession, productName, cat.ID)
 	h.approveProduct(t, &admin, prd.ID)
 
@@ -72,194 +37,132 @@ func setupChkDedupFixtures(t *testing.T, h *apiHarness, tag string, runID int64)
 
 	packageID := h.getPackageID(t, prd.ID, runID)
 
-	return chkDedupFixtures{
+	return chkRateLimitFixtures{
 		packageID: packageID,
 		admin:     admin,
 	}
 }
 
-func TestCheckoutContentHashDedup(t *testing.T) {
+func TestCheckoutRateLimit(t *testing.T) {
 	h := newAPIHarness(t)
 	baseRunID := time.Now().UnixNano()
 
-	t.Run("identical_payload_returns_same_checkout", func(t *testing.T) {
+	t.Run("identical_payload_within_window_returns_429", func(t *testing.T) {
 		runID := baseRunID + 1
-		fx := setupChkDedupFixtures(t, h, "dedup1", runID)
+		fx := setupChkRateLimitFixtures(t, h, "rldedup", runID)
 
 		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
-		extras := map[string]any{"client_email": fmt.Sprintf("dedup1-%d@example.com", runID)}
+		extras := map[string]any{"client_email": fmt.Sprintf("rldedup-%d@example.com", runID)}
 
-		// First request
+		// First request — succeeds
 		rec1 := h.confirmCheckout(t, "3.00", items, extras)
 		assertStatus(t, rec1, http.StatusOK)
-		r1 := decodeJSON(t, rec1)
 
-		// Second request — same payload (same value_paid, items, email)
+		// Second request — same payload, same client, within 60s window → 429
 		rec2 := h.confirmCheckout(t, "3.00", items, extras)
-		assertStatus(t, rec2, http.StatusOK)
-		r2 := decodeJSON(t, rec2)
+		assertStatus(t, rec2, http.StatusTooManyRequests)
 
-		// Same unique_id and qr_codes — idempotent
-		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
-			t.Fatalf("expected same unique_id for identical payload, got %q vs %q",
-				r1["unique_id"], r2["unique_id"])
+		body2 := decodeJSON(t, rec2)
+		success, ok := body2["success"].(bool)
+		if ok && success {
+			t.Fatal("expected success=false for rate-limited request")
 		}
-		// Compare qr_codes arrays (same package_id → same QR codes)
-		qr1 := fmt.Sprintf("%v", r1["qr_codes"])
-		qr2 := fmt.Sprintf("%v", r2["qr_codes"])
-		if qr1 != qr2 {
-			t.Fatalf("expected same qr_codes for identical payload")
+		if asInt(t, body2["retry_after"]) <= 0 || asInt(t, body2["retry_after"]) > 60 {
+			t.Fatalf("expected retry_after between 1 and 60, got %d", asInt(t, body2["retry_after"]))
 		}
-		if asString(t, r1["status"]) != "paid" || asString(t, r2["status"]) != "paid" {
-			t.Fatalf("expected status 'paid' on both requests")
+		if asString(t, body2["message"]) == "" {
+			t.Fatal("expected non-empty message for rate-limit error")
 		}
 	})
 
-	t.Run("different_value_paid_produces_different_checkout", func(t *testing.T) {
+	t.Run("different_payload_same_client_within_window_returns_429", func(t *testing.T) {
 		runID := baseRunID + 2
-		fx := setupChkDedupFixtures(t, h, "dedup2", runID)
+		fx := setupChkRateLimitFixtures(t, h, "rldiff", runID)
 
+		email := fmt.Sprintf("rldiff-%d@example.com", runID)
 		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
-		extras := map[string]any{"client_email": fmt.Sprintf("dedup2-%d@example.com", runID)}
-
-		rec1 := h.confirmCheckout(t, "3.00", items, extras)
-		assertStatus(t, rec1, http.StatusOK)
-		r1 := decodeJSON(t, rec1)
-
-		rec2 := h.confirmCheckout(t, "5.00", items, extras)
-		assertStatus(t, rec2, http.StatusOK)
-		r2 := decodeJSON(t, rec2)
-
-		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
-			t.Fatal("expected different unique_id for different value_paid")
-		}
-	})
-
-	t.Run("different_items_produces_different_checkout", func(t *testing.T) {
-		runID := baseRunID + 3
-		fx := setupChkDedupFixtures(t, h, "dedup3", runID)
-
-		// Create a second product/package for multi-item test
-		shopSession := h.login(t,
-			fmt.Sprintf("api-chkdedup-dedup3-%d@example.com", runID),
-			"11988887770")
-		monitor2 := h.createMonitor(t, &shopSession,
-			fmt.Sprintf("Monitor Dedup3B %d", runID),
-			fmt.Sprintf("api-chkdedup-mon2-%d@example.com", runID),
-			"27998209671")
-		pickup2 := h.createPickup(t, &shopSession)
-		cat2 := h.createCategory(t, &shopSession, fmt.Sprintf("cat-dedup3b-%d", runID))
-		prd2Name := fmt.Sprintf("Produto Dedup3B %d", runID)
-		prd2 := h.createProduct(t, &shopSession, prd2Name, cat2.ID)
-		h.approveProduct(t, &fx.admin, prd2.ID)
-		cons2 := h.createConsignment(t, &shopSession, pickup2.ID, monitor2.ID)
-		h.addProductToConsignment(t, &shopSession, cons2.ID, prd2.ID, prd2Name)
-		pkgID2 := h.getPackageID(t, prd2.ID, runID)
-
-		email := fmt.Sprintf("dedup3-%d@example.com", runID)
 		extras := map[string]any{"client_email": email}
 
-		rec1 := h.confirmCheckout(t, "3.00", []map[string]any{
-			{"package_id": fx.packageID, "quantity": 1},
-		}, extras)
+		// First request — succeeds
+		rec1 := h.confirmCheckout(t, "3.00", items, extras)
 		assertStatus(t, rec1, http.StatusOK)
-		r1 := decodeJSON(t, rec1)
 
-		rec2 := h.confirmCheckout(t, "3.00", []map[string]any{
-			{"package_id": fx.packageID, "quantity": 1},
-			{"package_id": pkgID2, "quantity": 1},
-		}, extras)
+		// Second request — different value_paid, same client, within window → 429
+		rec2 := h.confirmCheckout(t, "5.00", items, extras)
+		assertStatus(t, rec2, http.StatusTooManyRequests)
+	})
+
+	t.Run("same_payload_different_client_succeeds", func(t *testing.T) {
+		runID := baseRunID + 3
+		fx := setupChkRateLimitFixtures(t, h, "rldiffcli", runID)
+
+		// First client
+		email1 := fmt.Sprintf("rldiffcli-a-%d@example.com", runID)
+		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
+
+		rec1 := h.confirmCheckout(t, "3.00", items, map[string]any{"client_email": email1})
+		assertStatus(t, rec1, http.StatusOK)
+
+		// Second client — same payload but different email → succeeds
+		email2 := fmt.Sprintf("rldiffcli-b-%d@example.com", runID)
+		rec2 := h.confirmCheckout(t, "3.00", items, map[string]any{"client_email": email2})
 		assertStatus(t, rec2, http.StatusOK)
-		r2 := decodeJSON(t, rec2)
 
-		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
-			t.Fatal("expected different unique_id for different items")
+		if asString(t, rec1.Body.String()) == asString(t, rec2.Body.String()) {
+			t.Fatal("expected different responses for different clients")
 		}
 	})
 
+	t.Run("no_identity_returns_400", func(t *testing.T) {
+		runID := baseRunID + 4
+		fx := setupChkRateLimitFixtures(t, h, "rlnoident", runID)
 
+		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
 
-	t.Run("cpf_only_identical_payload_dedup", func(t *testing.T) {
-		runID := baseRunID + 7
-		fx := setupChkDedupFixtures(t, h, "cpfdedup", runID)
-		cpf := genCPF(10000000000 + runID)
+		// No email, no CPF, no telephone
+		rec := h.confirmCheckout(t, "3.00", items, map[string]any{})
+		assertStatus(t, rec, http.StatusBadRequest)
 
-		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":        cpf,
-		})
-		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":        cpf,
-		})
-
-		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
-			t.Fatalf("expected same unique_id for identical CPF payload, got %q vs %q",
-				r1["unique_id"], r2["unique_id"])
+		body := decodeJSON(t, rec)
+		if asString(t, body["message"]) != "Informe email, CPF ou telefone para continuar" {
+			t.Fatalf("expected identity validation message, got %q", asString(t, body["message"]))
 		}
 	})
 
-	t.Run("cpf_only_different_cpf_produces_different_checkout", func(t *testing.T) {
-		runID := baseRunID + 8
-		fx := setupChkDedupFixtures(t, h, "cpfdiff", runID)
+	t.Run("cpf_only_same_cpf_within_window_returns_429", func(t *testing.T) {
+		runID := baseRunID + 5
+		fx := setupChkRateLimitFixtures(t, h, "rlcpf", runID)
 
-		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":        genCPF(20000000000 + runID),
-		})
-		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"cpf":        genCPF(30000000000 + runID),
-		})
-
-		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
-			t.Fatal("expected different unique_id for different CPFs")
+		cpf := fmt.Sprintf("%d", 10000000000+runID)
+		if len(cpf) > 11 {
+			cpf = cpf[len(cpf)-11:]
 		}
+
+		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
+		extras := map[string]any{"cpf": cpf}
+
+		// First request — succeeds (client created via CPF)
+		rec1 := h.confirmCheckout(t, "3.00", items, extras)
+		assertStatus(t, rec1, http.StatusOK)
+
+		// Second request — same CPF within window → 429
+		rec2 := h.confirmCheckout(t, "3.00", items, extras)
+		assertStatus(t, rec2, http.StatusTooManyRequests)
 	})
 
-	t.Run("telephone_only_identical_payload_dedup", func(t *testing.T) {
-		runID := baseRunID + 9
-		fx := setupChkDedupFixtures(t, h, "teldedup", runID)
-		tel := fmt.Sprintf("%d", 11900000000+runID%1000000)
+	t.Run("telephone_only_same_phone_within_window_returns_429", func(t *testing.T) {
+		runID := baseRunID + 6
+		fx := setupChkRateLimitFixtures(t, h, "rltel", runID)
 
-		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":  tel,
-		})
-		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":  tel,
-		})
+		telephone := fmt.Sprintf("119%08d", runID%100000000)
 
-		if asString(t, r1["unique_id"]) != asString(t, r2["unique_id"]) {
-			t.Fatalf("expected same unique_id for identical telephone payload, got %q vs %q",
-				r1["unique_id"], r2["unique_id"])
-		}
-	})
+		items := []map[string]any{{"package_id": fx.packageID, "quantity": 1}}
+		extras := map[string]any{"telephone": telephone}
 
-	t.Run("telephone_only_different_telephone_produces_different_checkout", func(t *testing.T) {
-		runID := baseRunID + 10
-		fx := setupChkDedupFixtures(t, h, "teldiff", runID)
+		rec1 := h.confirmCheckout(t, "3.00", items, extras)
+		assertStatus(t, rec1, http.StatusOK)
 
-		r1 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":  fmt.Sprintf("%d", 21900000000+runID%1000000),
-		})
-		r2 := doDedupConfirm(t, h, fx, map[string]any{
-			"value_paid": "3.00",
-			"items":      []map[string]any{{"package_id": fx.packageID, "quantity": 1}},
-			"telephone":  fmt.Sprintf("%d", 22900000000+runID%1000000),
-		})
-
-		if asString(t, r1["unique_id"]) == asString(t, r2["unique_id"]) {
-			t.Fatal("expected different unique_id for different telephones")
-		}
+		rec2 := h.confirmCheckout(t, "3.00", items, extras)
+		assertStatus(t, rec2, http.StatusTooManyRequests)
 	})
 }

@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"linhazero.com/pvapi/models/checkoutmodel"
 )
 
 func TestClientSales(t *testing.T) {
@@ -174,6 +176,9 @@ func TestClientSales(t *testing.T) {
 		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
 		pkgID2 := h.getPackageID(t, prd2.ID, runID)
 
+		savedWindow := checkoutmodel.RateLimitWindowSeconds
+		checkoutmodel.RateLimitWindowSeconds = 0
+
 		sessionID2 := fmt.Sprintf("sales-multi-2-%d", runID)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
@@ -182,6 +187,7 @@ func TestClientSales(t *testing.T) {
 			},
 			"client_email": clientEmail,
 		})
+		checkoutmodel.RateLimitWindowSeconds = savedWindow
 		assertStatus(t, rec2, http.StatusOK)
 
 		userID := lookupUserID(t, h, clientEmail)

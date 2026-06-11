@@ -35,6 +35,10 @@ GROUP BY u.id, u.name, u.email, c.telephone
 SELECT id FROM clients WHERE user_id = $1
 `
 
+	LockClientRowQuery = `
+SELECT id FROM clients WHERE id = $1 FOR UPDATE
+`
+
 	DeleteClientQuery = `
 DELETE FROM clients
 WHERE id = $1

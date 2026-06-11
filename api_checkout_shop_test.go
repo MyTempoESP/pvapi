@@ -91,7 +91,7 @@ func TestCheckoutShopFreeze(t *testing.T) {
 	chkRec := h.confirmCheckout(t, "99.99", []map[string]any{
 		{"package_id": pkgID1, "quantity": 1},
 		{"package_id": pkgID2, "quantity": 1},
-	}, nil)
+	}, map[string]any{"client_email": "shopfreeze@example.com"})
 	assertStatus(t, chkRec, http.StatusOK)
 	chkBody := decodeJSON(t, chkRec)
 	uniqueID := asString(t, chkBody["unique_id"])
@@ -361,13 +361,14 @@ func TestCheckoutShopClientID(t *testing.T) {
 		}
 	})
 
-	t.Run("leaves_client_id_null_when_no_email", func(t *testing.T) {
+	t.Run("populates_client_id_when_email_provided", func(t *testing.T) {
 		runID := baseRunID + 2
 		pkgID := h.getPackageID(t, prd.ID, runID)
+		clientEmail := fmt.Sprintf("chkshop-cli-%d@example.com", runID)
 
 		rec := h.confirmCheckout(t, "3.00", []map[string]any{
 			{"package_id": pkgID, "quantity": 1},
-		}, nil)
+		}, map[string]any{"client_email": clientEmail})
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)
 		uniqueID := asString(t, body["unique_id"])
@@ -387,22 +388,19 @@ func TestCheckoutShopClientID(t *testing.T) {
 		}
 		defer rows.Close()
 
-		var csRows []csClientRow
+		found := false
 		for rows.Next() {
 			var r csClientRow
 			if err := rows.Scan(&r.ClientID); err != nil {
 				t.Fatalf("scan checkout_shop row: %v", err)
 			}
-			csRows = append(csRows, r)
-		}
-
-		if len(csRows) == 0 {
-			t.Fatal("expected at least one checkout_shop row")
-		}
-		for i, r := range csRows {
-			if r.ClientID != nil {
-				t.Errorf("checkout_shop[%d]: expected NULL client_id, got %d", i, *r.ClientID)
+			if r.ClientID == nil {
+				t.Fatal("expected non-null client_id when email provided")
 			}
+			found = true
+		}
+		if !found {
+			t.Fatal("expected at least one checkout_shop row")
 		}
 	})
 }

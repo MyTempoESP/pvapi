@@ -9,11 +9,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 
+	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/query"
 	"linhazero.com/pvapi/util"
-	"linhazero.com/pvapi/util/checkouthash"
+	"linhazero.com/pvapi/util/checkoutclient"
 	"linhazero.com/pvapi/util/qrcode"
 )
+
+// RateLimitWindowSeconds is the cooldown period between checkouts
+// for the same client, in seconds. Exported so tests can override.
+var RateLimitWindowSeconds = 60
 
 type ConfirmItem struct {
 	PackageID int `json:"package_id" binding:"required"`
@@ -48,7 +53,19 @@ type ConfirmResponse struct {
 var (
 	ErrPackageNotFound   = errors.New("package not found")
 	ErrInsufficientStock = errors.New("insufficient stock")
+	ErrRateLimited       = errors.New("rate limited")
+	ErrNoIdentity        = errors.New("no identity provided")
 )
+
+// RateLimitInfo holds the rate-limit error details for the API response.
+type RateLimitInfo struct {
+	Message    string `json:"message"`
+	RetryAfter int    `json:"retry_after"`
+}
+
+func (e *RateLimitInfo) Error() string {
+	return e.Message
+}
 
 func Confirm(
 	ctx context.Context,
@@ -58,14 +75,19 @@ func Confirm(
 ) (ConfirmResponse, error) {
 	var resp ConfirmResponse
 
-	hashItems := make([]checkouthash.Item, len(req.Items))
-	for i, it := range req.Items {
-		hashItems[i] = checkouthash.Item{PackageID: it.PackageID, Quantity: it.Quantity}
+	ci := checkoutclient.Resolve(
+		req.ClientEmail,
+		req.Telephone,
+		req.CPF,
+		req.ClientName,
+	)
+	if ci.EffectiveEmail == "" {
+		return resp, fmt.Errorf("%w: no identity resolved", ErrNoIdentity)
 	}
 
-	contentHash, err := checkouthash.Hash(req.ValuePaid, hashItems, req.ClientEmail)
+	passwordHash, err := util.HashPassword(ci.Password)
 	if err != nil {
-		return resp, fmt.Errorf("failed to compute content hash: %w", err)
+		return resp, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	tx, err := pool.Begin(ctx)
@@ -73,6 +95,43 @@ func Confirm(
 		return resp, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+
+	// Create or get client (synchronous, inside transaction)
+	clientID, _, err := clientmodel.Create(
+		ctx, tx,
+		ci.ClientName, ci.EffectiveEmail,
+		passwordHash,
+		ci.NormalizedPhone,
+		ci.ValidatedCPF,
+	)
+	if err != nil {
+		return resp, fmt.Errorf("failed to create/resolve client: %w", err)
+	}
+
+	// For existing clients, update only the fields that were actually provided
+	if ci.NormalizedPhone != "" || ci.ValidatedCPF != "" {
+		if _, err := tx.Exec(ctx, query.UpdateClientFieldsQuery, clientID, ci.NormalizedPhone, ci.ValidatedCPF); err != nil {
+			return resp, fmt.Errorf("error updating existing client fields: %w", err)
+		}
+	}
+
+	// Serialize checkouts for this client with row-level lock
+	_, err = tx.Exec(ctx, query.LockClientRowQuery, clientID)
+	if err != nil {
+		return resp, fmt.Errorf("failed to lock client row: %w", err)
+	}
+
+	// Rate-limit check: if last checkout within 60 seconds, return 429
+	remaining, isBlocked, err := checkRateLimit(ctx, tx, clientID)
+	if err != nil {
+		return resp, err
+	}
+	if isBlocked {
+		return resp, &RateLimitInfo{
+			Message:    fmt.Sprintf("Aguarde %d segundos antes de fazer outra compra", remaining),
+			RetryAfter: remaining,
+		}
+	}
 
 	value, err := decimal.NewFromString(req.ValuePaid)
 	if err != nil {
@@ -84,35 +143,15 @@ func Confirm(
 		totalItems += item.Quantity
 	}
 
-	// Try INSERT with ON CONFLICT DO NOTHING — the idempotency mechanism.
-	// If the same content_hash already exists, INSERT is a no-op.
-	checkoutID, uniqueID, err := insertCheckoutContentHash(
-		ctx, tx, value, contentHash, totalItems, apiClientID,
+	description := fmt.Sprintf("Checkout — %d items", totalItems)
+
+	checkoutID, uniqueID, err := insertCheckout(
+		ctx, tx, value, description, apiClientID, clientID,
 	)
 	if err != nil {
 		return resp, err
 	}
 
-	if checkoutID == 0 {
-		// Duplicate content hash — fetch existing checkout
-		checkoutID, uniqueID, err = findCheckoutByContentHash(ctx, tx, contentHash)
-		if err != nil {
-			return resp, err
-		}
-
-		qrEntries, err := findPackageReservedQRCodes(ctx, tx, checkoutID)
-		if err != nil {
-			return resp, err
-		}
-
-		resp.CheckoutID = checkoutID
-		resp.UniqueID = uniqueID
-		resp.Status = "paid"
-		resp.QrCodes = qrEntries
-		return resp, tx.Commit(ctx)
-	}
-
-	// New checkout — validate stock and write remaining data
 	if err := validateStock(ctx, tx, req.Items); err != nil {
 		return resp, err
 	}
@@ -120,6 +159,17 @@ func Confirm(
 	qrEntries, err := writeCheckoutData(ctx, tx, checkoutID, uniqueID, req.Items)
 	if err != nil {
 		return resp, err
+	}
+
+	// Set client_id on related tables
+	if err := clientmodel.SetCheckoutClientID(ctx, tx, clientID, checkoutID); err != nil {
+		return resp, fmt.Errorf("failed to set checkout client_id: %w", err)
+	}
+	if err := clientmodel.SetCheckoutShopClientID(ctx, tx, clientID, checkoutID); err != nil {
+		return resp, fmt.Errorf("failed to set checkout_shop client_id: %w", err)
+	}
+	if err := clientmodel.SetPackageReservedClientID(ctx, tx, clientID, checkoutID); err != nil {
+		return resp, fmt.Errorf("failed to set package_reserved client_id: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -131,6 +181,31 @@ func Confirm(
 	resp.Status = "paid"
 	resp.QrCodes = qrEntries
 	return resp, nil
+}
+
+// checkRateLimit queries the most recent checkout for this client and
+// returns the remaining seconds and whether the request is blocked.
+func checkRateLimit(
+	ctx context.Context,
+	tx pgx.Tx,
+	clientID int,
+) (remaining int, isBlocked bool, err error) {
+	var secondsAgo *int64
+	err = tx.QueryRow(ctx, query.CheckRateLimitQuery, clientID).Scan(&secondsAgo)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// No previous checkout — not blocked
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("failed to check rate limit: %w", err)
+	}
+
+	if secondsAgo == nil || *secondsAgo >= int64(RateLimitWindowSeconds) {
+		return 0, false, nil
+	}
+
+	remaining = RateLimitWindowSeconds - int(*secondsAgo)
+	return remaining, true, nil
 }
 
 func validateStock(
@@ -166,63 +241,31 @@ func validateStock(
 	return nil
 }
 
-
-
-// insertCheckoutContentHash inserts a checkout with content-hash dedup.
-// Returns (0, "", nil) when the content_hash already exists.
-func insertCheckoutContentHash(
+// insertCheckout inserts a new checkout row and returns its ID and unique_id.
+func insertCheckout(
 	ctx context.Context,
 	tx pgx.Tx,
 	value decimal.Decimal,
-	contentHash string,
-	totalItems int,
+	description string,
 	apiClientID int,
+	clientID int,
 ) (checkoutID int, uniqueID string, err error) {
-	description := buildDescription(totalItems)
+	args := util.Merge(
+		util.Args{
+			"value":       value,
+			"description": description,
+		},
+		util.Args{
+			"api_client_id": nilIfZero(apiClientID),
+			"client_id":     clientID,
+		},
+	)
 
-	args := util.Merge(util.Args{
-		"value":        value,
-		"description":  description,
-		"content_hash": contentHash,
-	}, util.Args{
-		"api_client_id": nilIfZero(apiClientID),
-	})
-
-	err = tx.QueryRow(
-		ctx,
-		query.InsertCheckoutQuery,
-		args,
-	).Scan(&checkoutID, &uniqueID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		// ON CONFLICT DO NOTHING — no row returned, existing checkout
-		return 0, "", nil
-	}
+	err = tx.QueryRow(ctx, query.InsertCheckoutQuery, args).Scan(&checkoutID, &uniqueID)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to insert checkout: %w", err)
 	}
 	return checkoutID, uniqueID, nil
-}
-
-// findCheckoutByContentHash fetches an existing checkout by its content hash.
-func findCheckoutByContentHash(
-	ctx context.Context,
-	tx pgx.Tx,
-	contentHash string,
-) (checkoutID int, uniqueID string, err error) {
-	err = tx.QueryRow(
-		ctx,
-		query.FindCheckoutByContentHashQuery,
-		contentHash,
-	).Scan(&checkoutID, &uniqueID)
-	if err != nil {
-		return 0, "", fmt.Errorf("failed to find existing checkout: %w", err)
-	}
-	return checkoutID, uniqueID, nil
-}
-
-// buildDescription returns the checkout description as a static label.
-func buildDescription(totalItems int) string {
-	return fmt.Sprintf("Checkout — %d items", totalItems)
 }
 
 // nilIfZero converts a zero int to nil for nullable DB columns.
@@ -292,39 +335,4 @@ func writeCheckoutData(
 	}
 
 	return entries, nil
-}
-
-// findPackageReservedQRCodes fetches package_reserved rows for a checkout
-// and generates QR codes for each one (dedup path).
-func findPackageReservedQRCodes(
-	ctx context.Context,
-	tx pgx.Tx,
-	checkoutID int,
-) ([]QRCodeEntry, error) {
-	rows, err := tx.Query(ctx, query.FindPackageReservedByCheckoutQuery, checkoutID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query package_reserved for checkout %d: %w", checkoutID, err)
-	}
-	defer rows.Close()
-
-	var entries []QRCodeEntry
-	for rows.Next() {
-		var uid string
-		var pkgID int
-		if err := rows.Scan(&uid, &pkgID); err != nil {
-			return nil, fmt.Errorf("failed to scan package_reserved row: %w", err)
-		}
-
-		qr, err := qrcode.Encode(uid)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate qr code for package %d: %w", pkgID, err)
-		}
-
-		entries = append(entries, QRCodeEntry{
-			PackageID: pkgID,
-			QrCode:    qr,
-		})
-	}
-
-	return entries, rows.Err()
 }
