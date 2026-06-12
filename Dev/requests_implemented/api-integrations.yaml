@@ -10,7 +10,8 @@ info:
     catálogo de produtos, consulta de remessas públicas e checkout.
 
     **Autenticação:** endpoints de produto, remessa e estabelecimento são
-    públicos. **Checkout exige token** (`Authorization: Bearer pv_...`).
+    públicos. **Checkout exige token** via HTTP header
+    `Authorization: Bearer pv_17ff383f9d4774e1eabfa5b3307a691a8c5eb6d1644bc257d628a795bbfa39eb`.
 
     **Fluxo principal (cartless):**
     1. Consultar produtos via `GET /produtos` (cada produto já inclui `pickups`
@@ -26,9 +27,6 @@ info:
     **Rate limit:**
      - `POST /checkouts/confirm` limita a 1 checkout por cliente a cada 60 segundos.
        Requisições acima do limite retornam HTTP 429 com `retry_after` (segundos).
-security:
-  - BearerAuth: []
-
 servers:
   - url: https://pvauto.linhazero.com
     description: Produção
@@ -48,12 +46,12 @@ paths:
   /checkouts/confirm:
     post:
       security:
-        - BearerAuth: []
+        - Token de API: []
       tags: [Checkout]
       summary: Confirma checkout (compra)
       description: |
         Reserva estoque e gera QR code para retirada. Requer token
-        de API (`Authorization: Bearer pv_...`).
+        de API via HTTP header `Authorization: Bearer pv_17ff383f9d4774e1eabfa5b3307a691a8c5eb6d1644bc257d628a795bbfa39eb`.
 
         **Rate limit:** 1 checkout por cliente a cada 60 segundos.
         Exceder o limite retorna HTTP 429 com `retry_after`.
@@ -237,10 +235,10 @@ paths:
 # ═════════════════════════════════════════════════════════════════
 components:
   securitySchemes:
-    BearerAuth:
+    Token de API:
       type: http
       scheme: bearer
-      description: API token provisionado via painel admin (prefixo `pv_`)
+      description: "Inclua no header: `Authorization: Bearer pv_17ff383f9d4774e1eabfa5b3307a691a8c5eb6d1644bc257d628a795bbfa39eb`."
   schemas:
     # ── Genéricos ───────────────────────────────────────────────
     RespostaOk:

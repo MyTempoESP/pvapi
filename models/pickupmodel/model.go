@@ -114,4 +114,11 @@ func Update(
 	return nil
 }
 
-// TODO: View/Delete
+func Delete(
+	ctx context.Context,
+	base db.Queryable,
+	id int,
+) error {
+	_, err := base.Exec(ctx, query.DeletePickupLocationQuery, id)
+	return err
+}

@@ -75,6 +75,28 @@ func ListHandler(
 	}
 }
 
+func DeleteHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		id, err := strconv.Atoi(c.Param("pickup"))
+		if err != nil {
+			util.HandleBadRequest(c, err)
+			return
+		}
+
+		err = pickupmodel.Delete(
+			c.Request.Context(),
+			pool,
+			id,
+		)
+		if err != nil {
+			util.HandleGuessFromDBOperation(c, err)
+			return
+		}
+
+		util.OK(c, "ponto de entrega deletado com sucesso")
+	}
+}
+
 func UpdateHandler(pool *pgxpool.Pool) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("pickup"))

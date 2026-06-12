@@ -69,4 +69,8 @@ SET name   = COALESCE($2::text, name),
     pickup_at = COALESCE($3::timestamptz, pickup_at)
 WHERE id = $1
 `
+
+	DeletePickupLocationQuery = `
+DELETE FROM pickup_locations WHERE id = $1
+`
 )

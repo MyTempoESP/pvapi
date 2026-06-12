@@ -125,4 +125,56 @@ func TestPickup(t *testing.T) {
 		})
 		assertStatus(t, rec, http.StatusForbidden)
 	})
+
+	t.Run("delete_pickup", func(t *testing.T) {
+		p := h.createPickup(t, &shopSession)
+
+		rec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/pontos/%d", p.ID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		if asString(t, body["message"]) != "ponto de entrega deletado com sucesso" {
+			t.Fatalf("unexpected message: %v", body["message"])
+		}
+
+		// Verify it no longer appears in the list
+		rec = h.doRequest(t, http.MethodGet, "/pontos", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		pickups := asSlice(t, body["data"])
+		if containsID(pickups, p.ID) {
+			t.Fatalf("pickup %d should have been deleted, but still appears in list", p.ID)
+		}
+	})
+
+	t.Run("delete_pickup_unauthorized", func(t *testing.T) {
+		p := h.createPickup(t, &shopSession)
+		rec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/pontos/%d", p.ID), nil, "", nil)
+		assertStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("delete_pickup_cross_shop", func(t *testing.T) {
+		shop2Name := fmt.Sprintf("Loja Pickup Cross2 %d", runID)
+		shop2Email := fmt.Sprintf("api-pickup-cross2-%d@example.com", runID)
+		h.createShop(t, &admin, shop2Name, shop2Email, "11988887779")
+		shop2Session := h.login(t, shop2Email, "11988887779")
+
+		p := h.createPickup(t, &shopSession)
+
+		rec := h.doRequest(t, http.MethodDelete, fmt.Sprintf("/pontos/%d", p.ID), &shop2Session, "", nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("delete_pickup_not_found", func(t *testing.T) {
+		// The gate returns 403 for non-existent pickup IDs, consistent with PUT behavior.
+		rec := h.doRequest(t, http.MethodDelete, "/pontos/999999", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
+
+	t.Run("delete_pickup_bad_param", func(t *testing.T) {
+		// The gate catches invalid params before the controller,
+		// returning 403 because HasPickup finds no match with a non-integer ID.
+		rec := h.doRequest(t, http.MethodDelete, "/pontos/abc", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusForbidden)
+	})
 }
