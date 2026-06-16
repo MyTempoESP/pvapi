@@ -14,3 +14,4 @@ tmux.just
 *.html
 !/mail/*.html
 !/mail/*.png
+__pycache__/

@@ -5,14 +5,21 @@ Escrito integralmente em português brasileiro.
 
 ## Funcionalidades
 
-O cliente possui três abas, acessíveis pelo menu lateral:
+O cliente possui seis abas, acessíveis pelo menu lateral:
 
 ### 🛍️ Checkout
-Fluxo completo de compra:
+Fluxo de compra via listagem de produtos por loja:
 1. **Lojas** — lista os estabelecimentos ativos via `GET /estabelecimentos` (opcional, para filtrar produtos).
-2. **Produtos disponíveis** — lista os produtos cadastrados via `GET /produtos`, com filtro por loja. Cada produto exibe seus pacotes de retirada (preço, estoque, ponto de retirada, endereço).
+2. **Produtos disponíveis** — lista os produtos via `GET /produtos`, com filtro por loja. Cada produto exibe seus pacotes de retirada (preço, estoque, ponto de retirada, endereço).
 3. **Selecionar pacotes** — escolhe pacotes e quantidades diretamente, sem carrinho intermediário.
-4. **Confirmar compra** — finaliza a compra via `POST /checkouts/confirm` com valor pago, itens (`[{package_id, quantity}]`) e dados do cliente (e-mail, nome, telefone e CPF — todos opcionais; ao menos um campo de identidade é obrigatório). A resposta inclui a lista `qr_codes[]` com um QR code por pacote reservado (`{package_id, qr_code}`), renderizados como imagens.
+4. **Confirmar compra** — finaliza a compra via `POST /checkouts/confirm` com itens (`[{package_id, quantity}]`) e dados do cliente (telefone, CPF — ao menos um obrigatório). A resposta inclui a lista `qr_codes[]` com um QR code por pacote reservado (`{package_id, qr_code}`), renderizados como imagens.
+
+### 🪙 Checkout (Token)
+Fluxo de compra via token de remessa:
+1. **Token de remessa** — informa o UUID do token de remessa.
+2. **Carregar** — `GET /produtos?token={token_de_remessa}` retorna `produtos` (onde `id` é o `package_id`) e `retiradas` (pontos de retirada).
+3. **Selecionar produtos** — escolhe quantidades; o `id` de cada produto já é o `package_id`.
+4. **Confirmar compra** — `POST /checkouts/confirm` com os `id`s selecionados como `package_id`.
 
 ### 🏦 Banco & Saque
 Gestão de conta bancária e solicitação de saques (autenticado como estabelecimento):

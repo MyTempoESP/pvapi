@@ -69,7 +69,7 @@ st.markdown("Interface de demonstração para a API do **pvauto.linhazero.com**"
 
 # ── Sidebar navigation ──────────────────────────────────────────────────────
 
-menu = st.sidebar.radio("Menu", ["Checkout", "Banco & Saque", "Monitores", "Admin Tokens", "Requisição HTTP"])
+menu = st.sidebar.radio("Menu", ["Checkout", "Checkout (Token)", "Banco & Saque", "Monitores", "Admin Tokens", "Requisição HTTP"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CHECKOUT
@@ -356,6 +356,202 @@ if menu == "Checkout":
                     st.info("Todos os pacotes foram cancelados — o checkout foi removido.")
             else:
                 show_response(r)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CHECKOUT (TOKEN)
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif menu == "Checkout (Token)":
+    st.header("🪙 Checkout via Token de Remessa")
+    st.caption("Fluxo: token de remessa → produtos (id = package_id) + retiradas → confirmar compra.")
+
+    # ── Section 0: API Key ────────────────────────────────────────────────
+    st.subheader("0. Chave de API (API Token)")
+    st.caption("O endpoint /checkouts/confirm requer autenticação via API token (Bearer pv_...).")
+
+    api_token = st.text_input(
+        "API Token (Bearer)",
+        value=st.session_state.get("token_api_token", ""),
+        placeholder="pv_...",
+        key="token_api_token",
+        type="password",
+    )
+
+    # ── Section 1: Token de Remessa ───────────────────────────────────────
+    st.subheader("1. Token de Remessa")
+
+    col_tok, col_load = st.columns([3, 1])
+    with col_tok:
+        remessa_token = st.text_input(
+            "Token de remessa",
+            value="",
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+            key="remessa_token",
+        )
+    with col_load:
+        st.write("")
+        if st.button("📦 Carregar", key="load_token_btn", use_container_width=True):
+            if not remessa_token.strip():
+                st.error("Informe o token de remessa.")
+            else:
+                with st.spinner("Carregando produtos..."):
+                    r = req("GET", "/produtos", params={"token": remessa_token.strip()})
+                if r.ok:
+                    data = r.json()
+                    st.session_state.token_products = data.get("produtos", [])
+                    st.session_state.token_retiradas = data.get("retiradas", [])
+                    st.session_state.token_selected = {}
+                    st.success(f"{len(st.session_state.token_products)} produtos carregados.")
+                else:
+                    st.session_state.token_products = []
+                    st.session_state.token_retiradas = []
+                    show_response(r)
+
+    # ── Section 2: Retiradas ──────────────────────────────────────────────
+    retiradas = st.session_state.get("token_retiradas", [])
+    if retiradas:
+        st.subheader("2. Pontos de retirada")
+        for ret in retiradas:
+            name = ret.get("name", "?")
+            addr = ret.get("address", {})
+            parts = [
+                addr.get("street", ""),
+                addr.get("number", ""),
+                addr.get("neighborhood", ""),
+                addr.get("city", ""),
+                addr.get("state", ""),
+            ]
+            addr_str = ", ".join(p for p in parts if p)
+            st.markdown(f"📍 **{name}** — {addr_str}")
+
+    # ── Section 3: Produtos ───────────────────────────────────────────────
+    produtos = st.session_state.get("token_products", [])
+    if produtos:
+        st.markdown("---")
+        st.subheader("3. Selecionar produtos")
+        st.caption("O id de cada produto é o package_id para o checkout. Escolha as quantidades desejadas.")
+
+        for prod in produtos:
+            pkg_id = prod.get("id")
+            name = prod.get("name", "?")
+            price = prod.get("price", "?")
+            stock = prod.get("stock", 0)
+
+            cur_qty = st.session_state.get("token_selected", {}).get(pkg_id, 0)
+
+            col_info, col_qty = st.columns([4, 1])
+            with col_info:
+                st.markdown(
+                    f"**{name}** (ID {pkg_id}) — R$ {price} — estoque: {stock}"
+                )
+            with col_qty:
+                qty_key = f"tkn_qty_{pkg_id}"
+                new_qty = st.number_input(
+                    "Qtd",
+                    min_value=0,
+                    max_value=stock,
+                    value=cur_qty,
+                    key=qty_key,
+                )
+                if new_qty != cur_qty:
+                    if "token_selected" not in st.session_state:
+                        st.session_state.token_selected = {}
+                    if new_qty > 0:
+                        st.session_state.token_selected[pkg_id] = new_qty
+                    elif pkg_id in st.session_state.token_selected:
+                        del st.session_state.token_selected[pkg_id]
+            st.markdown("---")
+
+        if st.button("🧹 Limpar seleção", key="clear_token_selection"):
+            st.session_state.token_selected = {}
+            st.rerun()
+    else:
+        st.info("Informe um token de remessa e clique em **Carregar**.")
+
+    # ── Section 4: Confirmar ──────────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("4. Confirmar compra")
+
+    col_nome, _ = st.columns(2)
+    with col_nome:
+        client_name = st.text_input("Nome do cliente (opcional)", value="", placeholder="Fulano de Tal", key="tok_client_name")
+
+    col_tel, col_cpf = st.columns(2)
+    with col_tel:
+        telephone = st.text_input(
+            "Telefone (opcional)",
+            value="",
+            placeholder="11988887777",
+            key="tok_telephone",
+            help="Dígitos são extraídos; formatação é ignorada. Usado como senha da conta e como identidade fallback.",
+        )
+    with col_cpf:
+        cpf = st.text_input(
+            "CPF (opcional)",
+            value="",
+            placeholder="12345678901",
+            key="tok_cpf",
+            help="11 dígitos; formatação é ignorada. Usado como identidade fallback (prioridade sobre telephone).",
+        )
+
+    selected = st.session_state.get("token_selected", {})
+    if selected:
+        st.caption(
+            f"{sum(selected.values())} itens em "
+            f"{len(selected)} produtos selecionados."
+        )
+
+    if st.button("✅ Confirmar compra", type="primary", use_container_width=True, key="confirm_token_btn"):
+        if not selected:
+            st.error("Selecione pelo menos um produto (seção 3).")
+        else:
+            items = [
+                {"package_id": int(pkg_id), "quantity": qty}
+                for pkg_id, qty in selected.items()
+            ]
+            payload = {"items": items}
+            if client_name.strip():
+                payload["client_name"] = client_name.strip()
+            if telephone.strip():
+                payload["telephone"] = telephone.strip()
+            if cpf.strip():
+                payload["cpf"] = cpf.strip()
+
+            api_token_val = st.session_state.get("token_api_token", "").strip()
+            if not api_token_val:
+                st.error("Informe o API Token (seção 0).")
+            else:
+                with st.spinner("Finalizando compra..."):
+                    r = req(
+                        "POST",
+                        "/checkouts/confirm",
+                        data=payload,
+                        token=api_token_val,
+                    )
+                if r.ok:
+                    data = r.json()
+                    unique_id = data.get("unique_id", "?")
+                    status = data.get("status", "?")
+                    qr_codes = data.get("qr_codes", [])
+                    st.balloons()
+                    st.success(
+                        f"**Compra confirmada!**  \n"
+                        f"ID único: `{unique_id}`  \n"
+                        f"Status: `{status}`"
+                    )
+                    if qr_codes:
+                        st.subheader("📱 QR Codes para retirada")
+                        for entry in qr_codes:
+                            pkg_id = entry.get("package_id", "?")
+                            qr_data_uri = entry.get("qr_code", "")
+                            col_qr, col_label = st.columns([1, 3])
+                            with col_qr:
+                                st.image(qr_data_uri, width=200)
+                            with col_label:
+                                st.markdown(f"**Pacote {pkg_id}**")
+                    st.session_state.token_selected = {}
+                else:
+                    show_response(r)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # BANCO & SAQUE

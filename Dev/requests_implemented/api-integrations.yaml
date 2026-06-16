@@ -14,10 +14,12 @@ info:
     `Authorization: Bearer pv_17ff383f9d4774e1eabfa5b3307a691a8c5eb6d1644bc257d628a795bbfa39eb`.
 
     **Fluxo principal (cartless):**
-    1. Consultar produtos via `GET /produtos` (cada produto já inclui `pickups`
-       com `package_id`, preço, estoque e endereço do ponto de retirada).
+    1. Consultar produtos via `GET /produtos?token={token_de_remessa}` —
+       retorna os produtos da remessa (`produtos`, onde `id` é o `package_id`)
+       e os pontos de retirada (`retiradas`).
     2. Confirmar checkout via `POST /checkouts/confirm` com os `package_id`
-       obtidos no passo anterior — sem carrinho intermediário.
+       obtidos no passo anterior (campo `id` de cada produto) — sem carrinho
+       intermediário.
 
     **Identificação do cliente:**
      - Ao menos um de `cpf` ou `telephone` é obrigatório.
@@ -56,8 +58,8 @@ paths:
         **Rate limit:** 1 checkout por cliente a cada 60 segundos.
         Exceder o limite retorna HTTP 429 com `retry_after`.
 
-        Os `package_id` são obtidos no campo `pickups` dos produtos
-        (`GET /produtos` ou `GET /produtos/:product`).
+        Os `package_id` são o `id` de cada produto retornado em
+        `GET /produtos?token={token_de_remessa}`.
 
         **Identificação do cliente:** ao menos um de `cpf` ou
         `telephone` é obrigatório. A senha é os dígitos do
@@ -162,42 +164,50 @@ paths:
   /produtos:
     get:
       tags: [Produtos]
-      summary: Lista produtos públicos com filtros
+      summary: Lista produtos públicos via token de remessa
       description: |
-        Lista produtos aprovados do catálogo público. Cada produto inclui
-        o campo `pickups` com os pacotes disponíveis (preço, estoque,
-        ponto de retirada).
+        Lista produtos aprovados de uma remessa. Cada produto inclui preço,
+        estoque e demais atributos. Os pontos de retirada são retornados
+        separadamente no array `retiradas`.
 
-        **Filtros disponíveis (query params, multivalorados):**
-        - `loja` — filtra por ID(s) de loja (ex: `?loja=1&loja=2`)
-        - `remessa` — filtra por ID(s) de remessa (ex: `?remessa=3`)
+        **Importante:** o `id` de cada produto é o `package_id` a ser
+        usado no `POST /checkouts/confirm`.
 
-        Sem filtros, retorna todos os produtos aprovados.
+        Sem token, retorna arrays vazios.
       operationId: listarProdutos
       parameters:
-        - name: loja
+        - name: token
           in: query
+          required: false
           schema:
-            type: array
-            items:
-              type: integer
-          description: ID da loja (pode ser repetido para múltiplas lojas)
-          example: [1]
-        - name: remessa
-          in: query
-          schema:
-            type: array
-            items:
-              type: integer
-          description: ID da remessa (pode ser repetido para múltiplas remessas)
-          example: [3]
+            type: string
+            format: uuid
+          description: Token de remessa (UUID)
       responses:
         "200":
-          description: Lista de produtos
+          description: Lista de produtos e pontos de retirada
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RespostaListaProdutos"
+                $ref: "#/components/schemas/RespostaListaProdutosToken"
+        "400":
+          description: Token inválido (formato UUID esperado)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+        "404":
+          description: Remessa não encontrada para o token informado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+        "410":
+          description: Remessa arquivada, não está mais disponível
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
 
   /produtos/{product}:
     get:
@@ -332,7 +342,7 @@ components:
         package_id:
           type: integer
           minimum: 1
-          description: ID do pacote (obtido no campo `pickups` dos produtos)
+          description: ID do pacote — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`)
         quantity:
           type: integer
           minimum: 1
@@ -631,6 +641,118 @@ components:
             Pacotes disponíveis para este produto, com preço, estoque
             e endereço do ponto de retirada. O `package_id` de cada
             pickup é usado no POST /checkouts/confirm.
+
+    # ── Produto via token de remessa ────────────────────────────
+    ProductConsignmentResource:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID do pacote (package_id) — usar no POST /checkouts/confirm
+        name:
+          type: string
+          description: Nome do produto
+        stock:
+          type: integer
+          description: Estoque disponível nesta remessa
+        price:
+          type: number
+          description: Preço (decimal)
+        discount:
+          type: number
+          description: Desconto (decimal)
+        featured:
+          type: boolean
+          description: Produto em destaque
+        code:
+          type: string
+          description: Código do produto
+        uuid:
+          type: string
+          description: UUID do produto
+        colors:
+          type: array
+          items:
+            type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        allowCustomName:
+          type: boolean
+        allowCustomModality:
+          type: boolean
+        allowCustomColorSelection:
+          type: boolean
+        category:
+          type: string
+        category_id:
+          type: integer
+        imageUrl:
+          type: string
+        description:
+          type: string
+        specificationsImages:
+          type: array
+          items:
+            type: string
+        descriptionImages:
+          type: array
+          items:
+            type: string
+        deliveryImages:
+          type: array
+          items:
+            type: string
+        specifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/EspecificacaoProduto"
+
+    ConsignmentPickupAddressResource:
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        cep:
+          type: string
+        complement:
+          type: string
+
+    ConsignmentPickupResource:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nome do ponto de retirada
+        address:
+          $ref: "#/components/schemas/ConsignmentPickupAddressResource"
+
+    RespostaListaProdutosToken:
+      type: object
+      required: [success, message, produtos, retiradas]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: "Produtos listados com sucesso!"
+        produtos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductConsignmentResource"
+        retiradas:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsignmentPickupResource"
 
     RespostaListaProdutos:
       type: object

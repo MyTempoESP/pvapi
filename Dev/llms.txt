@@ -12,8 +12,8 @@ All endpoints accept and return JSON. The API covers four domains: Products, Che
 
 There is no cart system. The integration flow is:
 
-1. **Browse products** via `GET /produtos` — each product already includes `pickups` (available packages with prices, stock, and pickup location addresses).
-2. **Confirm checkout** via `POST /checkouts/confirm` — directly with the `package_id` from the pickups you selected. Requires a valid API Bearer token.
+1. **Browse products** via `GET /produtos?token={token_de_remessa}` — returns the consignment's products (`produtos`, where `id` is the `package_id`) and pickup locations (`retiradas`).
+2. **Confirm checkout** via `POST /checkouts/confirm` — directly with the `package_id` from `produtos[].id`. Requires a valid API Bearer token.
 
 No intermediate cart, no `session_id`. Choose your packages directly from the product listing and proceed to checkout.
 
@@ -21,16 +21,17 @@ No intermediate cart, no `session_id`. Choose your packages directly from the pr
 
 ## Products (`/produtos`)
 
-### GET /produtos - List public products with filters
+### GET /produtos - List products via token de remessa
 
-Lists approved products from the public catalog. Each product includes a `pickups` array with available packages (price, stock, pickup location). Supports filtering by shop and/or consignment.
+Lists approved products from a consignment, scoped by token de remessa. Returns products and pickup locations as separate top-level arrays. **The `id` field of each product is the `package_id`** to use in `POST /checkouts/confirm`.
 
-Query parameters (multi-value, repeatable):
+Without a token, returns empty arrays.
+
+Query parameters:
 
 | Param | Type | Description |
 |-------|------|-------------|
-| loja | integer[] | Filter by shop ID(s). Example: `?loja=1&loja=2` |
-| remessa | integer[] | Filter by consignment ID(s). Example: `?remessa=3` |
+| token | string (UUID) | Token de remessa |
 
 Response 200:
 ```json
@@ -39,22 +40,19 @@ Response 200:
   "message": "Produtos listados com sucesso!",
   "produtos": [
     {
-      "id": 1,
+      "id": 42,
       "name": "Nome do Produto",
-      "stock": 10,
+      "stock": 5,
       "price": 99.90,
       "discount": 0.00,
       "featured": false,
       "code": "PROD-001",
       "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      "platform_cut": 5.00,
-      "platform_cut_type": "percentage",
       "colors": ["red", "blue"],
       "sizes": ["P", "M", "G"],
       "allowCustomName": false,
       "allowCustomModality": false,
       "allowCustomColorSelection": false,
-      "moderation_status": "approved",
       "category": "Categoria Exemplo",
       "category_id": 1,
       "imageUrl": "https://...",
@@ -63,30 +61,22 @@ Response 200:
       "descriptionImages": [],
       "deliveryImages": [],
       "specifications": [
-        {
-          "name": "Material",
-          "value": "Algodao"
-        }
-      ],
-      "pickups": [
-        {
-          "package_id": 42,
-          "price": 99.90,
-          "discount": 0.00,
-          "quantity": 5,
-          "pickup_name": "Ponto de retirada A",
-          "pickup_date": "2025-12-01T10:00:00Z",
-          "address": {
-            "street": "Rua Exemplo",
-            "number": "123",
-            "neighborhood": "Bairro",
-            "city": "Cidade",
-            "state": "SP",
-            "cep": "00000-000",
-            "complement": ""
-          }
-        }
+        { "name": "Material", "value": "Algodao" }
       ]
+    }
+  ],
+  "retiradas": [
+    {
+      "name": "Ponto de retirada A",
+      "address": {
+        "street": "Rua Exemplo",
+        "number": "123",
+        "neighborhood": "Bairro",
+        "city": "Cidade",
+        "state": "SP",
+        "cep": "00000-000",
+        "complement": ""
+      }
     }
   ]
 }
@@ -94,22 +84,19 @@ Response 200:
 
 | Product Field | Type | Description |
 |-------|------|-------------|
-| id | integer | Product ID |
+| id | integer | **package_id** — use in POST /checkouts/confirm |
 | name | string | Product name |
-| stock | integer | Stock quantity |
+| stock | integer | Stock quantity in this consignment |
 | price | number | Price (decimal) |
 | discount | number | Discount (decimal) |
 | featured | boolean | Whether product is featured |
 | code | string | Product code |
 | uuid | string | Product UUID |
-| platform_cut | number | Platform cut (decimal) |
-| platform_cut_type | string | Cut type ("fixed" or "percentage") |
 | colors | string[] | Available colors |
 | sizes | string[] | Available sizes |
 | allowCustomName | boolean | Custom name allowed |
 | allowCustomModality | boolean | Custom modality allowed |
 | allowCustomColorSelection | boolean | Custom color selection allowed |
-| moderation_status | string | Moderation status |
 | category | string | Category name |
 | category_id | integer | Category ID |
 | imageUrl | string | Product image URL |
@@ -118,23 +105,22 @@ Response 200:
 | descriptionImages | string[] | Description image URLs |
 | deliveryImages | string[] | Delivery image URLs |
 | specifications | object[] | Specifications (name/value pairs) |
-| pickups | object[] | Available packages (see below) |
 
-| Pickup Field | Type | Description |
+| Retirada Field | Type | Description |
 |--------------|------|-------------|
-| package_id | integer | Package ID (use in POST /checkouts/confirm) |
-| price | number | Package price (decimal) |
-| discount | number | Package discount (decimal) |
-| quantity | integer | Available stock for this package |
-| pickup_name | string | Pickup location name |
-| pickup_date | string | Pickup date/time |
+| name | string | Pickup location name |
 | address | object | Address with street, number, neighborhood, city, state, cep, complement |
+
+Error responses:
+- **400** — token inválido (formato UUID esperado)
+- **404** — remessa não encontrada para o token informado
+- **410** — remessa arquivada, não está mais disponível
 
 ---
 
 ### GET /produtos/{product} - View product by ID
 
-Returns details for a specific approved product, including `pickups` inline (same structure as the listing).
+Returns details for a specific approved product, including `pickups` inline.
 
 Path parameters:
 
@@ -150,6 +136,30 @@ Response 200:
   "data": {
     "id": 1,
     "name": "Nome do Produto",
+    "stock": 10,
+    "price": 99.90,
+    "discount": 0.00,
+    "featured": false,
+    "code": "PROD-001",
+    "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "platform_cut": 5.00,
+    "platform_cut_type": "percentage",
+    "colors": ["red", "blue"],
+    "sizes": ["P", "M", "G"],
+    "allowCustomName": false,
+    "allowCustomModality": false,
+    "allowCustomColorSelection": false,
+    "moderation_status": "approved",
+    "category": "Categoria Exemplo",
+    "category_id": 1,
+    "imageUrl": "https://...",
+    "description": "Descricao do produto",
+    "specificationsImages": [],
+    "descriptionImages": [],
+    "deliveryImages": [],
+    "specifications": [
+      { "name": "Material", "value": "Algodao" }
+    ],
     "pickups": [
       {
         "package_id": 42,
@@ -173,7 +183,7 @@ Response 200:
 }
 ```
 
-The `data` field contains a `RecursoProduto` object (same structure as items in the product listing, including `pickups`).
+The `data` field contains a full `RecursoProduto` object including `pickups`, `platform_cut`, `platform_cut_type`, and `moderation_status`.
 
 Error responses: 404.
 
@@ -187,7 +197,7 @@ Error responses: 404.
 
 Reserves stock and generates QR codes for pickup. **Rate-limited** to 1 checkout per client every 60 seconds — exceeding the limit returns HTTP 429 with `retry_after` (seconds).
 
-Package IDs are obtained from the `pickups` field of products (`GET /produtos` or `GET /produtos/:product`).
+Package IDs are the `id` field from products returned by `GET /produtos?token={token_de_remessa}`.
 
 No query parameters.
 
@@ -210,7 +220,7 @@ Request body (JSON):
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | items | array | yes | At least 1 item |
-| items[].package_id | integer | yes | Package ID from product pickups (min 1) |
+| items[].package_id | integer | yes | Package ID — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
 | client_name | string | no | Name for the client account (derived from CPF or telephone if omitted) |
 | telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no CPF is given |
@@ -396,7 +406,7 @@ All errors follow the same structure:
 }
 ```
 
-HTTP status codes used: 400, 401, 404, 409, 422, 429.
+HTTP status codes used: 400, 401, 403, 404, 409, 410, 422, 429.
 
 ---
 
