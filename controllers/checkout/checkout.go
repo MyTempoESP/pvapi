@@ -99,6 +99,11 @@ func ConfirmHandler(
 					"success": false,
 					"message": err.Error(),
 				})
+			case errors.Is(err, checkoutmodel.ErrInvalidCallback):
+				c.AbortWithStatusJSON(400, gin.H{
+					"success": false,
+					"message": err.Error(),
+				})
 			case errors.Is(err, checkoutmodel.ErrNoIdentity):
 				c.AbortWithStatusJSON(400, gin.H{
 					"success": false,

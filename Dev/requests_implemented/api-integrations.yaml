@@ -121,8 +121,8 @@ paths:
       summary: Cancela checkout (parcialmente)
       description: |
         Cancela um checkout previamente confirmado. Apenas pacotes com
-        status PENDING são cancelados (estoque devolvido, reserva removida).
-        Pacotes RECEIVED não são afetados. Se todos os pacotes forem
+        status pendente são cancelados (estoque devolvido, reserva removida).
+        Pacotes recebidos não são afetados. Se todos os pacotes forem
         cancelados, o checkout é removido.
 
         O token de API deve pertencer ao mesmo API client que confirmou
@@ -382,10 +382,10 @@ components:
           example: true
         cancelled_count:
           type: integer
-          description: Quantidade de pacotes PENDING cancelados
+          description: Quantidade de pacotes pendentes cancelados
         remaining_count:
           type: integer
-          description: Quantidade de pacotes RECEIVED restantes
+          description: Quantidade de pacotes recebidos restantes
 
     RespostaCheckout:
       type: object

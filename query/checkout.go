@@ -7,14 +7,16 @@ INSERT INTO checkouts
 		status,
 		description,
 		api_client_id,
-		client_id
+		client_id,
+		callback
 	)
 VALUES
 	(
 		'paid',
 		@description,
 		@api_client_id,
-		@client_id
+		@client_id,
+		@callback
 	)
 RETURNING id, unique_id
 `

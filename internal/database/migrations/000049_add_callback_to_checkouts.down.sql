@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE IF EXISTS public.checkouts
+    DROP COLUMN IF EXISTS callback;
+
+COMMIT;

@@ -1,19 +1,22 @@
 ---
 name: test-code
-description: "Runs Go tests against a temporary PostgreSQL database. Manages the full test lifecycle: start test DB, run targeted or full test suites, lint, close DB. Use when asked to run, write, or verify tests in this codebase."
+description: "Instructions for running the codebase integration test suite and linter. Use when asked to run, write, or verify tests in this codebase."
 ---
 
 # Test Code
 
-Runs Go tests against an ephemeral PostgreSQL test database managed by `just`.
+Instructions for running the codebase integration test suite and linter. Every mention of scripts in this skill is related to the directory containing the SKILL.md.
+
+# Available scripts
+
+- **scripts/run.sh**: Runs Go tests against an ephemeral PostgreSQL test database
 
 ## Usage
 
-End-to-end wrapper around `just t::test-db`, `golangci-lint`, and `go test`:
+Do not try to manually run the script steps. Usage:
 
 ```bash
-SKILL_DIR="$(dirname "$(readlink -f "$0")")"
-"$SKILL_DIR/scripts/run.sh" -r TestNamePattern -v
+scripts/run.sh -r TestNamePattern -v
 ```
 
 No flags runs `golangci-lint` followed by the full test suite.

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,6 +32,7 @@ type ConfirmRequest struct {
 	ClientName  string        `json:"client_name"`
 	Telephone   string        `json:"telephone"`
 	CPF         string        `json:"cpf"`
+	Callback    *string       `json:"callback"`
 }
 
 type PackageStock struct {
@@ -49,12 +52,13 @@ type ConfirmResponse struct {
 }
 
 var (
-	ErrPackageNotFound    = errors.New("package not found")
-	ErrInsufficientStock  = errors.New("insufficient stock")
-	ErrRateLimited        = errors.New("rate limited")
-	ErrNoIdentity         = errors.New("no identity provided")
-	ErrCheckoutNotFound   = errors.New("checkout not found")
-	ErrCancelForbidden    = errors.New("not authorized to cancel this checkout")
+	ErrPackageNotFound   = errors.New("package not found")
+	ErrInsufficientStock = errors.New("insufficient stock")
+	ErrRateLimited       = errors.New("rate limited")
+	ErrNoIdentity        = errors.New("no identity provided")
+	ErrCheckoutNotFound  = errors.New("checkout not found")
+	ErrCancelForbidden   = errors.New("not authorized to cancel this checkout")
+	ErrInvalidCallback   = errors.New("callback must be a valid http or https URL")
 )
 
 // RateLimitInfo holds the rate-limit error details for the API response.
@@ -74,6 +78,13 @@ func Confirm(
 	apiClientID int,
 ) (ConfirmResponse, error) {
 	var resp ConfirmResponse
+
+	if req.Callback != nil && strings.TrimSpace(*req.Callback) != "" {
+		u, err := url.Parse(*req.Callback)
+		if err != nil || u.Scheme != "http" && u.Scheme != "https" || u.Host == "" {
+			return resp, fmt.Errorf("%w: %s", ErrInvalidCallback, *req.Callback)
+		}
+	}
 
 	ci := checkoutclient.Resolve(
 		req.ClientEmail,
@@ -141,7 +152,7 @@ func Confirm(
 	description := fmt.Sprintf("Checkout — %d items", totalItems)
 
 	checkoutID, uniqueID, err := insertCheckout(
-		ctx, tx, description, apiClientID, clientID,
+		ctx, tx, description, apiClientID, clientID, req.Callback,
 	)
 	if err != nil {
 		return resp, err
@@ -243,6 +254,7 @@ func insertCheckout(
 	description string,
 	apiClientID int,
 	clientID int,
+	callback *string,
 ) (checkoutID int, uniqueID string, err error) {
 	args := util.Merge(
 		util.Args{
@@ -251,6 +263,7 @@ func insertCheckout(
 		util.Args{
 			"api_client_id": nilIfZero(apiClientID),
 			"client_id":     clientID,
+			"callback":      callback,
 		},
 	)
 
