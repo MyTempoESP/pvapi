@@ -159,6 +159,15 @@ func HandleGuessFromDBOperation(c *gin.Context, err error) {
 
 // HandleDuplicatedResource handles ErrDuplicatedResource errors with a
 // machine-readable 409 Conflict response.
+func HandleGone(c *gin.Context, message string) {
+	c.AbortWithStatusJSON(
+		410,
+		gin.H{
+			"message": message,
+		},
+	)
+}
+
 func HandleDuplicatedResource(c *gin.Context, err error) {
 	logger := logmw.GetLogger(c)
 	logger.Warn("Duplicated resource", "error", err)

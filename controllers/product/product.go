@@ -9,9 +9,11 @@ import (
 
 //~extern
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linhazero.com/pvapi/models/authmodel"
+	"linhazero.com/pvapi/models/consignmentmodel"
 	"linhazero.com/pvapi/models/productmodel"
 	"linhazero.com/pvapi/util"
 )
@@ -20,61 +22,73 @@ func PublicListingHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		rawShopIDs := c.Request.URL.Query()["loja"]
-		rawConsignmentIDs := c.Request.URL.Query()["remessa"]
+		token := c.Request.URL.Query().Get("token")
 
-		shopIDs := parseQueryInts(rawShopIDs)
-		consignmentIDs := parseQueryInts(rawConsignmentIDs)
+		if token == "" {
+			util.WrapMap(
+				c, "Produtos listados com sucesso!",
+				gin.H{
+					"produtos":  []productmodel.ProductConsignmentResource{},
+					"retiradas": []productmodel.ConsignmentPickupResource{},
+				},
+			)
+			return
+		}
 
-		products, err := productmodel.PublicIndex(
-			c.Request.Context(), pool,
-			shopIDs, consignmentIDs,
+		// Validate UUID format
+		if _, err := uuid.FromString(token); err != nil {
+			util.HandleBadRequest(c, errors.New("token inválido: formato UUID esperado"))
+			return
+		}
+
+		// Find consignment by code
+		lookup, err := consignmentmodel.FindByCode(c.Request.Context(), pool, token)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				util.Handle404(c, fmt.Errorf("remessa com código %q não encontrada", token))
+				return
+			}
+			util.Handle500(c, err)
+			return
+		}
+
+		if lookup.Status == "ARQUIVADO" {
+			util.HandleGone(c, "remessa arquivada, não está mais disponível")
+			return
+		}
+
+		// Fetch products
+		products, err := productmodel.PublicIndexByConsignmentCode(
+			c.Request.Context(), pool, token,
 		)
-
 		if err != nil {
 			util.Handle500(c, err)
 			return
 		}
 
-		// Batch-fetch pickups for all listed products
-		productIDs := make([]int, len(products))
-		for i, p := range products {
-			productIDs[i] = p.ID
-		}
-
-		pickupMap, err := productmodel.BatchFetchPickups(
-			c.Request.Context(), pool, productIDs,
+		// Fetch pickups
+		pickups, err := productmodel.PickupsByConsignmentCode(
+			c.Request.Context(), pool, token,
 		)
 		if err != nil {
 			util.Handle500(c, err)
 			return
-		}
-
-		for i := range products {
-			products[i].Pickups = pickupMap[products[i].ID]
 		}
 
 		util.WrapMap(
 			c, "Produtos listados com sucesso!",
 			gin.H{
-				"produtos": util.ResourceCollection(products),
+				"produtos": util.ToResourceCollection(
+					products,
+					productmodel.ConsignmentProductRow.ToConsignmentResource,
+				),
+				"retiradas": util.ToResourceCollection(
+					pickups,
+					productmodel.PickupByCodeRow.ToConsignmentPickupResource,
+				),
 			},
 		)
 	}
-}
-
-func parseQueryInts(raw []string) []int {
-	if len(raw) == 0 {
-		return nil
-	}
-	ints := make([]int, 0, len(raw))
-	for _, s := range raw {
-		n, err := strconv.Atoi(s)
-		if err == nil {
-			ints = append(ints, n)
-		}
-	}
-	return ints
 }
 
 func DeleteHandler(

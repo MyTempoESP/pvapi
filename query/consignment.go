@@ -198,5 +198,30 @@ DELETE FROM packages
 WHERE product_id = $1 AND consignment_id = $2
 `
 
+	FindConsignmentByCodeQuery = `
+SELECT
+	id,
+	status
+FROM consignments
+WHERE code = $1
+`
+
+	PickupLocationsByConsignmentCodeQuery = `
+SELECT
+	pl.name AS pickup_name,
+	a.addrstreet,
+	a.addrnumber::text AS addrnumber,
+	a.addrneigh,
+	a.addrcity,
+	a.addrstate,
+	a.addrcep,
+	a.addrcomplement
+FROM consignment_pickup_locations cpl
+JOIN pickup_locations pl ON pl.id = cpl.pickup_location_id
+JOIN aliased_addresses_view a ON a.address_id = pl.address_id
+WHERE cpl.consignment_id = (
+	SELECT id FROM consignments WHERE code = $1
+)
+`
 
 )

@@ -140,6 +140,94 @@ func (p Product) ToResource() ProductResource {
 	}
 }
 
+type ConsignmentPickupAddressResource struct {
+	Street     string `json:"street"`
+	Number     string `json:"number"`
+	Neighborhood string `json:"neighborhood"`
+	City       string `json:"city"`
+	State      string `json:"state"`
+	CEP        string `json:"cep"`
+	Complement string `json:"complement"`
+}
+
+type ConsignmentPickupResource struct {
+	Name    string                         `json:"name"`
+	Address ConsignmentPickupAddressResource `json:"address"`
+}
+
+type ProductConsignmentResource struct {
+	ID       int             `json:"id"`
+	Name     string          `json:"name"`
+	Stock    int             `json:"stock"`
+	Price    decimal.Decimal `json:"price"`
+	Discount decimal.Decimal `json:"discount"`
+	Featured bool            `json:"featured"`
+	Code     string          `json:"code"`
+	UUID     string          `json:"uuid"`
+
+	Colors []string `json:"colors,omitempty"`
+	Sizes  []string `json:"sizes,omitempty"`
+
+	AllowCustomName           bool `json:"allowCustomName"`
+	AllowCustomModality       bool `json:"allowCustomModality"`
+	AllowCustomColorSelection bool `json:"allowCustomColorSelection"`
+
+	Category            string                  `json:"category"`
+	CategoryID          int                     `json:"category_id"`
+	ImageURL            string                  `json:"imageUrl"`
+	Description         string                  `json:"description"`
+	SpecificationImages []string                `json:"specificationsImages"`
+	DescriptionImages   []string                `json:"descriptionImages"`
+	DeliveryImages      []string                `json:"deliveryImages"`
+	Specifications      []SpecificationResource `json:"specifications"`
+}
+
+func (r ConsignmentProductRow) ToConsignmentResource() ProductConsignmentResource {
+	return ProductConsignmentResource{
+		ID:       r.PackageID,
+		Name:     r.ProductName,
+		Stock:    r.ConsignmentStock,
+		Price:    r.ConsignmentPrice,
+		Discount: r.ConsignmentDiscount,
+		Featured: r.PackageFeatured,
+		Code:     r.ProductCode,
+		UUID:     r.ProductUUID,
+
+		Colors: r.ProductAttr.Colors,
+		Sizes:  r.ProductAttr.Sizes,
+
+		AllowCustomColorSelection: r.ProductAttr.AllowCustomColor,
+		AllowCustomModality:       r.ProductAttr.AllowCustomModality,
+		AllowCustomName:           r.ProductAttr.AllowCustomName,
+
+		Category:            r.ProductCategory,
+		CategoryID:          r.ProductCategoryID,
+		ImageURL:            r.ProductAttr.Image,
+		Description:         r.ProductDescription,
+		SpecificationImages: r.ProductAttr.SpecImages,
+		DescriptionImages:   r.ProductAttr.DescImages,
+		DeliveryImages:      r.ProductAttr.PackImages,
+		Specifications: util.ResourceCollection(
+			r.ProductAttr.Specifications,
+		),
+	}
+}
+
+func (r PickupByCodeRow) ToConsignmentPickupResource() ConsignmentPickupResource {
+	return ConsignmentPickupResource{
+		Name: r.PickupName,
+		Address: ConsignmentPickupAddressResource{
+			Street:       r.AddrStreet,
+			Number:       r.AddrNumber,
+			Neighborhood: r.AddrNeigh,
+			City:         r.AddrCity,
+			State:        r.AddrState,
+			CEP:          r.AddrCEP,
+			Complement:   r.AddrComplement,
+		},
+	}
+}
+
 func pickupsToPointer(pickups []ProductPickupResource) *[]ProductPickupResource {
 	if pickups == nil {
 		return nil

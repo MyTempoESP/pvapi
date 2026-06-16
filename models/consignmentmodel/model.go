@@ -300,6 +300,23 @@ func (a RemovePickupAction) Exec(
 	return nil
 }
 
+type CodeLookup struct {
+	ID     int    `db:"id"`
+	Status string `db:"status"`
+}
+
+func FindByCode(
+	ctx context.Context,
+	base db.Queryable,
+	code string,
+) (CodeLookup, error) {
+	return util.WithCollectExactlyOneRow[CodeLookup](
+		ctx, base,
+		query.FindConsignmentByCodeQuery,
+		code,
+	)
+}
+
 func List(
 	ctx context.Context,
 	base db.Queryable,

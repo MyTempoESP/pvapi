@@ -108,9 +108,16 @@ func TestProduct(t *testing.T) {
 		}
 	})
 
-	t.Run("list_all_public_products", func(t *testing.T) {
+	t.Run("list_all_public_products_without_token", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/produtos", nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		produtos := asSlice(t, body["produtos"])
+		retiradas := asSlice(t, body["retiradas"])
+		if len(produtos) != 0 || len(retiradas) != 0 {
+			t.Fatal("expected empty produtos and retiradas when no token")
+		}
 	})
 
 	t.Run("view_public_product", func(t *testing.T) {
@@ -161,97 +168,94 @@ func TestProduct(t *testing.T) {
 		})
 	})
 
-	t.Run("filter_by_shop", func(t *testing.T) {
-		// Create a second shop with its own product
-		shop2Name := fmt.Sprintf("Loja Produto Filtro %d", runID)
-		shop2Email := fmt.Sprintf("api-prod-filter-%d@example.com", runID)
-		shop2 := h.createShop(t, &admin, shop2Name, shop2Email, "11988887777")
-		_ = shop2
-		shop2Session := h.login(t, shop2Email, "11988887777")
-
-		prd2 := h.createProduct(t, &shop2Session, fmt.Sprintf("Produto Filtro %d", runID), cat.ID)
-		h.approveProduct(t, &admin, prd2.ID)
-
-		// Filter by first shop — should only see that shop's products
-		url := fmt.Sprintf("/produtos?loja=%d", shop.ID)
-		rec := h.doRequest(t, http.MethodGet, url, nil, "", nil)
-		assertStatus(t, rec, http.StatusOK)
-
-		body := decodeJSON(t, rec)
-		products := asSlice(t, body["produtos"])
-		if len(products) == 0 {
-			t.Fatal("expected at least one product for shop filter")
-		}
-
-		// First shop's product should be present
-		for _, p := range products {
-			pm := asMap(t, p)
-			pid := asInt(t, pm["id"])
-			if pid == prd2.ID {
-				t.Fatalf("product %d from second shop should not appear when filtering by first shop", prd2.ID)
-			}
-		}
+	t.Run("list_by_token_invalid_uuid", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/produtos?token=not-a-uuid", nil, "", nil)
+		assertStatus(t, rec, http.StatusBadRequest)
 	})
 
-	t.Run("filter_by_shop_multiple", func(t *testing.T) {
-		url := fmt.Sprintf("/produtos?loja=%d&loja=%d", shop.ID, shop.ID)
-		rec := h.doRequest(t, http.MethodGet, url, nil, "", nil)
-		assertStatus(t, rec, http.StatusOK)
-
-		body := decodeJSON(t, rec)
-		products := asSlice(t, body["produtos"])
-		if len(products) == 0 {
-			t.Fatal("expected products when filtering by same shop multiple times")
-		}
+	t.Run("list_by_token_not_found", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, "/produtos?token=00000000-0000-0000-0000-000000000000", nil, "", nil)
+		assertStatus(t, rec, http.StatusNotFound)
 	})
 
-	t.Run("filter_by_consignment", func(t *testing.T) {
-		monitorName := fmt.Sprintf("Monitor PF %d", runID)
-		monitorEmail := fmt.Sprintf("api-prod-filter-mon-%d@example.com", runID)
+	t.Run("list_by_token_archived", func(t *testing.T) {
+		monitorName := fmt.Sprintf("Monitor Arquivado %d", runID)
+		monitorEmail := fmt.Sprintf("api-prod-arch-%d@example.com", runID)
+		monitor := h.createMonitor(t, &shopSession, monitorName, monitorEmail, "27998209673")
+		pickup := h.createPickup(t, &shopSession)
+
+		cons := h.createConsignment(t, &shopSession, pickup.ID, monitor.ID)
+		code := h.getConsignmentCode(t, &shopSession, cons.ID)
+		h.archiveConsignment(t, &shopSession, cons.ID)
+
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/produtos?token=%s", code),
+			nil, "", nil)
+		assertStatus(t, rec, 410)
+	})
+
+	t.Run("list_by_token_success", func(t *testing.T) {
+		monitorName := fmt.Sprintf("Monitor Token %d", runID)
+		monitorEmail := fmt.Sprintf("api-prod-token-%d@example.com", runID)
 		monitor := h.createMonitor(t, &shopSession, monitorName, monitorEmail, "27998209673")
 		pickup := h.createPickup(t, &shopSession)
 
 		cons := h.createConsignment(t, &shopSession, pickup.ID, monitor.ID)
 		h.addProductToConsignment(t, &shopSession, cons.ID, prd.ID, productName)
+		code := h.getConsignmentCode(t, &shopSession, cons.ID)
 
-		url := fmt.Sprintf("/produtos?remessa=%d", cons.ID)
-		rec := h.doRequest(t, http.MethodGet, url, nil, "", nil)
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/produtos?token=%s", code),
+			nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
 		body := decodeJSON(t, rec)
-		products := asSlice(t, body["produtos"])
-		if len(products) == 0 {
-			t.Fatal("expected at least one product for consignment filter")
+
+		// Check root-level retiradas
+		retiradas := asSlice(t, body["retiradas"])
+		if len(retiradas) == 0 {
+			t.Fatal("expected non-empty retiradas in root level")
+		}
+		ret := asMap(t, retiradas[0])
+		if asString(t, ret["name"]) == "" {
+			t.Fatal("expected retirada name")
+		}
+		addr := asMap(t, ret["address"])
+		for _, field := range []string{"street", "number", "neighborhood", "city", "state", "cep"} {
+			if _, ok := addr[field]; !ok {
+				t.Fatalf("expected address field %q in retirada", field)
+			}
 		}
 
-		found := false
-		for _, p := range products {
-			pm := asMap(t, p)
-			pid := asInt(t, pm["id"])
-			if pid != prd.ID {
-				continue
-			}
-			found = true
-			// The product should include pickups when filtered by consignment
-			pickups := asSlice(t, pm["pickups"])
-			if len(pickups) == 0 {
-				t.Fatal("expected pickups array on product when filtering by consignment")
-			}
-			pkg := asMap(t, pickups[0])
-			if asString(t, pkg["pickup_name"]) == "" {
-				t.Fatal("expected pickup_name in pickup entry")
-			}
-			if asString(t, pkg["pickup_date"]) == "" {
-				t.Fatal("expected pickup_date in pickup entry")
+		// Check produtos
+		produtos := asSlice(t, body["produtos"])
+		if len(produtos) == 0 {
+			t.Fatal("expected non-empty produtos when listing by token")
+		}
+		prd := asMap(t, produtos[0])
+		// id should be package_id
+		if asInt(t, prd["id"]) == 0 {
+			t.Fatal("expected non-zero id (package_id)")
+		}
+		// Should NOT have internal fields
+		for _, field := range []string{"platform_cut", "platform_cut_type", "moderation_status"} {
+			if _, ok := prd[field]; ok {
+				t.Fatalf("unexpected internal field %q in product response", field)
 			}
 		}
-		if !found {
-			t.Fatalf("product %d not found in consignment-filtered listing", prd.ID)
+		// Should NOT have pickups per product
+		if _, ok := prd["pickups"]; ok {
+			t.Fatal("expected no pickups field per product when listing by token")
+		}
+		// Should have consignment-specific fields
+		for _, field := range []string{"name", "stock", "price", "discount", "featured"} {
+			if _, ok := prd[field]; !ok {
+				t.Fatalf("expected field %q in product", field)
+			}
 		}
 	})
 
 	t.Run("pickups_on_product_detail", func(t *testing.T) {
-		// View a product that belongs to a consignment
 		rec := h.doRequest(t, http.MethodGet,
 			fmt.Sprintf("/produtos/%d", prd.ID),
 			nil, "", nil)
@@ -277,26 +281,6 @@ func TestProduct(t *testing.T) {
 		for _, field := range addrFields {
 			if _, ok := addr[field]; !ok {
 				t.Fatalf("expected address field %q in pickup entry", field)
-			}
-		}
-	})
-
-	t.Run("pickups_on_product_listing", func(t *testing.T) {
-		rec := h.doRequest(t, http.MethodGet, "/produtos", nil, "", nil)
-		assertStatus(t, rec, http.StatusOK)
-
-		body := decodeJSON(t, rec)
-		products := asSlice(t, body["produtos"])
-
-		for _, p := range products {
-			pm := asMap(t, p)
-			pid := asInt(t, pm["id"])
-			if pid != prd.ID {
-				continue
-			}
-			pickups := asSlice(t, pm["pickups"])
-			if len(pickups) == 0 {
-				t.Fatal("expected non-empty pickups on product in listing")
 			}
 		}
 	})

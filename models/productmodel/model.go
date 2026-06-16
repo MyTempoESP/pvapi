@@ -622,3 +622,65 @@ func TakeFromPackage(
 
 	return Take(ctx, tx, productID, qty, currentQty)
 }
+
+type ConsignmentProductRow struct {
+	PackageID     int             `db:"package_id"`
+	PackageFeatured bool          `db:"package_featured"`
+
+	ProductID          int             `db:"product_id"`
+	ProductName        string          `db:"product_name"`
+	ProductPrice       decimal.Decimal `db:"product_price"`
+	ProductStock       int             `db:"product_stock"`
+	ProductDiscount    decimal.Decimal `db:"product_discount"`
+	ProductFeatured    bool            `db:"product_featured"`
+	ProductModerationStatus string    `db:"product_moderation_status"`
+	ProductDescription string          `db:"product_description"`
+	ProductCategoryID  int             `db:"product_category_id"`
+	ProductCategory    string          `db:"product_category"`
+	ProductUUID        string          `db:"product_uuid"`
+	ProductCode        string          `db:"product_code"`
+	ProductAttr        ProductAttr     `db:"product_attr"`
+	ProductPlatformCut      decimal.Decimal `db:"product_platform_cut"`
+	ProductPlatformCutType  string          `db:"product_platform_cut_type"`
+	ProductShopID      int             `db:"product_shop_id"`
+	ProductShopName    string          `db:"product_shop_name"`
+
+	ConsignmentPrice    decimal.Decimal `db:"consignment_price"`
+	ConsignmentStock    int             `db:"consignment_stock"`
+	ConsignmentDiscount decimal.Decimal `db:"consignment_discount"`
+}
+
+type PickupByCodeRow struct {
+	PickupName  string `db:"pickup_name"`
+	AddrStreet  string `db:"addrstreet"`
+	AddrNumber  string `db:"addrnumber"`
+	AddrNeigh   string `db:"addrneigh"`
+	AddrCity    string `db:"addrcity"`
+	AddrState   string `db:"addrstate"`
+	AddrCEP     string `db:"addrcep"`
+	AddrComplement string `db:"addrcomplement"`
+}
+
+func PublicIndexByConsignmentCode(
+	ctx context.Context,
+	base db.Queryable,
+	code string,
+) ([]ConsignmentProductRow, error) {
+	return util.WithCollect[ConsignmentProductRow](
+		ctx, base,
+		query.ProductsByConsignmentCode,
+		code,
+	)
+}
+
+func PickupsByConsignmentCode(
+	ctx context.Context,
+	base db.Queryable,
+	code string,
+) ([]PickupByCodeRow, error) {
+	return util.WithCollect[PickupByCodeRow](
+		ctx, base,
+		query.PickupLocationsByConsignmentCodeQuery,
+		code,
+	)
+}

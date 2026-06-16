@@ -130,7 +130,11 @@ func TestConsignment(t *testing.T) {
 	})
 
 	t.Run("product_stock_reflects_package_quantities", func(t *testing.T) {
-		rec := h.doRequest(t, http.MethodGet, "/produtos", nil, "", nil)
+		code := h.getConsignmentCode(t, &shopSession, cons.ID)
+
+		rec := h.doRequest(t, http.MethodGet,
+			fmt.Sprintf("/produtos?token=%s", code),
+			nil, "", nil)
 		assertStatus(t, rec, http.StatusOK)
 
 		body := decodeJSON(t, rec)
@@ -142,7 +146,9 @@ func TestConsignment(t *testing.T) {
 		found := false
 		for _, p := range products {
 			pm := asMap(t, p)
-			if asInt(t, pm["id"]) != prd.ID {
+			// id is now package_id, not product_id
+			// We match by name instead
+			if asString(t, pm["name"]) != productName {
 				continue
 			}
 			found = true

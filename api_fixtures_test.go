@@ -249,6 +249,28 @@ func (h *apiHarness) createConsignmentWithPickups(t *testing.T, session *apiSess
 	}
 }
 
+func (h *apiHarness) getConsignmentCode(t *testing.T, session *apiSession, consignmentID int) string {
+	t.Helper()
+
+	rec := h.doRequest(t, http.MethodGet,
+		fmt.Sprintf("/remessas/%d", consignmentID),
+		session, "", nil)
+	assertStatus(t, rec, http.StatusOK)
+
+	body := decodeJSON(t, rec)
+	data := asMap(t, body["data"])
+	return asString(t, data["code"])
+}
+
+func (h *apiHarness) archiveConsignment(t *testing.T, session *apiSession, consignmentID int) {
+	t.Helper()
+
+	rec := h.doRequest(t, http.MethodDelete,
+		fmt.Sprintf("/remessas/%d", consignmentID),
+		session, "", nil)
+	assertStatus(t, rec, http.StatusOK)
+}
+
 func (h *apiHarness) addProductToConsignment(t *testing.T, session *apiSession, consignmentID, productID int, productName string) {
 	t.Helper()
 

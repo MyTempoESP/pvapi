@@ -319,4 +319,38 @@ WHERE pkg.product_id = ANY($1)
 	ProductAddToStock = `
 SELECT product_increment_inventory($1, $2)
 `
+
+	ProductsByConsignmentCode = `
+SELECT
+	pkg.id              AS package_id,
+	pkg.featured        AS package_featured,
+
+	p.product_id,
+	p.product_name,
+	p.product_price,
+	p.product_stock,
+	p.product_discount,
+	p.product_featured,
+	p.product_moderation_status,
+	p.product_description,
+	p.product_category_id,
+	p.product_category,
+	p.product_uuid,
+	p.product_code,
+	p.product_attr,
+	p.product_platform_cut,
+	p.product_platform_cut_type,
+	p.product_shop_id,
+	p.product_shop_name,
+
+	pkg.price          AS consignment_price,
+	pkg.quantity       AS consignment_stock,
+	pkg.discount       AS consignment_discount
+FROM packages pkg
+JOIN consignments c ON c.id = pkg.consignment_id
+JOIN product_catalog_view p ON p.product_id = pkg.product_id
+WHERE c.code = $1
+  AND p.product_moderation_status = 'approved'
+  AND c.status != 'ARQUIVADO'
+`
 )
