@@ -54,6 +54,15 @@ func asString(t *testing.T, value any) string {
 	return v
 }
 
+func asBool(t *testing.T, value any) bool {
+	t.Helper()
+	v, ok := value.(bool)
+	if !ok {
+		t.Fatalf("expected bool, got %T", value)
+	}
+	return v
+}
+
 func asInt(t *testing.T, value any) int {
 	t.Helper()
 

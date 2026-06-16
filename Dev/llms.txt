@@ -200,10 +200,10 @@ Request body (JSON):
       "quantity": 1
     }
   ],
-  "client_email": "cliente@email.com",
   "client_name": "Nome do Cliente",
   "telephone": "11988887777",
-  "cpf": "12345678901"
+  "cpf": "12345678901",
+  "callback": "https://example.com/webhook/order-received"
 }
 ```
 
@@ -212,10 +212,10 @@ Request body (JSON):
 | items | array | yes | At least 1 item |
 | items[].package_id | integer | yes | Package ID from product pickups (min 1) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
-| client_email | string | no | Email for client account identity. At least one identity field (email, CPF, or telephone) is required |
-| client_name | string | no | Name for the client account (derived from effective email if omitted) |
-| telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no email or CPF is given |
-| cpf | string | no | Client CPF. Must be exactly 11 digits after stripping formatting. Used as identity fallback when no email is given; CPF takes priority over telephone |
+| client_name | string | no | Name for the client account (derived from CPF or telephone if omitted) |
+| telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no CPF is given |
+| cpf | string | no | Client CPF. Must be exactly 11 digits after stripping formatting. CPF takes priority over telephone as identity |
+| callback | string | no | Webhook URL called when the order is received. The platform sends a POST request to this URL with JSON body: `{"product_id": <int>, "package_id": <int>, "unique_id": "<uuid>"}` |
 
 Response 200:
 ```json
@@ -242,6 +242,42 @@ Error responses:
 - **409** - Insufficient stock
 - **422** - Package not found
 - **429** - Rate limit exceeded (response includes `retry_after` in seconds)
+
+---
+
+### DELETE /checkouts/{unique_id} - Cancel checkout
+
+**Requires authentication:** `Authorization: Bearer pv_...` header.
+
+Partially cancels a previously confirmed checkout. Only PENDING packages are cancelled (stock returned to `packages`, reservation deleted). RECEIVED packages are left untouched. If all packages are cancelled, the checkout itself is deleted.
+
+The API token must belong to the same API client that confirmed the checkout.
+
+Path parameters:
+
+| Param | Type | Description |
+|-------|------|-------------|
+| unique_id | string (UUID) | Checkout UUID returned by POST /checkouts/confirm |
+
+No request body.
+
+Response 200:
+```json
+{
+  "success": true,
+  "cancelled_count": 3,
+  "remaining_count": 1
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| cancelled_count | integer | Number of PENDING packages cancelled |
+| remaining_count | integer | Number of RECEIVED packages remaining (0 if checkout was fully deleted) |
+
+Error responses:
+- **403** - API token does not belong to the same API client that created the checkout
+- **404** - No checkout found with the given unique_id
 
 ---
 
@@ -385,12 +421,11 @@ The platform auto-creates or associates a client account synchronously within th
 
 ### Identity resolution
 
-When the checkout includes identification fields (`client_email`, `telephone`, `cpf`), the platform resolves an **effective email** to either create or look up the client account:
+When the checkout includes identification fields (`telephone`, `cpf`), the platform resolves an **effective email** to either create or look up the client account:
 
-1. **Real email** (`client_email`): if provided, this is the effective email. All other fields (telephone, CPF) are stored as supplementary data.
-2. **CPF fallback**: if no email is given but a valid CPF (exactly 11 digits after stripping formatting) is provided, a synthetic email `<cpf>@br` is generated.
-3. **Telephone fallback**: if neither email nor valid CPF is given, but a telephone with at least one digit is provided, a synthetic email `<normalized_phone>@tele` is generated.
-4. **No identity**: at least one identity field is required — the request is rejected with 400 if none are provided.
+1. **CPF first**: if a valid CPF (exactly 11 digits after stripping formatting) is provided, a synthetic email `<cpf>@br` is generated.
+2. **Telephone fallback**: if no valid CPF is given, but a telephone with at least one digit is provided, a synthetic email `<normalized_phone>@tele` is generated.
+3. **No identity**: at least one identity field is required — the request is rejected with 400 if none are provided.
 
 ### Password selection
 
@@ -399,7 +434,6 @@ When the checkout includes identification fields (`client_email`, `telephone`, `
 
 ### Email delivery
 
-- A confirmation email is sent for real email identities (when SMTP is configured).
 - No email is sent for synthetic identities (`@br` or `@tele`).
 
 ### Existing clients
@@ -414,16 +448,13 @@ When the checkout includes identification fields (`client_email`, `telephone`, `
 
 ### Behavior summary
 
-| Fields provided | Effective email | Password | Email sent |
-|-----------------|-----------------|----------|------------|
-| email only | real email | random (16 chars) | yes |
-| telephone only | `11988887777@tele` | phone digits | no |
-| CPF only | `12345678901@br` | random (16 chars) | no |
-| CPF + telephone | `12345678901@br` | phone digits | no |
-| email + telephone | real email | phone digits | yes |
-| email + CPF + telephone | real email | phone digits | yes |
-| none | — | — | — |
+| Fields provided | Effective email | Password |
+|-----------------|-----------------|----------|
+| telephone only | `11988887777@tele` | phone digits |
+| CPF only | `12345678901@br` | random (16 chars) |
+| CPF + telephone | `12345678901@br` | phone digits |
+| none | — | — |
 
 Account creation is synchronous within the checkout transaction — if it fails, the checkout is rolled back.
 
-- `client_name` is optional — when omitted, a name is derived from the effective email prefix (e.g. `usuario-mariasilva` from `maria.silva@example.com`, `usuario-11988887777` from telephone).
+- `client_name` is optional — when omitted, a name is derived from the effective identity (e.g. `usuario-11988887777` from telephone, `usuario-12345678901` from CPF).

@@ -20,7 +20,7 @@ info:
        obtidos no passo anterior — sem carrinho intermediário.
 
     **Identificação do cliente:**
-     - Ao menos um de `client_email`, `cpf` ou `telephone` é obrigatório.
+     - Ao menos um de `cpf` ou `telephone` é obrigatório.
      - A senha da conta é os dígitos do telefone se informado, ou aleatória (16 chars).
      - CPF e telephone nunca aparecem na resposta do checkout nem em logs.
 
@@ -59,8 +59,8 @@ paths:
         Os `package_id` são obtidos no campo `pickups` dos produtos
         (`GET /produtos` ou `GET /produtos/:product`).
 
-        **Identificação do cliente:** ao menos um de `client_email`,
-        `cpf` ou `telephone` é obrigatório. A senha é os dígitos do
+        **Identificação do cliente:** ao menos um de `cpf` ou
+        `telephone` é obrigatório. A senha é os dígitos do
         telefone se informado, ou aleatória (16 chars).
       operationId: confirmarCheckout
       requestBody:
@@ -112,6 +112,49 @@ paths:
                   retry_after:
                     type: integer
                     description: Segundos restantes para o próximo checkout
+
+  /checkouts/{unique_id}:
+    delete:
+      security:
+        - Token de API: []
+      tags: [Checkout]
+      summary: Cancela checkout (parcialmente)
+      description: |
+        Cancela um checkout previamente confirmado. Apenas pacotes com
+        status PENDING são cancelados (estoque devolvido, reserva removida).
+        Pacotes RECEIVED não são afetados. Se todos os pacotes forem
+        cancelados, o checkout é removido.
+
+        O token de API deve pertencer ao mesmo API client que confirmou
+        o checkout.
+      operationId: cancelarCheckout
+      parameters:
+        - name: unique_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID do checkout (retornado em POST /checkouts/confirm)
+      responses:
+        "200":
+          description: Checkout cancelado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaCancelamentoCheckout"
+        "403":
+          description: Token de API não pertence ao mesmo API client do checkout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
+        "404":
+          description: Checkout não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespostaErro"
 
   # ═══════════════════════════════════════════════════════════════
   # Produtos
@@ -310,20 +353,39 @@ components:
         cpf:
           type: string
           description: CPF do cliente. Deve ter exatamente 11 dígitos após remoção de formatação. Identifica o cliente; tem prioridade sobre telephone.
-        client_email:
-          type: string
-          description: Email do cliente. Tem prioridade máxima como identidade.
         client_name:
           type: string
           description: Nome do cliente (opcional).
+        callback:
+          type: string
+          description: |
+            URL do webhook a ser chamado quando o pedido for recebido (opcional).
+            O callback será um POST com body JSON contendo:
+            - product_id (integer): ID do produto
+            - package_id (integer): ID do pacote
+            - unique_id (string): identificador único da venda
       example:
         items:
           - package_id: 42
             quantity: 1
-        client_email: "cliente@email.com"
         telephone: "11988887777"
         cpf: "12345678901"
         client_name: "Nome do Cliente"
+        callback: "https://example.com/webhook/order-received"
+
+    RespostaCancelamentoCheckout:
+      type: object
+      required: [success, cancelled_count, remaining_count]
+      properties:
+        success:
+          type: boolean
+          example: true
+        cancelled_count:
+          type: integer
+          description: Quantidade de pacotes PENDING cancelados
+        remaining_count:
+          type: integer
+          description: Quantidade de pacotes RECEIVED restantes
 
     RespostaCheckout:
       type: object

@@ -237,6 +237,7 @@ func setupRoutes(
 	checkouts.Use(apitokenmw.Require(pool))
 	{
 		checkouts.POST("/confirm", checkout.ConfirmHandler(pool))
+		checkouts.DELETE("/:unique_id", checkout.CancelHandler(pool))
 	}
 
 	t.Static("/assets", "./public/uploads")

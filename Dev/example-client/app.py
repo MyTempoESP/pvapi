@@ -320,6 +320,43 @@ if menu == "Checkout":
                 else:
                     show_response(r)
 
+    # ── Section 5: Cancel checkout ────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("5. Cancelar checkout")
+    st.caption("Cancela um checkout previamente confirmado. Apenas pacotes PENDING são cancelados; RECEIVED permanecem.")
+
+    cancel_unique_id = st.text_input(
+        "UUID do checkout (unique_id)",
+        value="",
+        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        key="cancel_unique_id",
+    )
+
+    if st.button("🗑️ Cancelar checkout", use_container_width=True, key="cancel_checkout_btn"):
+        api_token = st.session_state.get("checkout_api_token", "").strip()
+        if not api_token:
+            st.error("Informe o API Token (seção 0).")
+        elif not cancel_unique_id.strip():
+            st.error("Informe o UUID do checkout.")
+        else:
+            with st.spinner("Cancelando checkout..."):
+                r = req(
+                    "DELETE",
+                    f"/checkouts/{cancel_unique_id.strip()}",
+                    token=api_token,
+                )
+            if r.ok:
+                data = r.json()
+                st.success(
+                    f"**Checkout cancelado!**  \n"
+                    f"Pacotes cancelados: `{data.get('cancelled_count', '?')}`  \n"
+                    f"Pacotes restantes: `{data.get('remaining_count', '?')}`"
+                )
+                if data.get("remaining_count", 0) == 0:
+                    st.info("Todos os pacotes foram cancelados — o checkout foi removido.")
+            else:
+                show_response(r)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # BANCO & SAQUE
 # ─────────────────────────────────────────────────────────────────────────────

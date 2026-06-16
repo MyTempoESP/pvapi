@@ -12,6 +12,40 @@ import (
 	"linhazero.com/pvapi/util"
 )
 
+func CancelHandler(pool *pgxpool.Pool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		uniqueID := c.Param("unique_id")
+		apiClientID := apitoken.GetAPIClientID(c)
+
+		resp, err := checkoutmodel.Cancel(
+			c.Request.Context(), pool, uniqueID, apiClientID,
+		)
+		if err != nil {
+			switch {
+			case errors.Is(err, checkoutmodel.ErrCheckoutNotFound):
+				c.AbortWithStatusJSON(404, gin.H{
+					"success": false,
+					"message": "checkout not found",
+				})
+			case errors.Is(err, checkoutmodel.ErrCancelForbidden):
+				c.AbortWithStatusJSON(403, gin.H{
+					"success": false,
+					"message": "not authorized to cancel this checkout",
+				})
+			default:
+				util.Handle500(c, err)
+			}
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"success":         true,
+			"cancelled_count": resp.CancelledCount,
+			"remaining_count": resp.RemainingCount,
+		})
+	}
+}
+
 func ConfirmHandler(
 	pool *pgxpool.Pool,
 ) func(c *gin.Context) {

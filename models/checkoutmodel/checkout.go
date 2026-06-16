@@ -49,10 +49,12 @@ type ConfirmResponse struct {
 }
 
 var (
-	ErrPackageNotFound   = errors.New("package not found")
-	ErrInsufficientStock = errors.New("insufficient stock")
-	ErrRateLimited       = errors.New("rate limited")
-	ErrNoIdentity        = errors.New("no identity provided")
+	ErrPackageNotFound    = errors.New("package not found")
+	ErrInsufficientStock  = errors.New("insufficient stock")
+	ErrRateLimited        = errors.New("rate limited")
+	ErrNoIdentity         = errors.New("no identity provided")
+	ErrCheckoutNotFound   = errors.New("checkout not found")
+	ErrCancelForbidden    = errors.New("not authorized to cancel this checkout")
 )
 
 // RateLimitInfo holds the rate-limit error details for the API response.
@@ -257,6 +259,145 @@ func insertCheckout(
 		return 0, "", fmt.Errorf("failed to insert checkout: %w", err)
 	}
 	return checkoutID, uniqueID, nil
+}
+
+type CancelResponse struct {
+	CancelledCount int `json:"cancelled_count"`
+	RemainingCount int `json:"remaining_count"`
+}
+
+func Cancel(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	uniqueID string,
+	apiClientID int,
+) (CancelResponse, error) {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return CancelResponse{}, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var checkoutID, dbAPIClientID int
+	err = tx.QueryRow(ctx,
+		`SELECT id, api_client_id FROM checkouts WHERE unique_id = $1 FOR UPDATE`,
+		uniqueID,
+	).Scan(&checkoutID, &dbAPIClientID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return CancelResponse{}, ErrCheckoutNotFound
+	}
+	if err != nil {
+		return CancelResponse{}, fmt.Errorf("lock checkout: %w", err)
+	}
+	if dbAPIClientID != apiClientID {
+		return CancelResponse{}, ErrCancelForbidden
+	}
+
+	type pendingRow struct {
+		id    int
+		pkgID *int
+		qty   int
+	}
+	var pending []pendingRow
+
+	rows, err := tx.Query(ctx,
+		`SELECT id, package_id, quantity, status FROM package_reserved WHERE checkout_id = $1`,
+		checkoutID,
+	)
+	if err != nil {
+		return CancelResponse{}, fmt.Errorf("list reservations: %w", err)
+	}
+
+	for rows.Next() {
+		var id, qty int
+		var pkgID *int
+		var status string
+		if err := rows.Scan(&id, &pkgID, &qty, &status); err != nil {
+			rows.Close()
+			return CancelResponse{}, fmt.Errorf("scan reservation: %w", err)
+		}
+		if status == "pending" {
+			pending = append(pending, pendingRow{id, pkgID, qty})
+		}
+	}
+	rows.Close()
+
+	for _, pr := range pending {
+		if pr.pkgID != nil {
+			_, err = tx.Exec(ctx,
+				`UPDATE packages SET quantity = quantity + $2 WHERE id = $1`,
+				*pr.pkgID, pr.qty,
+			)
+			if err != nil {
+				return CancelResponse{}, fmt.Errorf("return stock: %w", err)
+			}
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM package_reserved WHERE id = $1`, pr.id)
+		if err != nil {
+			return CancelResponse{}, fmt.Errorf("delete reservation %d: %w", pr.id, err)
+		}
+	}
+
+	// Remove checkout_shop rows for shops with no remaining packages
+	_, err = tx.Exec(ctx,
+		`DELETE FROM checkout_shop
+		 WHERE checkout_id = $1
+		   AND shop_id NOT IN (
+		       SELECT DISTINCT shop_id FROM package_reserved WHERE checkout_id = $1
+		   )`,
+		checkoutID,
+	)
+	if err != nil {
+		return CancelResponse{}, fmt.Errorf("delete orphan checkout_shop: %w", err)
+	}
+
+	// Recompute remaining checkout_shop rows from remaining (RECEIVED) packages
+	_, err = tx.Exec(ctx,
+		`UPDATE checkout_shop cs
+		 SET (shop_value, shop_tax, shop_commission) =
+		     (sub.shop_value, sub.shop_tax, sub.shop_commission)
+		 FROM (
+		     SELECT shop_id,
+		            SUM(shop_value)   AS shop_value,
+		            SUM(tax)          AS shop_tax,
+		            SUM(commission)   AS shop_commission
+		     FROM package_reserved
+		     WHERE checkout_id = $1
+		     GROUP BY shop_id
+		 ) sub
+		 WHERE cs.checkout_id = $1 AND cs.shop_id = sub.shop_id`,
+		checkoutID,
+	)
+	if err != nil {
+		return CancelResponse{}, fmt.Errorf("recompute checkout_shop: %w", err)
+	}
+
+	// Count remaining packages (RECEIVED) to report
+	var remainingCount int
+	err = tx.QueryRow(ctx,
+		`SELECT COUNT(*) FROM package_reserved WHERE checkout_id = $1`,
+		checkoutID,
+	).Scan(&remainingCount)
+	if err != nil {
+		return CancelResponse{}, fmt.Errorf("count remaining: %w", err)
+	}
+
+	// If no remaining packages at all, delete the checkout
+	if remainingCount == 0 {
+		_, err = tx.Exec(ctx, `DELETE FROM checkouts WHERE id = $1`, checkoutID)
+		if err != nil {
+			return CancelResponse{}, fmt.Errorf("delete checkout: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return CancelResponse{}, fmt.Errorf("commit: %w", err)
+	}
+
+	return CancelResponse{
+		CancelledCount: len(pending),
+		RemainingCount: remainingCount,
+	}, nil
 }
 
 // nilIfZero converts a zero int to nil for nullable DB columns.
