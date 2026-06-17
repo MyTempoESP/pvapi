@@ -161,10 +161,10 @@ paths:
   # ═══════════════════════════════════════════════════════════════
   # Produtos
   # ═══════════════════════════════════════════════════════════════
-  /produtos:
+  /produtos?token=...:
     get:
       tags: [Produtos]
-      summary: Lista produtos públicos via token de remessa
+      summary: Lista produtos públicos via token de remessa.
       description: |
         Lista produtos aprovados de uma remessa. Cada produto inclui preço,
         estoque e demais atributos. Os pontos de retirada são retornados
@@ -182,14 +182,83 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Token de remessa (UUID)
+          description: Token de remessa (UUID). Sem token, os arrays retornam vazios.
       responses:
         "200":
-          description: Lista de produtos e pontos de retirada
+          description: Lista de produtos e pontos de retirada de GET /produtos?token=...
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RespostaListaProdutosToken"
+              example:
+                success: true
+                message: "Produtos listados com sucesso!"
+                produtos:
+                  - id: 142
+                    name: "Camiseta Básica"
+                    stock: 50
+                    price: 29.90
+                    discount: 0
+                    featured: false
+                    code: "CAM-001"
+                    uuid: "550e8400-e29b-41d4-a716-446655440000"
+                    colors: ["Preto", "Branco"]
+                    sizes: ["P", "M", "G"]
+                    allowCustomName: false
+                    allowCustomModality: false
+                    allowCustomColorSelection: true
+                    category: "Vestuário"
+                    category_id: 3
+                    imageUrl: "https://pvauto.linhazero.com/storage/camiseta.jpg"
+                    description: "Camiseta 100%% algodão"
+                    specificationsImages: []
+                    descriptionImages: []
+                    deliveryImages: []
+                    specifications:
+                      - name: "Material"
+                        value: "Algodão"
+                  - id: 143
+                    name: "Caneca Térmica"
+                    stock: 30
+                    price: 49.90
+                    discount: 5.00
+                    featured: true
+                    code: "CAN-002"
+                    uuid: "660e8400-e29b-41d4-a716-446655440001"
+                    colors: ["Azul"]
+                    sizes: []
+                    allowCustomName: true
+                    allowCustomModality: false
+                    allowCustomColorSelection: false
+                    category: "Casa"
+                    category_id: 5
+                    imageUrl: "https://pvauto.linhazero.com/storage/caneca.jpg"
+                    description: "Caneca térmica 350ml"
+                    specificationsImages: []
+                    descriptionImages: []
+                    deliveryImages: []
+                    specifications:
+                      - name: "Capacidade"
+                        value: "350ml"
+                retiradas:
+                  - name: "Loja Centro"
+                    address:
+                      street: "Rua XV de Novembro"
+                      number: "123"
+                      neighborhood: "Centro"
+                      city: "São Paulo"
+                      state: "SP"
+                      cep: "01010-000"
+                      complement: "Sala 1"
+                  - name: "Shopping Norte"
+                    address:
+                      street: "Av. Paulista"
+                      number: "1000"
+                      neighborhood: "Bela Vista"
+                      city: "São Paulo"
+                      state: "SP"
+                      cep: "01310-100"
+                      complement: "Piso Térreo"
         "400":
           description: Token inválido (formato UUID esperado)
           content:
@@ -295,6 +364,7 @@ components:
   schemas:
     # ── Genéricos ───────────────────────────────────────────────
     RespostaOk:
+      description: Envelope genérico de resposta bem-sucedida.
       type: object
       required: [success, message]
       properties:
@@ -306,6 +376,7 @@ components:
           example: "operação concluída!"
 
     RespostaErro:
+      description: Envelope genérico de resposta de erro. O campo `message` traz o motivo.
       type: object
       required: [success, message]
       properties:
@@ -317,6 +388,7 @@ components:
 
     # ── Endereço ────────────────────────────────────────────────
     Endereco:
+      description: Endereço físico de ponto de retirada.
       type: object
       properties:
         street:
@@ -336,6 +408,7 @@ components:
 
     # ── Checkout ────────────────────────────────────────────────
     ItemCheckout:
+      description: Item individual da compra — um pacote e a quantidade desejada.
       type: object
       required: [package_id, quantity]
       properties:
@@ -349,6 +422,7 @@ components:
           description: Quantidade desejada deste pacote
 
     ConfirmarCheckoutRequest:
+      description: "Payload de confirmação de checkout: itens da compra, identificação do cliente (CPF ou telefone) e callback opcional."
       type: object
       required: [items]
       properties:
@@ -384,6 +458,7 @@ components:
         callback: "https://example.com/webhook/order-received"
 
     RespostaCancelamentoCheckout:
+      description: Resultado do cancelamento de um checkout. Pacotes já recebidos não são afetados.
       type: object
       required: [success, cancelled_count, remaining_count]
       properties:
@@ -398,6 +473,7 @@ components:
           description: Quantidade de pacotes recebidos restantes
 
     RespostaCheckout:
+      description: Checkout confirmado — contém o identificador único da transação e QR codes (data URI PNG) para retirada de cada pacote reservado.
       type: object
       required: [success, message, unique_id, status, qr_codes]
       properties:
@@ -430,6 +506,7 @@ components:
 
     # ── Remessa / Consignment ───────────────────────────────────
     RecursoRemessa:
+      description: Remessa/consignment — lote de produtos destinado a um ponto de retirada (visão administrativa).
       type: object
       properties:
         id:
@@ -462,6 +539,7 @@ components:
           description: Data de criação
 
     RecursoRemessaPublica:
+      description: Remessa pública — mesmo que RecursoRemessa, mas inclui a loja proprietária. Visível sem autenticação.
       type: object
       properties:
         id:
@@ -505,6 +583,7 @@ components:
           description: Data de criação
 
     RespostaListaRemessas:
+      description: Listagem de remessas (visão administrativa).
       type: object
       required: [success, message, data]
       properties:
@@ -519,6 +598,7 @@ components:
             $ref: "#/components/schemas/RecursoRemessa"
 
     RespostaListaRemessasPublicas:
+      description: Listagem pública de remessas ativas com dados da loja proprietária.
       type: object
       required: [success, message, data]
       properties:
@@ -534,6 +614,7 @@ components:
 
     # ── Produto ─────────────────────────────────────────────────
     EspecificacaoProduto:
+      description: "Atributo técnico do produto no formato chave-valor (ex.: material, peso, dimensões)."
       type: object
       properties:
         name:
@@ -542,6 +623,7 @@ components:
           type: string
 
     ProductPickupResource:
+      description: Opção de retirada de um produto — pacote com preço, estoque e endereço do ponto de retirada.
       type: object
       properties:
         package_id:
@@ -566,6 +648,7 @@ components:
           $ref: "#/components/schemas/Endereco"
 
     RecursoProduto:
+      description: Produto completo com atributos, imagens, especificações e opções de retirada (pickups). Retornado em GET /produtos/{product}.
       type: object
       properties:
         id:
@@ -644,6 +727,7 @@ components:
 
     # ── Produto via token de remessa ────────────────────────────
     ProductConsignmentResource:
+      description: Produto no contexto de uma remessa via token. O `id` é o `package_id` usado no checkout; `stock` reflete o estoque daquela remessa.
       type: object
       properties:
         id:
@@ -710,6 +794,7 @@ components:
             $ref: "#/components/schemas/EspecificacaoProduto"
 
     ConsignmentPickupAddressResource:
+      description: Endereço do ponto de retirada no contexto de uma remessa.
       type: object
       properties:
         street:
@@ -728,6 +813,7 @@ components:
           type: string
 
     ConsignmentPickupResource:
+      description: Ponto de retirada no contexto de uma remessa (nome + endereço).
       type: object
       properties:
         name:
@@ -737,6 +823,7 @@ components:
           $ref: "#/components/schemas/ConsignmentPickupAddressResource"
 
     RespostaListaProdutosToken:
+      description: Resposta de GET /produtos?token=... — produtos da remessa (cada um com seu package_id) e pontos de retirada.
       type: object
       required: [success, message, produtos, retiradas]
       properties:
@@ -755,6 +842,7 @@ components:
             $ref: "#/components/schemas/ConsignmentPickupResource"
 
     RespostaListaProdutos:
+      description: Produtos listados. Sem token, os arrays retornam vazios.
       type: object
       required: [success, message, produtos]
       properties:
@@ -769,6 +857,7 @@ components:
             $ref: "#/components/schemas/RecursoProduto"
 
     RespostaProduto:
+      description: Detalhes completos de um produto específico (GET /produtos/{product}).
       type: object
       required: [success, message, data]
       properties:
@@ -782,6 +871,7 @@ components:
 
     # ── Estabelecimento / Loja ──────────────────────────────────
     RecursoEstabelecimento:
+      description: Loja/estabelecimento cadastrado na plataforma com dados de contato e chave PIX.
       type: object
       properties:
         id:
@@ -807,6 +897,7 @@ components:
           description: Status da loja
 
     RespostaListaLojas:
+      description: Listagem de lojas ativas na plataforma.
       type: object
       required: [success, message, data]
       properties:

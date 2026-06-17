@@ -1,2 +1,5 @@
 #!/bin/sh
 npx @redocly/cli build-docs requests_implemented/api-integrations.yaml -o spec.html
+mv spec.html index.html
+zip -r docs.zip index.html llms.txt
+
