@@ -27,7 +27,7 @@ func CreateHandler(
 		pickup, err := request.Prepare(user.ActiveRoleID)
 
 		if err != nil {
-			util.Handle500(c, err)
+			util.HandleBadRequest(c, err)
 			return
 		}
 

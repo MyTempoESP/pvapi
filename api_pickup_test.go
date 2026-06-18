@@ -177,4 +177,143 @@ func TestPickup(t *testing.T) {
 		rec := h.doRequest(t, http.MethodDelete, "/pontos/abc", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusForbidden)
 	})
+
+	t.Run("create_pickup_empty_address", func(t *testing.T) {
+		pickupName := fmt.Sprintf("ponto-sem-endereco-%d", time.Now().UnixNano())
+		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
+			"name":     pickupName,
+			"datetime": "2024-03-25T14:05:43",
+			"address": map[string]any{
+				"street":       "",
+				"number":       "",
+				"neighborhood": "",
+				"city":         "",
+				"state":        "",
+				"cep":          "",
+				"complement":   "",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify address is omitted from response
+		body := decodeJSON(t, rec)
+		if _, exists := body["address"]; exists {
+			t.Fatal("expected address to be omitted from response when empty")
+		}
+
+		// Verify via list — address should be omitted there too
+		rec = h.doRequest(t, http.MethodGet, "/pontos", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		pickups := asSlice(t, body["data"])
+		obj := findObjectByStringField(t, pickups, "name", pickupName)
+		if obj == nil {
+			t.Fatal("expected pickup with empty address in list")
+		}
+		if _, exists := obj["address"]; exists {
+			t.Fatal("expected address to be omitted from list response when empty")
+		}
+	})
+
+	t.Run("create_pickup_partial_address", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
+			"name":     "ponto-parcial",
+			"datetime": "2024-03-25T14:05:43",
+			"address": map[string]any{
+				"street":       "Rua So a Rua",
+				"number":       "",
+				"neighborhood": "",
+				"city":         "",
+				"state":        "",
+				"cep":          "",
+				"complement":   "",
+			},
+		})
+		assertStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("update_pickup_remove_address", func(t *testing.T) {
+		p := h.createPickup(t, &shopSession)
+
+		// update address to all-empty
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", p.ID), &shopSession, map[string]any{
+			"name": "Ponto Sem Endereco",
+			"address": map[string]any{
+				"street":       "",
+				"number":       "",
+				"neighborhood": "",
+				"city":         "",
+				"state":        "",
+				"cep":          "",
+				"complement":   "",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify via list — address omitted
+		rec = h.doRequest(t, http.MethodGet, "/pontos", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		pickups := asSlice(t, body["data"])
+		obj := findObjectByStringField(t, pickups, "name", "Ponto Sem Endereco")
+		if obj == nil {
+			t.Fatal("expected updated pickup in list")
+		}
+		if _, exists := obj["address"]; exists {
+			t.Fatal("expected address to be omitted after update to empty")
+		}
+	})
+
+	t.Run("update_pickup_set_address", func(t *testing.T) {
+		// First create with empty address
+		pickupName := fmt.Sprintf("ponto-add-set-%d", time.Now().UnixNano())
+		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
+			"name":     pickupName,
+			"datetime": "2024-03-25T14:05:43",
+			"address": map[string]any{
+				"street":       "",
+				"number":       "",
+				"neighborhood": "",
+				"city":         "",
+				"state":        "",
+				"cep":          "",
+				"complement":   "",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+		body := decodeJSON(t, rec)
+		id := asInt(t, body["id"])
+
+		// Update with a full address
+		rec = h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", id), &shopSession, map[string]any{
+			"address": map[string]any{
+				"street":       "Rua Incluida",
+				"number":       "100",
+				"neighborhood": "Bairro Novo",
+				"city":         "São Paulo",
+				"state":        "SP",
+				"cep":          "02002020",
+				"complement":   "Apto 1",
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify via list — address present
+		rec = h.doRequest(t, http.MethodGet, "/pontos", &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+		body = decodeJSON(t, rec)
+		pickups := asSlice(t, body["data"])
+		obj := findObjectByStringField(t, pickups, "name", pickupName)
+		if obj == nil {
+			t.Fatal("expected pickup in list")
+		}
+		addr, ok := obj["address"]
+		if !ok {
+			t.Fatal("expected address to be present after update")
+		}
+		addrMap := asMap(t, addr)
+		if asString(t, addrMap["street"]) != "Rua Incluida" {
+			t.Fatalf("expected street 'Rua Incluida', got %q", asString(t, addrMap["street"]))
+		}
+	})
 }

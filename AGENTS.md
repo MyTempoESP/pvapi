@@ -28,15 +28,21 @@ When adding a new domain entity, create or modify every file below:
 7. `routes.go` — register route group
 8. `controllers/policy/policy.go` — register gate with bouncer
 
-## Verification and Quality
+## Verification and Quality — HARD STOPS
 
-This codebase uses the **test-code** skill for all verification. Never run `go test` or connect to the database directly for testing — always invoke the skill.
+| Trigger | Correct action |
+|---------|---------------|
+| You're about to run `go test`, `just t`, or any test variant | `.pi/skills/test-code/scripts/run.sh` ONLY |
+| You're about to pipe test output through `tail`, `head`, or `wc -l` | Don't. Use `-r` to narrow tests instead. If full suite needed, capture all output. |
+| A bash command returns exit code 1 or empty output | Re-run without pipes. Do NOT change regex and retry. |
+| A test run aborted | Check for stale `test_databases/` directories before retrying. |
+| A test fails for something unrelated to your changes | Stop and alert the user. Do not try to fix it. |
+
+This codebase uses the **test-code** skill for all verification.
 
 - After each code change, run the skill with the relevant `-r` pattern to target affected tests.
 - When all changes are complete (or explicitly requested), run the skill with no flags for the full suite.
-- Use terminal logs as diagnostic context and iterate until all checks pass cleanly.
 - Do not declare task completion if compilation, linting, or tests fail.
-- If a specific test fails for something unrelated to your changes, stop execution and alert the user of the failing test.
 
 ## Database
 

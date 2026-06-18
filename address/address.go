@@ -1,6 +1,12 @@
 package address
 
-import "github.com/jackc/pgx/v5"
+import (
+	"errors"
+
+	"github.com/jackc/pgx/v5"
+)
+
+var ErrPartialAddress = errors.New("endereço parcial: preencha todos os campos obrigatórios ou nenhum")
 
 type Address struct {
 	Street     string `json:"street" db:"addrstreet"`
@@ -44,6 +50,16 @@ type AddressUpdateRequest struct {
 	Complement   *string `json:"complement"`
 }
 
+type AddressRequestOptional struct {
+	Street       string `json:"street"`
+	Number       string `json:"number"`
+	Neighborhood string `json:"neighborhood"`
+	City         string `json:"city"`
+	State        string `json:"state"`
+	CEP          string `json:"CEP"`
+	Complement   string `json:"complement"`
+}
+
 func (a AddressRequest) Prepare() Address {
 	return Address{
 		Street:     a.Street,
@@ -54,4 +70,41 @@ func (a AddressRequest) Prepare() Address {
 		CEP:        a.CEP,
 		Complement: a.Complement,
 	}
+}
+
+func (a AddressRequestOptional) Prepare() (Address, error) {
+	empty := a.Street == "" && a.Number == "" && a.Neighborhood == "" &&
+		a.City == "" && a.State == "" && a.CEP == "" && a.Complement == ""
+
+	if empty {
+		return Address{Number: "0"}, nil
+	}
+
+	// all-or-nothing: if not empty, all required fields must be filled
+	if a.Street == "" || a.Number == "" || a.Neighborhood == "" ||
+		a.City == "" || a.State == "" || a.CEP == "" {
+		return Address{}, ErrPartialAddress
+	}
+
+	return Address{
+		Street:     a.Street,
+		Number:     a.Number,
+		Neigh:      a.Neighborhood,
+		City:       a.City,
+		State:      a.State,
+		CEP:        a.CEP,
+		Complement: a.Complement,
+	}, nil
+}
+
+func (a Address) IsEmpty() bool {
+	return a.Number == "0" && a.Street == "" && a.Neigh == "" &&
+		a.City == "" && a.State == "" && a.CEP == "" && a.Complement == ""
+}
+
+func (a Address) ToResource() *Address {
+	if a.IsEmpty() {
+		return nil
+	}
+	return &a
 }

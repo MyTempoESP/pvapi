@@ -92,7 +92,10 @@ func Update(
 	}
 
 	if req.Address != nil {
-		a := req.Address.Prepare()
+		a, err := req.Address.Prepare()
+		if err != nil {
+			return err
+		}
 
 		_, err = base.Exec(
 			ctx,
