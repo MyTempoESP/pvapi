@@ -63,7 +63,7 @@ db-erd: (internal::ensure 't::db-erd-gen' 't::clean')
 
 [private]
 db-schema-gen: test-db
-	podman exec {{db_container}} pg_dump -U {{db_user}} --schema-only {{db_name}} > docs/schema.sql
+	podman exec {{db_container}} pg_dump -U {{db_user}} --schema-only {{db_name}} > ../docs/schema.sql
 
 [doc('Dump unified database schema to docs/schema.sql')]
 [group('util')]

@@ -89,6 +89,11 @@ func ConfirmHandler(
 			}
 
 			switch {
+			case errors.Is(err, checkoutmodel.ErrInvalidRetirada):
+				c.AbortWithStatusJSON(422, gin.H{
+					"success": false,
+					"message": err.Error(),
+				})
 			case errors.Is(err, checkoutmodel.ErrPackageNotFound):
 				c.AbortWithStatusJSON(422, gin.H{
 					"success": false,

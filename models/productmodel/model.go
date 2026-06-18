@@ -227,6 +227,7 @@ func BatchFetchPickups(
 			Quantity:   r.PackageStock,
 			PickupName: r.PickupName,
 			PickupDate: r.PickupDate,
+			PickupID:   r.PickupID,
 			Address: ProductPickupAddressResource{
 				Street:     r.AddrStreet,
 				Number:     r.AddrNumber,
@@ -651,6 +652,7 @@ type ConsignmentProductRow struct {
 }
 
 type PickupByCodeRow struct {
+	PickupID    int    `db:"pickup_id"`
 	PickupName  string `db:"pickup_name"`
 	AddrStreet  string `db:"addrstreet"`
 	AddrNumber  string `db:"addrnumber"`

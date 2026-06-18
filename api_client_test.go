@@ -38,6 +38,7 @@ func setupClientFixtures(t *testing.T, h *apiHarness, tag string, runID int64) c
 	return chkCliFixtures{
 		productID:   prd.ID,
 		packageID:   packageID,
+		pickupID:    pickup.ID,
 		shopSession: shopSession,
 		admin:       admin,
 	}
@@ -73,7 +74,7 @@ func TestClient(t *testing.T) {
 		sessionID1 := fmt.Sprintf("clientf-agg-1-%d", runID)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID},
 			},
 			"client_email": clientEmail,
 			"client_name":  "Maria Agregada",
@@ -100,7 +101,7 @@ func TestClient(t *testing.T) {
 		sessionID2 := fmt.Sprintf("clientf-agg-2-%d", runID)
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"id": pkgID2, "quantity": 1},
+				{"id": pkgID2, "quantity": 1, "retirada": pickup2.ID},
 			},
 			"client_email": clientEmail,
 		})

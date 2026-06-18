@@ -100,7 +100,7 @@ func TestClientSales(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID},
 			},
 			"client_email": clientEmail,
 			"client_name":  "Maria Cliente",
@@ -155,7 +155,7 @@ func TestClientSales(t *testing.T) {
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID1, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID},
 			},
 			"client_email": clientEmail,
 			"client_name":  "Joana Multi",
@@ -183,7 +183,7 @@ func TestClientSales(t *testing.T) {
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID2, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"items": []map[string]any{
-				{"id": pkgID2, "quantity": 1},
+				{"id": pkgID2, "quantity": 1, "retirada": pickup2.ID},
 			},
 			"client_email": clientEmail,
 		})
@@ -223,7 +223,7 @@ func TestClientSales(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm?session_id="+sessionID, h.defaultAPISession, map[string]any{
 			"value_paid":         "3.00",
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID},
 			},
 			"client_email": clientEmail,
 			"client_name":  "Cliente Mix",

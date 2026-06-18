@@ -27,6 +27,7 @@ type ProductPickupResource struct {
 	Quantity   int                        `json:"quantity"`
 	PickupName string                     `json:"pickup_name"`
 	PickupDate string                     `json:"pickup_date"`
+	PickupID   int                        `json:"pickup_id"`
 	Address    ProductPickupAddressResource `json:"address"`
 }
 
@@ -151,6 +152,7 @@ type ConsignmentPickupAddressResource struct {
 }
 
 type ConsignmentPickupResource struct {
+	ID      int                            `json:"id"`
 	Name    string                         `json:"name"`
 	Address ConsignmentPickupAddressResource `json:"address"`
 }
@@ -215,6 +217,7 @@ func (r ConsignmentProductRow) ToConsignmentResource() ProductConsignmentResourc
 
 func (r PickupByCodeRow) ToConsignmentPickupResource() ConsignmentPickupResource {
 	return ConsignmentPickupResource{
+		ID:   r.PickupID,
 		Name: r.PickupName,
 		Address: ConsignmentPickupAddressResource{
 			Street:       r.AddrStreet,

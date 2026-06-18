@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 
 	"linhazero.com/pvapi/models/clientmodel"
 	"linhazero.com/pvapi/query"
@@ -24,6 +25,7 @@ var RateLimitWindowSeconds = 60
 type ConfirmItem struct {
 	PackageID int `json:"id" binding:"required"`
 	Quantity  int `json:"quantity" binding:"required,min=1"`
+	Retirada  int `json:"retirada" binding:"required"`
 }
 
 type ConfirmRequest struct {
@@ -39,9 +41,29 @@ type PackageStock struct {
 	Available int `db:"available"`
 }
 
+type PickupLocationSummary struct {
+	ID      int    `json:"id"`
+	Name    string `json:"nome"`
+	Address AddressResource `json:"address"`
+}
+
+type AddressResource struct {
+	Street     string `json:"street"`
+	Number     string `json:"number"`
+	Neigh      string `json:"neighborhood"`
+	City       string `json:"city"`
+	State      string `json:"state"`
+	CEP        string `json:"cep"`
+	Complement string `json:"complement"`
+}
+
 type QRCodeEntry struct {
-	PackageID int    `json:"package_id"`
-	QrCode    string `json:"qr_code"`
+	ProductID int                  `json:"product_id"`
+	QrCode    string               `json:"qr_code"`
+	Quantity  int                  `json:"quantity"`
+	Price     decimal.Decimal      `json:"price"`
+	Discount  decimal.Decimal      `json:"discount"`
+	Retirada  PickupLocationSummary `json:"retirada"`
 }
 
 type ConfirmResponse struct {
@@ -52,13 +74,14 @@ type ConfirmResponse struct {
 }
 
 var (
-	ErrPackageNotFound   = errors.New("package not found")
-	ErrInsufficientStock = errors.New("insufficient stock")
-	ErrRateLimited       = errors.New("rate limited")
-	ErrNoIdentity        = errors.New("no identity provided")
-	ErrCheckoutNotFound  = errors.New("checkout not found")
-	ErrCancelForbidden   = errors.New("not authorized to cancel this checkout")
-	ErrInvalidCallback   = errors.New("callback must be a valid http or https URL")
+	ErrPackageNotFound     = errors.New("package not found")
+	ErrInsufficientStock   = errors.New("insufficient stock")
+	ErrRateLimited         = errors.New("rate limited")
+	ErrNoIdentity          = errors.New("no identity provided")
+	ErrCheckoutNotFound    = errors.New("checkout not found")
+	ErrCancelForbidden     = errors.New("not authorized to cancel this checkout")
+	ErrInvalidCallback     = errors.New("callback must be a valid http or https URL")
+	ErrInvalidRetirada     = errors.New("retirada inválida")
 )
 
 // RateLimitInfo holds the rate-limit error details for the API response.
@@ -162,6 +185,10 @@ func Confirm(
 		return resp, err
 	}
 
+	if err := validateRetirada(ctx, tx, req.Items); err != nil {
+		return resp, err
+	}
+
 	qrEntries, err := writeCheckoutData(ctx, tx, checkoutID, uniqueID, req.Items)
 	if err != nil {
 		return resp, err
@@ -244,6 +271,24 @@ func validateStock(
 		}
 	}
 
+	return nil
+}
+
+func validateRetirada(
+	ctx context.Context,
+	tx pgx.Tx,
+	items []ConfirmItem,
+) error {
+	for _, item := range items {
+		var valid bool
+		err := tx.QueryRow(ctx, query.ValidatePickupLocationQuery, item.PackageID, item.Retirada).Scan(&valid)
+		if err != nil {
+			return fmt.Errorf("erro ao validar retirada para pacote %d: %w", item.PackageID, err)
+		}
+		if !valid {
+			return fmt.Errorf("%w: pacote %d", ErrInvalidRetirada, item.PackageID)
+		}
+	}
 	return nil
 }
 
@@ -421,8 +466,26 @@ func nilIfZero(v int) any {
 	return v
 }
 
+// enrichedEntryRow maps the result columns from EnrichedQRCodeEntriesQuery.
+type enrichedEntryRow struct {
+	UniqueID        string          `db:"unique_id"`
+	ProductID       int             `db:"product_id"`
+	Quantity        int             `db:"quantity"`
+	Price           decimal.Decimal `db:"price"`
+	Discount        decimal.Decimal `db:"discount"`
+	PickupID        int             `db:"pickup_location_id"`
+	PickupName      string          `db:"pickup_name"`
+	AddrStreet      string          `db:"addrstreet"`
+	AddrNumber      string          `db:"addrnumber"`
+	AddrCity        string          `db:"addrcity"`
+	AddrState       string          `db:"addrstate"`
+	AddrCEP         string          `db:"addrcep"`
+	AddrNeigh       string          `db:"addrneigh"`
+	AddrComplement  string          `db:"addrcomplement"`
+}
+
 // writeCheckoutData writes package reservations, generates QR codes per
-// package, and records financial breakdown.
+// package, records financial breakdown, and returns enriched entries.
 func writeCheckoutData(
 	ctx context.Context,
 	tx pgx.Tx,
@@ -430,8 +493,6 @@ func writeCheckoutData(
 	uniqueID string,
 	items []ConfirmItem,
 ) ([]QRCodeEntry, error) {
-	var entries []QRCodeEntry
-
 	for _, item := range items {
 		var pkgUniqueID string
 		var pkgID int
@@ -442,20 +503,11 @@ func writeCheckoutData(
 			item.PackageID,
 			checkoutID,
 			item.Quantity,
+			item.Retirada,
 		).Scan(&pkgUniqueID, &pkgID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to reserve package %d: %w", item.PackageID, err)
 		}
-
-		qr, err := qrcode.Encode(pkgUniqueID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate qr code for package %d: %w", pkgID, err)
-		}
-
-		entries = append(entries, QRCodeEntry{
-			PackageID: pkgID,
-			QrCode:    qr,
-		})
 	}
 
 	// Insert per-shop financial breakdown
@@ -467,6 +519,44 @@ func writeCheckoutData(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert checkout_shop: %w", err)
+	}
+
+	// Fetch enriched entries
+	rows, err := util.WithCollect[enrichedEntryRow](
+		ctx, tx,
+		query.EnrichedQRCodeEntriesQuery,
+		checkoutID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch enriched entries: %w", err)
+	}
+
+	entries := make([]QRCodeEntry, 0, len(rows))
+	for _, r := range rows {
+		qr, err := qrcode.Encode(r.UniqueID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate qr code: %w", err)
+		}
+		entries = append(entries, QRCodeEntry{
+			ProductID: r.ProductID,
+			QrCode:    qr,
+			Quantity:  r.Quantity,
+			Price:     r.Price,
+			Discount:  r.Discount,
+			Retirada: PickupLocationSummary{
+				ID:   r.PickupID,
+				Name: r.PickupName,
+				Address: AddressResource{
+					Street:     r.AddrStreet,
+					Number:     r.AddrNumber,
+					Neigh:      r.AddrNeigh,
+					City:       r.AddrCity,
+					State:      r.AddrState,
+					CEP:        r.AddrCEP,
+					Complement: r.AddrComplement,
+				},
+			},
+		})
 	}
 
 	return entries, nil

@@ -29,7 +29,7 @@ WITH decrement AS (
 	RETURNING id, product_id, consignment_id, price, discount
 )
 INSERT INTO package_reserved
-	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status)
+	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status, pickup_location_id)
 SELECT
 	d.id,
 	$2,
@@ -45,7 +45,8 @@ SELECT
 	c.shop_id,
 	d.consignment_id,
 	d.price * (1.0 - d.discount / 100.0) * $3::numeric,
-	'pending'
+	'pending',
+	$4
 FROM decrement d
 JOIN products p ON p.id = d.product_id
 JOIN consignments c ON c.id = d.consignment_id
@@ -150,5 +151,38 @@ FROM checkouts chk
 JOIN checkout_shop cs ON cs.checkout_id = chk.id
 WHERE cs.shop_id = $1
 ORDER BY chk.processed_at DESC
+`
+
+	ValidatePickupLocationQuery = `
+SELECT EXISTS (
+	SELECT 1 FROM packages pkg
+	JOIN consignment_pickup_locations cpl ON cpl.consignment_id = pkg.consignment_id
+	WHERE pkg.id = $1 AND cpl.pickup_location_id = $2
+)
+`
+
+	EnrichedQRCodeEntriesQuery = `
+SELECT
+	pr.unique_id::text,
+	p.id            AS product_id,
+	pr.quantity,
+	pkg.price,
+	pkg.discount,
+	pr.pickup_location_id,
+	pl.name         AS pickup_name,
+	a.addrstreet,
+	a.addrnumber::text,
+	a.addrcity,
+	a.addrstate,
+	a.addrcep,
+	a.addrneigh,
+	a.addrcomplement
+FROM package_reserved pr
+JOIN packages pkg ON pkg.id = pr.package_id
+JOIN products p ON p.id = pkg.product_id
+JOIN pickup_locations pl ON pl.id = pr.pickup_location_id
+LEFT JOIN aliased_addresses_view a ON a.address_id = pl.address_id
+WHERE pr.checkout_id = $1
+ORDER BY pr.id
 `
 )

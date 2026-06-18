@@ -361,7 +361,7 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 
 
 	chkRec := h.confirmCheckout(t, []map[string]any{
-		{"id": packageID, "quantity": 1},
+		{"id": packageID, "quantity": 1, "retirada": pickup.ID},
 	}, map[string]any{"client_email": fmt.Sprintf("earnings-%d@example.com", runID)})
 	assertStatus(t, chkRec, http.StatusOK)
 
@@ -406,9 +406,9 @@ func (h *apiHarness) createReport(t *testing.T, session *apiSession, input repor
 }
 
 // confirmCheckout is a shared helper for checkout confirmation tests.
-// It accepts items and optional extras (client_email, client_name,
-// telephone, cpf), builds the request body, POSTs to /checkouts/confirm, and
-// returns the raw response recorder.
+// Items must include "retirada" for each item. Accepts optional extras
+// (client_email, client_name, telephone, cpf), builds the request body,
+// POSTs to /checkouts/confirm, and returns the raw response recorder.
 func (h *apiHarness) confirmCheckout(t *testing.T, items []map[string]any, extras map[string]any) *httptest.ResponseRecorder {
 	t.Helper()
 

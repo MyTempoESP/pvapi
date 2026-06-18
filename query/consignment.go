@@ -208,6 +208,7 @@ WHERE code = $1
 
 	PickupLocationsByConsignmentCodeQuery = `
 SELECT
+	pl.id               AS pickup_id,
 	pl.name AS pickup_name,
 	a.addrstreet,
 	a.addrnumber::text AS addrnumber,
