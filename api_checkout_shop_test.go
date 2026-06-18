@@ -56,6 +56,7 @@ func TestCheckoutShopFreeze(t *testing.T) {
 	rec := h.doJSON(t, http.MethodPost, "/remessas", &shop2Session, map[string]any{
 		"destinationId":           []any{pickup2.ID},
 		"monitorId":               monitor2.ID,
+		"name":                    "Remessa Shop2",
 		"status":                  "CONFERIR - DEVOLUCAO",
 		"monitorProfitPercentage": 3,
 	})

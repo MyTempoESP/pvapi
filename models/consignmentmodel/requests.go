@@ -31,6 +31,7 @@ type Comission struct {
 type CreateConsignmentRequest struct {
 	PickupIDs   []int  `json:"destinationId" binding:"required"`
 	ConsigneeID int    `json:"monitorId" binding:"required"`
+	Name        string `json:"name" binding:"required"`
 	Status      string `json:"status" binding:"required"`
 
 	Comission
@@ -38,6 +39,7 @@ type CreateConsignmentRequest struct {
 
 type UpdateConsignmentRequest struct {
 	ConsigneeID *int    `json:"monitorId"`
+	Name        *string `json:"name"`
 	Status      *string `json:"status"`
 
 	Comission
@@ -100,6 +102,7 @@ func (c CreateConsignmentRequest) Prepare(shopID int) (ConsignmentBlueprint, err
 		ConsigneeID:    c.ConsigneeID,
 		ComissionType:  comissionType,
 		ComissionValue: comissionValue,
+		Name:           c.Name,
 		Status:         c.Status,
 	}, nil
 }
@@ -120,6 +123,7 @@ func (c UpdateConsignmentRequest) Prepare(id int) ConsignmentUpdateBlueprint {
 		ConsigneeID:    c.ConsigneeID,
 		ComissionType:  comissionType,
 		ComissionValue: comissionValue,
+		Name:           c.Name,
 		Status:         c.Status,
 	}
 }

@@ -12,7 +12,7 @@ db_port	 := "5434"
 db_name	 := "test_db"
 db_container:= "test-postgres"
 
-db_base_dir := join(invocation_directory(), "Dev/test_databases")
+db_base_dir := join(justfile_directory(), "test_databases")
 db_dir	  := join(db_base_dir, uuid())
 
 db_url := (

@@ -34,6 +34,7 @@ type Pickup struct {
 
 type Consignment struct {
 	ID             int             `db:"consignment_id"`
+	Name           string          `db:"consignment_name"`
 	ComissionType  string          `db:"consignment_comission_type"`
 	ComissionValue decimal.Decimal `db:"consignment_comission_value"`
 	Status         string          `db:"consignment_status"`
@@ -48,6 +49,7 @@ type Consignment struct {
 
 type ConsignmentWithStats struct {
 	ID                int             `db:"consignment_id"`
+	Name              string          `db:"consignment_name"`
 	ComissionType     string          `db:"consignment_comission_type"`
 	ComissionValue    decimal.Decimal `db:"consignment_comission_value"`
 	Status            string          `db:"consignment_status"`

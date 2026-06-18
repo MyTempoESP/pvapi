@@ -238,6 +238,7 @@ func (h *apiHarness) createConsignmentWithPickups(t *testing.T, session *apiSess
 	rec := h.doJSON(t, http.MethodPost, "/remessas", session, map[string]any{
 		"destinationId": ids,
 		"monitorId":     monitorID,
+		"name":          "Remessa Teste",
 		"status":        "CONFERIR - DEVOLUCAO",
 		"monitorProfit": 3,
 	})
@@ -348,6 +349,7 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 	rec := h.doJSON(t, http.MethodPost, "/remessas", session, map[string]any{
 		"destinationId":           []any{pickup.ID},
 		"monitorId":               monitor.ID,
+		"name":                    "Remessa Earnings",
 		"status":                  "CONFERIR - DEVOLUCAO",
 		"monitorProfitPercentage": 1,
 	})

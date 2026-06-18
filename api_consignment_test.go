@@ -36,6 +36,39 @@ func TestConsignment(t *testing.T) {
 		}
 	})
 
+	t.Run("consignment_has_name", func(t *testing.T) {
+		rec := h.doRequest(t, http.MethodGet, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, "", nil)
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		data := asMap(t, body["data"])
+		if name := asString(t, data["name"]); name != "Remessa Teste" {
+			t.Fatalf("expected name 'Remessa Teste', got %q", name)
+		}
+	})
+
+	t.Run("update_consignment_name", func(t *testing.T) {
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"name": "Nome Atualizado",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// verify
+		rec2 := h.doRequest(t, http.MethodGet, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, "", nil)
+		assertStatus(t, rec2, http.StatusOK)
+
+		body := decodeJSON(t, rec2)
+		data := asMap(t, body["data"])
+		if name := asString(t, data["name"]); name != "Nome Atualizado" {
+			t.Fatalf("expected name 'Nome Atualizado', got %q", name)
+		}
+
+		// revert for downstream tests
+		h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"name": "Remessa Teste",
+		})
+	})
+
 	t.Run("list_consignments", func(t *testing.T) {
 		rec := h.doRequest(t, http.MethodGet, "/remessas", &shopSession, "", nil)
 		assertStatus(t, rec, http.StatusOK)

@@ -10,6 +10,7 @@ type ConsignmentBlueprint struct {
 	ComissionType  string
 	ComissionValue decimal.Decimal
 
+	Name   string
 	Status string
 }
 
@@ -18,6 +19,7 @@ type ConsignmentUpdateBlueprint struct {
 	ConsigneeID    *int
 	ComissionType  *string
 	ComissionValue *decimal.Decimal
+	Name           *string
 	Status         *string
 }
 

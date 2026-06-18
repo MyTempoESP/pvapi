@@ -38,6 +38,7 @@ func NewPickupResourceFromPickup(p Pickup) PickupResource {
 
 type ConsignmentResource struct {
 	ID             int             `json:"id"`
+	Name           string          `json:"name"`
 	ComissionType  string          `json:"commission_type"`
 	ComissionValue decimal.Decimal `json:"commission_value"`
 	Code           string          `json:"code"`
@@ -53,6 +54,7 @@ type ConsignmentResource struct {
 type ConsignmentWithStatsResource struct {
 	Code              string               `json:"code"`
 	ID                int                  `json:"id"`
+	Name              string               `json:"name"`
 	Status            string               `json:"status"`
 	Destinations      DestinationsResource `json:"destinations"`
 	MonitorName       string               `json:"monitorName"`
@@ -65,6 +67,7 @@ func (c ConsignmentWithStats) ToResource() ConsignmentWithStatsResource {
 	return ConsignmentWithStatsResource{
 		Code:              c.Code,
 		ID:                c.ID,
+		Name:              c.Name,
 		Status:            c.Status,
 		Destinations:      pickupsToDestinations(c.Pickups),
 		MonitorName:       c.Consignee.Name,
@@ -76,6 +79,7 @@ func (c ConsignmentWithStats) ToResource() ConsignmentWithStatsResource {
 
 type PublicConsignmentResource struct {
 	ID             int             `json:"id"`
+	Name           string          `json:"name"`
 	ComissionType  string          `json:"commission_type"`
 	ComissionValue decimal.Decimal `json:"commission_value"`
 	Code           string          `json:"code"`
@@ -107,6 +111,7 @@ func pickupsToDestinations(pickups []Pickup) DestinationsResource {
 func (c Consignment) ToResource() ConsignmentResource {
 	return ConsignmentResource{
 		ID:             c.ID,
+		Name:           c.Name,
 		ComissionType:  c.ComissionType,
 		ComissionValue: c.ComissionValue,
 		Code:           c.Code,
@@ -123,6 +128,7 @@ func (c Consignment) ToResource() ConsignmentResource {
 func (c Consignment) ToPublicResource() PublicConsignmentResource {
 	r := PublicConsignmentResource{
 		ID:             c.ID,
+		Name:           c.Name,
 		ComissionType:  c.ComissionType,
 		ComissionValue: c.ComissionValue,
 		Code:           c.Code,

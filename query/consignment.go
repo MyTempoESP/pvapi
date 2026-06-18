@@ -10,7 +10,8 @@ INSERT INTO consignments
 	comission_value,
 	status,
 	code,
-	slug
+	slug,
+	name
     )
 VALUES
     (
@@ -20,7 +21,8 @@ VALUES
 	@comission_value,
 	@status,
 	uuidv4(),
-	'rem-generica'
+	'rem-generica',
+	@name
     )
 RETURNING id
 `
@@ -28,6 +30,7 @@ RETURNING id
 	ListConsignmentsByShopQuery = `
 SELECT
 	consignment_id,
+	consignment_name,
 	consignment_comission_type,
 	consignment_comission_value,
 	consignment_status,
@@ -48,6 +51,7 @@ WHERE shop_id = $1
 	ListAllConsignmentsByShopQuery = `
 SELECT
 	consignment_id,
+	consignment_name,
 	consignment_comission_type,
 	consignment_comission_value,
 	consignment_status,
@@ -67,6 +71,7 @@ WHERE shop_id = $1
 	ListConsignmentsByConsigneeQuery = `
 SELECT
 	consignment_id,
+	consignment_name,
 	consignment_comission_type,
 	consignment_comission_value,
 	consignment_status,
@@ -90,6 +95,7 @@ WHERE consignee_id = $1
 	ListAllConsignmentsByConsigneeQuery = `
 SELECT
 	consignment_id,
+	consignment_name,
 	consignment_comission_type,
 	consignment_comission_value,
 	consignment_status,
@@ -112,6 +118,7 @@ WHERE consignee_id = $1
 	ListAllActiveConsignmentsQuery = `
 SELECT
 	consignment_id,
+	consignment_name,
 	consignment_comission_type,
 	consignment_comission_value,
 	consignment_status,
@@ -132,6 +139,7 @@ WHERE consignment_id IN (SELECT id FROM consignments_active)
 	FindConsignmentQuery = `
 SELECT
 	consignment_id,
+	consignment_name,
 	consignment_comission_type,
 	consignment_comission_value,
 	consignment_status,

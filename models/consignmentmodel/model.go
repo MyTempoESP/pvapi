@@ -158,6 +158,10 @@ func (c ConsignmentUpdateBlueprint) Save(
 		fields["status"] = *c.Status
 	}
 
+	if c.Name != nil {
+		fields["name"] = *c.Name
+	}
+
 	if len(fields) == 0 {
 		return
 	}
@@ -195,6 +199,7 @@ func (c ConsignmentBlueprint) Save(
 			"comission_type":     c.ComissionType,
 			"comission_value":    c.ComissionValue,
 			"status":             c.Status,
+			"name":               c.Name,
 		},
 	)
 	if err != nil {
@@ -439,6 +444,7 @@ func PublicListFiltered(
 
 	q := util.SQL.Select(
 		"consignment_id",
+		"consignment_name",
 		"consignment_comission_type",
 		"consignment_comission_value",
 		"consignment_status",
