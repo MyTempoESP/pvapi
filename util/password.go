@@ -3,9 +3,21 @@ package util
 import (
 	"crypto/rand"
 	"math/big"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const passwordCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func HashPassword(pass string) ([]byte, error) {
+	return bcrypt.GenerateFromPassword(
+		[]byte(pass), 12,
+	)
+}
+
+func ComparePasswordWithHash(pass string, hashed []byte) error {
+	return bcrypt.CompareHashAndPassword(hashed, []byte(pass))
+}
 
 func GenerateRandomPassword(length int) (string, error) {
 	b := make([]byte, length)
