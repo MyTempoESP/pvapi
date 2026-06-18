@@ -12,8 +12,8 @@ All endpoints accept and return JSON. The API covers four domains: Products, Che
 
 There is no cart system. The integration flow is:
 
-1. **Browse products** via `GET /produtos?token={token_de_remessa}` — returns the consignment's products (`produtos`, where `id` is the `package_id`) and pickup locations (`retiradas`).
-2. **Confirm checkout** via `POST /checkouts/confirm` — use the `id` from each `produto[]` as the item's `id`. Requires a valid API Bearer token.
+1. **Browse products** via `GET /produtos?token={token_de_remessa}` — returns the consignment's products (`produtos`, where `id` is the `package_id`) and pickup locations (`retiradas`, each with an `id`).
+2. **Confirm checkout** via `POST /checkouts/confirm` — use the `id` from each `produto[]` as the item's `id` and the `id` from each `retiradas[]` as the item's `retirada`. Requires a valid API Bearer token.
 
 No intermediate cart, no `session_id`. Choose your packages directly from the product listing and proceed to checkout.
 
@@ -67,6 +67,7 @@ Response 200:
   ],
   "retiradas": [
     {
+      "id": 5,
       "name": "Ponto de retirada A",
       "address": {
         "street": "Rua Exemplo",
@@ -92,22 +93,23 @@ Response 200:
 | featured | boolean | Whether product is featured |
 | code | string | Product code |
 | uuid | string | Product UUID |
-| colors | string[] | Available colors |
-| sizes | string[] | Available sizes |
-| allowCustomName | boolean | Custom name allowed |
-| allowCustomModality | boolean | Custom modality allowed |
-| allowCustomColorSelection | boolean | Custom color selection allowed |
-| category | string | Category name |
-| category_id | integer | Category ID |
-| imageUrl | string | Product image URL |
-| description | string | Product description |
-| specificationsImages | string[] | Specification image URLs |
-| descriptionImages | string[] | Description image URLs |
-| deliveryImages | string[] | Delivery image URLs |
-| specifications | object[] | Specifications (name/value pairs) |
+| colors | string[] | Available colors for the product |
+| sizes | string[] | Available sizes for the product |
+| allowCustomName | boolean | Whether custom name personalization is allowed |
+| allowCustomModality | boolean | Whether custom modality is allowed |
+| allowCustomColorSelection | boolean | Whether custom color selection is allowed |
+| category | string | Product category name |
+| category_id | integer | Product category ID |
+| imageUrl | string | Main product image URL |
+| description | string | Product description text |
+| specificationsImages | string[] | URLs of specification images |
+| descriptionImages | string[] | URLs of description images |
+| deliveryImages | string[] | URLs of delivery images |
+| specifications | object[] | Technical specifications (array of name/value objects) |
 
 | Retirada Field | Type | Description |
 |--------------|------|-------------|
+| id | integer | Pickup location ID — use as `retirada` in POST /checkouts/confirm |
 | name | string | Pickup location name |
 | address | object | Address with street, number, neighborhood, city, state, cep, complement |
 
@@ -166,6 +168,7 @@ Response 200:
         "price": 99.90,
         "discount": 0.00,
         "quantity": 5,
+        "pickup_id": 5,
         "pickup_name": "Ponto de retirada A",
         "pickup_date": "2025-12-01T10:00:00Z",
         "address": {
@@ -207,7 +210,8 @@ Request body (JSON):
   "items": [
     {
       "id": 42,
-      "quantity": 1
+      "quantity": 1,
+      "retirada": 5
     }
   ],
   "client_name": "Nome do Cliente",
@@ -222,6 +226,7 @@ Request body (JSON):
 | items | array | yes | At least 1 item |
 | items[].id | integer | yes | Package ID — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
+| items[].retirada | integer | yes | Pickup location ID — é o `id` recebido no array `retiradas` de `GET /produtos?token={token_de_remessa}` |
 | client_name | string | no | Name for the client account (derived from CPF or telephone if omitted) |
 | telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no CPF is given |
 | cpf | string | no | Client CPF. Must be exactly 11 digits after stripping formatting. CPF takes priority over telephone as identity |
@@ -235,7 +240,26 @@ Response 200:
   "unique_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   "status": "paid",
   "qr_codes": [
-    {"package_id": 42, "qr_code": "data:image/png;base64,..."}
+    {
+      "product_id": 1,
+      "qr_code": "data:image/png;base64,...",
+      "quantity": 1,
+      "price": 99.90,
+      "discount": 0.00,
+      "retirada": {
+        "id": 5,
+        "nome": "Ponto de retirada A",
+        "address": {
+          "street": "Rua Exemplo",
+          "number": "123",
+          "neighborhood": "Bairro",
+          "city": "Cidade",
+          "state": "SP",
+          "cep": "00000-000",
+          "complement": ""
+        }
+      }
+    }
   ]
 }
 ```
@@ -244,13 +268,19 @@ Response 200:
 |-------|------|-------------|
 | unique_id | string (UUID) | Unique transaction identifier |
 | status | string | Transaction status ("paid") |
-| qr_codes | array | One QR code per reserved package, each with `package_id` and `qr_code` (data URI, PNG base64) |
+| qr_codes | array | One enriched QR code per reserved package |
+| qr_codes[].product_id | integer | Product ID |
+| qr_codes[].qr_code | string | QR code (data URI, PNG base64) |
+| qr_codes[].quantity | integer | Reserved quantity |
+| qr_codes[].price | number | Package price (decimal) |
+| qr_codes[].discount | number | Package discount (decimal) |
+| qr_codes[].retirada | object | Pickup location summary (`id`, `nome`, `address`) |
 
 Error responses:
 - **400** - Invalid request
 - **401** - Missing or invalid API token
 - **409** - Insufficient stock
-- **422** - Package not found
+- **422** - Package not found or invalid retirada (pickup location not linked to the package's consignment)
 - **429** - Rate limit exceeded (response includes `retry_after` in seconds)
 
 ---

@@ -93,7 +93,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespostaErro"
         "422":
-          description: Pacote não encontrado
+          description: Pacote não encontrado ou retirada inválida
           content:
             application/json:
               schema:
@@ -241,7 +241,8 @@ paths:
                       - name: "Capacidade"
                         value: "350ml"
                 retiradas:
-                  - name: "Loja Centro"
+                  - id: 5
+                    name: "Loja Centro"
                     address:
                       street: "Rua XV de Novembro"
                       number: "123"
@@ -250,7 +251,8 @@ paths:
                       state: "SP"
                       cep: "01010-000"
                       complement: "Sala 1"
-                  - name: "Shopping Norte"
+                  - id: 6
+                    name: "Shopping Norte"
                     address:
                       street: "Av. Paulista"
                       number: "1000"
@@ -408,9 +410,9 @@ components:
 
     # ── Checkout ────────────────────────────────────────────────
     ItemCheckout:
-      description: Item individual da compra — um pacote e a quantidade desejada.
+      description: Item individual da compra — um pacote, a quantidade desejada e o ponto de retirada.
       type: object
-      required: [id, quantity]
+      required: [id, quantity, retirada]
       properties:
         id:
           type: integer
@@ -420,6 +422,10 @@ components:
           type: integer
           minimum: 1
           description: Quantidade desejada deste pacote
+        retirada:
+          type: integer
+          minimum: 1
+          description: ID do ponto de retirada — é o `id` recebido no array `retiradas` de `GET /produtos?token={token_de_remessa}`
 
     ConfirmarCheckoutRequest:
       description: "Payload de confirmação de checkout: itens da compra, identificação do cliente (CPF ou telefone) e callback opcional."
@@ -452,6 +458,7 @@ components:
         items:
           - id: 42
             quantity: 1
+            retirada: 5
         telephone: "11988887777"
         cpf: "12345678901"
         client_name: "Nome do Cliente"
@@ -472,8 +479,60 @@ components:
           type: integer
           description: Quantidade de pacotes recebidos restantes
 
+    PickupAddressResource:
+      description: Endereço de ponto de retirada.
+      type: object
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        cep:
+          type: string
+        complement:
+          type: string
+
+    PickupLocationSummary:
+      description: Resumo do ponto de retirada no QR code do checkout.
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        address:
+          $ref: "#/components/schemas/PickupAddressResource"
+
+    QRCodeEntry:
+      description: QR code enriquecido com dados do produto e retirada.
+      type: object
+      properties:
+        product_id:
+          type: integer
+          description: ID do produto
+        qr_code:
+          type: string
+          description: QR code em data URI (PNG base64)
+        quantity:
+          type: integer
+          description: Quantidade reservada
+        price:
+          type: number
+          description: Preço do pacote (decimal)
+        discount:
+          type: number
+          description: Desconto do pacote (decimal)
+        retirada:
+          $ref: "#/components/schemas/PickupLocationSummary"
+
     RespostaCheckout:
-      description: Checkout confirmado — contém o identificador único da transação e QR codes (data URI PNG) para retirada de cada pacote reservado.
+      description: Checkout confirmado — contém o identificador único da transação e QR codes (data URI PNG) enriquecidos para retirada de cada pacote reservado.
       type: object
       required: [success, message, unique_id, status, qr_codes]
       properties:
@@ -493,16 +552,9 @@ components:
           description: Status da transação
         qr_codes:
           type: array
-          description: QR codes, um por pacote reservado
+          description: QR codes enriquecidos, um por pacote reservado
           items:
-            type: object
-            properties:
-              package_id:
-                type: integer
-                description: ID do pacote
-              qr_code:
-                type: string
-                description: QR code em data URI (PNG base64) do unique_id do package_reserved
+            $ref: "#/components/schemas/QRCodeEntry"
 
     # ── Remessa / Consignment ───────────────────────────────────
     RecursoRemessa:
@@ -638,6 +690,9 @@ components:
         quantity:
           type: integer
           description: Estoque disponível neste pacote
+        pickup_id:
+          type: integer
+          description: ID do ponto de retirada — usar como `retirada` em POST /checkouts/confirm
         pickup_name:
           type: string
           description: Nome do ponto de retirada
@@ -680,42 +735,55 @@ components:
           type: array
           items:
             type: string
+          description: Cores disponíveis do produto
         sizes:
           type: array
           items:
             type: string
+          description: Tamanhos disponíveis do produto
         allowCustomName:
           type: boolean
+          description: Permite personalização de nome no produto
         allowCustomModality:
           type: boolean
+          description: Permite personalização de modalidade
         allowCustomColorSelection:
           type: boolean
+          description: Permite seleção de cor personalizada
         moderation_status:
           type: string
         category:
           type: string
+          description: Nome da categoria do produto
         category_id:
           type: integer
+          description: ID da categoria do produto
         imageUrl:
           type: string
+          description: URL da imagem principal do produto
         description:
           type: string
+          description: Descrição do produto
         specificationsImages:
           type: array
           items:
             type: string
+          description: URLs das imagens de especificações
         descriptionImages:
           type: array
           items:
             type: string
+          description: URLs das imagens de descrição
         deliveryImages:
           type: array
           items:
             type: string
+          description: URLs das imagens de entrega
         specifications:
           type: array
           items:
             $ref: "#/components/schemas/EspecificacaoProduto"
+          description: Especificações técnicas do produto (pares chave-valor)
         pickups:
           type: array
           items:
@@ -758,40 +826,53 @@ components:
           type: array
           items:
             type: string
+          description: Cores disponíveis do produto
         sizes:
           type: array
           items:
             type: string
+          description: Tamanhos disponíveis do produto
         allowCustomName:
           type: boolean
+          description: Permite personalização de nome no produto
         allowCustomModality:
           type: boolean
+          description: Permite personalização de modalidade
         allowCustomColorSelection:
           type: boolean
+          description: Permite seleção de cor personalizada
         category:
           type: string
+          description: Nome da categoria do produto
         category_id:
           type: integer
+          description: ID da categoria do produto
         imageUrl:
           type: string
+          description: URL da imagem principal do produto
         description:
           type: string
+          description: Descrição do produto
         specificationsImages:
           type: array
           items:
             type: string
+          description: URLs das imagens de especificações
         descriptionImages:
           type: array
           items:
             type: string
+          description: URLs das imagens de descrição
         deliveryImages:
           type: array
           items:
             type: string
+          description: URLs das imagens de entrega
         specifications:
           type: array
           items:
             $ref: "#/components/schemas/EspecificacaoProduto"
+          description: Especificações técnicas do produto (pares chave-valor)
 
     ConsignmentPickupAddressResource:
       description: Endereço do ponto de retirada no contexto de uma remessa.
@@ -813,9 +894,12 @@ components:
           type: string
 
     ConsignmentPickupResource:
-      description: Ponto de retirada no contexto de uma remessa (nome + endereço).
+      description: Ponto de retirada no contexto de uma remessa (id + nome + endereço).
       type: object
       properties:
+        id:
+          type: integer
+          description: ID do ponto de retirada — usar como `retirada` em POST /checkouts/confirm
         name:
           type: string
           description: Nome do ponto de retirada
