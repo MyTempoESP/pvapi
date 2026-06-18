@@ -361,7 +361,7 @@ func (h *apiHarness) generateEarnings(t *testing.T, session *apiSession, admin *
 
 
 	chkRec := h.confirmCheckout(t, []map[string]any{
-		{"package_id": packageID, "quantity": 1},
+		{"id": packageID, "quantity": 1},
 	}, map[string]any{"client_email": fmt.Sprintf("earnings-%d@example.com", runID)})
 	assertStatus(t, chkRec, http.StatusOK)
 

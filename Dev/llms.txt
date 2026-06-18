@@ -13,7 +13,7 @@ All endpoints accept and return JSON. The API covers four domains: Products, Che
 There is no cart system. The integration flow is:
 
 1. **Browse products** via `GET /produtos?token={token_de_remessa}` — returns the consignment's products (`produtos`, where `id` is the `package_id`) and pickup locations (`retiradas`).
-2. **Confirm checkout** via `POST /checkouts/confirm` — directly with the `package_id` from `produtos[].id`. Requires a valid API Bearer token.
+2. **Confirm checkout** via `POST /checkouts/confirm` — use the `id` from each `produto[]` as the item's `id`. Requires a valid API Bearer token.
 
 No intermediate cart, no `session_id`. Choose your packages directly from the product listing and proceed to checkout.
 
@@ -84,7 +84,7 @@ Response 200:
 
 | Product Field | Type | Description |
 |-------|------|-------------|
-| id | integer | **package_id** — use in POST /checkouts/confirm |
+| id | integer | **package_id** — use as `id` in POST /checkouts/confirm items |
 | name | string | Product name |
 | stock | integer | Stock quantity in this consignment |
 | price | number | Price (decimal) |
@@ -206,7 +206,7 @@ Request body (JSON):
 {
   "items": [
     {
-      "package_id": 42,
+      "id": 42,
       "quantity": 1
     }
   ],
@@ -220,7 +220,7 @@ Request body (JSON):
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | items | array | yes | At least 1 item |
-| items[].package_id | integer | yes | Package ID — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`) |
+| items[].id | integer | yes | Package ID — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
 | client_name | string | no | Name for the client account (derived from CPF or telephone if omitted) |
 | telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no CPF is given |

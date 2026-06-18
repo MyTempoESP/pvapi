@@ -72,8 +72,8 @@ func TestCheckoutCancel(t *testing.T) {
 		}
 
 		chkRec := h.confirmCheckout(t, []map[string]any{
-			{"package_id": pkgID, "quantity": 2},
-			{"package_id": pkgID2, "quantity": 1},
+			{"id": pkgID, "quantity": 2},
+			{"id": pkgID2, "quantity": 1},
 		}, map[string]any{"client_email": fmt.Sprintf("cancel-%s-%d@example.com", tag, runID)})
 		assertStatus(t, chkRec, http.StatusOK)
 		chkBody := decodeJSON(t, chkRec)

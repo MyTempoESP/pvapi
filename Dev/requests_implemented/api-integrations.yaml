@@ -17,7 +17,7 @@ info:
     1. Consultar produtos via `GET /produtos?token={token_de_remessa}` —
        retorna os produtos da remessa (`produtos`, onde `id` é o `package_id`)
        e os pontos de retirada (`retiradas`).
-    2. Confirmar checkout via `POST /checkouts/confirm` com os `package_id`
+    2. Confirmar checkout via `POST /checkouts/confirm` com os `id`
        obtidos no passo anterior (campo `id` de cada produto) — sem carrinho
        intermediário.
 
@@ -58,7 +58,7 @@ paths:
         **Rate limit:** 1 checkout por cliente a cada 60 segundos.
         Exceder o limite retorna HTTP 429 com `retry_after`.
 
-        Os `package_id` são o `id` de cada produto retornado em
+        Cada item usa o `id` do produto retornado em
         `GET /produtos?token={token_de_remessa}`.
 
         **Identificação do cliente:** ao menos um de `cpf` ou
@@ -170,8 +170,8 @@ paths:
         estoque e demais atributos. Os pontos de retirada são retornados
         separadamente no array `retiradas`.
 
-        **Importante:** o `id` de cada produto é o `package_id` a ser
-        usado no `POST /checkouts/confirm`.
+        **Importante:** o `id` de cada produto é o valor a ser
+        enviado como `id` no `POST /checkouts/confirm`.
 
         Sem token, retorna arrays vazios.
       operationId: listarProdutos
@@ -410,9 +410,9 @@ components:
     ItemCheckout:
       description: Item individual da compra — um pacote e a quantidade desejada.
       type: object
-      required: [package_id, quantity]
+      required: [id, quantity]
       properties:
-        package_id:
+        id:
           type: integer
           minimum: 1
           description: ID do pacote — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`)
@@ -450,7 +450,7 @@ components:
             - unique_id (string): identificador único da venda
       example:
         items:
-          - package_id: 42
+          - id: 42
             quantity: 1
         telephone: "11988887777"
         cpf: "12345678901"

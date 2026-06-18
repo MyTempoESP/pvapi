@@ -88,8 +88,8 @@ func TestCheckoutShopFreeze(t *testing.T) {
 
 
 	chkRec := h.confirmCheckout(t, []map[string]any{
-		{"package_id": pkgID1, "quantity": 1},
-		{"package_id": pkgID2, "quantity": 1},
+		{"id": pkgID1, "quantity": 1},
+		{"id": pkgID2, "quantity": 1},
 	}, map[string]any{"client_email": "shopfreeze@example.com"})
 	assertStatus(t, chkRec, http.StatusOK)
 	chkBody := decodeJSON(t, chkRec)
@@ -302,7 +302,7 @@ func TestCheckoutShopClientID(t *testing.T) {
 		clientEmail := fmt.Sprintf("chkshopcli-email-%d@example.com", runID)
 
 		rec := h.confirmCheckout(t, []map[string]any{
-			{"package_id": pkgID, "quantity": 1},
+			{"id": pkgID, "quantity": 1},
 		}, map[string]any{
 			"client_email": clientEmail,
 		})
@@ -351,7 +351,7 @@ func TestCheckoutShopClientID(t *testing.T) {
 		clientEmail := fmt.Sprintf("chkshop-cli-%d@example.com", runID)
 
 		rec := h.confirmCheckout(t, []map[string]any{
-			{"package_id": pkgID, "quantity": 1},
+			{"id": pkgID, "quantity": 1},
 		}, map[string]any{"client_email": clientEmail})
 		assertStatus(t, rec, http.StatusOK)
 		body := decodeJSON(t, rec)

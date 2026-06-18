@@ -67,7 +67,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 		})
@@ -102,7 +102,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// First checkout creates the client
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 		})
@@ -127,7 +127,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		checkoutmodel.RateLimitWindowSeconds = 0
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": pkgID2, "quantity": 1},
+				{"id": pkgID2, "quantity": 1},
 			},
 			"client_email": clientEmail,
 		})
@@ -157,7 +157,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 		})
 		assertStatus(t, rec, http.StatusBadRequest)
@@ -175,7 +175,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		clientEmail := fmt.Sprintf("chkcli-name-%d@example.com", runID)
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"client_name":  "João Silva",
@@ -208,7 +208,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": "valid-but-non-existent@example.com",
 		})
@@ -237,7 +237,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    telephone,
@@ -268,7 +268,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"cpf": cpf,
 		})
@@ -298,7 +298,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"telephone": telephone,
 		})
@@ -331,7 +331,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"telephone": telephone,
 			"cpf":       cpf,
@@ -365,7 +365,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    telephone,
@@ -398,7 +398,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// First checkout with original telephone
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    firstPhone,
@@ -426,7 +426,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// Second checkout with different telephone
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": pkgID2, "quantity": 1},
+				{"id": pkgID2, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    secondPhone,
@@ -458,7 +458,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// First checkout with CPF
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    "11988887777",
@@ -487,7 +487,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// Second checkout WITHOUT CPF → existing CPF must be preserved
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": pkgID2, "quantity": 1},
+				{"id": pkgID2, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    "11988887777",
@@ -510,7 +510,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// First checkout with telephone (no CPF)
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    originalPhone,
@@ -542,7 +542,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		}
 		rec2 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": pkgID2, "quantity": 1},
+				{"id": pkgID2, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"cpf":          newCPF,
@@ -569,7 +569,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"telephone": telephone,
 			"cpf":       "invalid-cpf",
@@ -590,7 +590,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// Telephone with only non-digits should be treated as not provided
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"telephone": "+() - ",
 		})
@@ -603,7 +603,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": fmt.Sprintf("nopii-%d@example.com", runID),
 			"telephone":    "11988887777",
@@ -633,7 +633,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		// First checkout creates client with first telephone
 		rec1 := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"client_email": clientEmail,
 			"telephone":    firstPhone,
@@ -673,7 +673,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"cpf": formatted,
 		})
@@ -697,7 +697,7 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"package_id": fx.packageID, "quantity": 1},
+				{"id": fx.packageID, "quantity": 1},
 			},
 			"cpf":         cpf,
 			"client_name": "José Maria",

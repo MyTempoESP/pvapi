@@ -22,7 +22,7 @@ import (
 var RateLimitWindowSeconds = 60
 
 type ConfirmItem struct {
-	PackageID int `json:"package_id" binding:"required"`
+	PackageID int `json:"id" binding:"required"`
 	Quantity  int `json:"quantity" binding:"required,min=1"`
 }
 
