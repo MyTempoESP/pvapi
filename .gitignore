@@ -15,3 +15,4 @@ tmux.just
 !/mail/*.html
 !/mail/*.png
 __pycache__/
+docs/schema.sql

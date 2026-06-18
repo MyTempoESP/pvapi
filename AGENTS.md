@@ -38,6 +38,11 @@ This codebase uses the **test-code** skill for all verification. Never run `go t
 - Do not declare task completion if compilation, linting, or tests fail.
 - If a specific test fails for something unrelated to your changes, stop execution and alert the user of the failing test.
 
+## Database
+
+- **View the unified schema:** `just t::db-schema` dumps the current schema to `docs/schema.sql`. Read that file to understand tables, columns, and constraints. Prefer this over the raw migration files.
+- **Migrations:** every schema change requires a new sequential migration pair `NNNNNN_description.up.sql` and `NNNNNN_description.down.sql` in `internal/database/migrations/`.
+
 ## Issue tracker
 
 Issues live as "beans" managed by the `beans` CLI. See `docs/agents/issue-tracker.md`.
