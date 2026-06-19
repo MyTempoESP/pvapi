@@ -2,6 +2,7 @@ package checkoutmodel
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -22,11 +23,33 @@ import (
 // for the same client, in seconds. Exported so tests can override.
 var RateLimitWindowSeconds = 60
 
+type Personalizacao struct {
+	Nome  string `json:"nome"`
+	Valor string `json:"valor"`
+}
+
+func marshalPersonalizacao(p []Personalizacao) []byte {
+	b, _ := json.Marshal(p)
+	if len(b) == 0 {
+		return []byte("[]")
+	}
+	return b
+}
+
+func unmarshalPersonalizacao(raw json.RawMessage) []Personalizacao {
+	if len(raw) == 0 {
+		return nil
+	}
+	var p []Personalizacao
+	json.Unmarshal(raw, &p)
+	return p
+}
+
 type ConfirmItem struct {
 	PackageID      int               `json:"id" binding:"required"`
 	Quantity       int               `json:"quantity" binding:"required,min=1"`
 	Retirada       int               `json:"retirada" binding:"required"`
-	Personalizacao map[string]string `json:"personalizacao"`
+	Personalizacao []Personalizacao  `json:"personalizacao,omitempty"`
 }
 
 type ConfirmRequest struct {
@@ -64,7 +87,7 @@ type QRCodeEntry struct {
 	Quantity       int                  `json:"quantity"`
 	Price          decimal.Decimal      `json:"price"`
 	Discount       decimal.Decimal      `json:"discount"`
-	Personalizacao map[string]string    `json:"personalizacao"`
+	Personalizacao []Personalizacao     `json:"personalizacao,omitempty"`
 	Retirada       PickupLocationSummary `json:"retirada"`
 }
 
@@ -483,8 +506,8 @@ type enrichedEntryRow struct {
 	AddrState       string          `db:"addrstate"`
 	AddrCEP         string          `db:"addrcep"`
 	AddrNeigh       string          `db:"addrneigh"`
-	AddrComplement  string           `db:"addrcomplement"`
-	Personalizacao  *map[string]string `db:"personalizacao"`
+	AddrComplement  string          `db:"addrcomplement"`
+	Personalizacao  json.RawMessage `db:"personalizacao"`
 }
 
 // writeCheckoutData writes package reservations, generates QR codes per
@@ -500,11 +523,6 @@ func writeCheckoutData(
 		var pkgUniqueID string
 		var pkgID int
 
-		// ponytail: nil → empty map avoids NULL in NOT NULL jsonb column
-		pers := item.Personalizacao
-		if pers == nil {
-			pers = map[string]string{}
-		}
 		err := tx.QueryRow(
 			ctx,
 			query.InsertPackageReservedQuery,
@@ -512,7 +530,7 @@ func writeCheckoutData(
 			checkoutID,
 			item.Quantity,
 			item.Retirada,
-			pers,
+			marshalPersonalizacao(item.Personalizacao),
 		).Scan(&pkgUniqueID, &pkgID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to reserve package %d: %w", item.PackageID, err)
@@ -546,17 +564,13 @@ func writeCheckoutData(
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate qr code: %w", err)
 		}
-		pers := map[string]string{}
-		if r.Personalizacao != nil {
-			pers = *r.Personalizacao
-		}
 		entries = append(entries, QRCodeEntry{
 			ProductID:      r.ProductID,
 			QrCode:         qr,
 			Quantity:       r.Quantity,
 			Price:          r.Price,
 			Discount:       r.Discount,
-			Personalizacao: pers,
+			Personalizacao: unmarshalPersonalizacao(r.Personalizacao),
 			Retirada: PickupLocationSummary{
 				ID:   r.PickupID,
 				Name: r.PickupName,

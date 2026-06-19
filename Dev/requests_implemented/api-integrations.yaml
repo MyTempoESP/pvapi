@@ -414,7 +414,7 @@ components:
 
     # ── Checkout ────────────────────────────────────────────────
     ItemCheckout:
-      description: Item individual da compra — um pacote, a quantidade desejada e o ponto de retirada.
+      description: Item individual da compra — um pacote, a quantidade desejada, o ponto de retirada e personalização opcional.
       type: object
       required: [id, quantity, retirada]
       properties:
@@ -430,6 +430,11 @@ components:
           type: integer
           minimum: 1
           description: ID do ponto de retirada — é o `id` recebido no array `retiradas` de `GET /produtos?token={token_de_remessa}`
+        personalizacao:
+          type: object
+          additionalProperties:
+            type: string
+          description: 'Pares chave-valor de personalização do pacote (opcional). Ex.: `{"name": "Fulano", "number": "10"}`.'
 
     ConfirmarCheckoutRequest:
       description: "Payload de confirmação de checkout: itens da compra, identificação do cliente (CPF ou telefone) e callback opcional."
@@ -463,6 +468,9 @@ components:
           - id: 42
             quantity: 1
             retirada: 5
+            personalizacao:
+              name: "Fulano"
+              number: "10"
         telephone: "11988887777"
         cpf: "12345678901"
         client_name: "Nome do Cliente"
@@ -514,7 +522,7 @@ components:
           $ref: "#/components/schemas/PickupAddressResource"
 
     QRCodeEntry:
-      description: QR code enriquecido com dados do produto e retirada.
+      description: QR code enriquecido com dados do produto, personalização e retirada.
       type: object
       properties:
         product_id:
@@ -532,6 +540,11 @@ components:
         discount:
           type: number
           description: Desconto do pacote (decimal)
+        personalizacao:
+          type: object
+          additionalProperties:
+            type: string
+          description: Personalização enviada no item do checkout (opcional).
         retirada:
           $ref: "#/components/schemas/PickupLocationSummary"
 

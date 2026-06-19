@@ -214,7 +214,11 @@ Request body (JSON):
     {
       "id": 42,
       "quantity": 1,
-      "retirada": 5
+      "retirada": 5,
+      "personalizacao": {
+        "name": "Fulano",
+        "number": "10"
+      }
     }
   ],
   "client_name": "Nome do Cliente",
@@ -230,6 +234,7 @@ Request body (JSON):
 | items[].id | integer | yes | Package ID — é o `id` recebido na consulta dos produtos via token (`GET /produtos?token={token_de_remessa}`) |
 | items[].quantity | integer | yes | Desired quantity for this package (min 1) |
 | items[].retirada | integer | yes | Pickup location ID — é o `id` recebido no array `retiradas` de `GET /produtos?token={token_de_remessa}` |
+| items[].personalizacao | object | no | Key-value pairs for package customization (e.g. `{"name": "Fulano", "number": "10"}`) |
 | client_name | string | no | Name for the client account (derived from CPF or telephone if omitted) |
 | telephone | string | no | Client phone number. Digits are extracted; formatting is stripped. Used as password when provided, and as identity fallback when no CPF is given |
 | cpf | string | no | Client CPF. Must be exactly 11 digits after stripping formatting. CPF takes priority over telephone as identity |
@@ -249,6 +254,10 @@ Response 200:
       "quantity": 1,
       "price": 99.90,
       "discount": 0.00,
+      "personalizacao": {
+        "name": "Fulano",
+        "number": "10"
+      },
       "retirada": {
         "id": 5,
         "nome": "Ponto de retirada A",
@@ -277,6 +286,7 @@ Response 200:
 | qr_codes[].quantity | integer | Reserved quantity |
 | qr_codes[].price | number | Package price (decimal) |
 | qr_codes[].discount | number | Package discount (decimal) |
+| qr_codes[].personalizacao | object | Customization sent in the checkout item |
 | qr_codes[].retirada | object | Pickup location summary (`id`, `nome`, `address`) |
 
 Error responses:

@@ -749,7 +749,10 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": map[string]string{"tamanho": "G", "cor": "azul"}},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": []map[string]any{
+					{"nome": "tamanho", "valor": "G"},
+					{"nome": "cor", "valor": "azul"},
+				}},
 			},
 			"client_email": fmt.Sprintf("pers-%d@example.com", runID),
 		})
@@ -760,13 +763,17 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		if len(qrCodes) != 1 {
 			t.Fatalf("expected 1 qr_code, got %d", len(qrCodes))
 		}
-		pers := asMap(t, qrCodes[0])["personalizacao"]
-		persMap := asMap(t, pers)
-		if asString(t, persMap["tamanho"]) != "G" {
-			t.Fatalf("expected tamanho=G, got %v", persMap["tamanho"])
+		items := asSlice(t, asMap(t, qrCodes[0])["personalizacao"])
+		if len(items) != 2 {
+			t.Fatalf("expected 2 personalizacao items, got %d", len(items))
 		}
-		if asString(t, persMap["cor"]) != "azul" {
-			t.Fatalf("expected cor=azul, got %v", persMap["cor"])
+		i0 := asMap(t, items[0])
+		i1 := asMap(t, items[1])
+		if asString(t, i0["nome"]) != "tamanho" || asString(t, i0["valor"]) != "G" {
+			t.Fatalf("expected {tamanho G}, got %v", i0)
+		}
+		if asString(t, i1["nome"]) != "cor" || asString(t, i1["valor"]) != "azul" {
+			t.Fatalf("expected {cor azul}, got %v", i1)
 		}
 	})
 
@@ -788,18 +795,19 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			t.Fatalf("expected 1 qr_code, got %d", len(qrCodes))
 		}
 		pers := asMap(t, qrCodes[0])["personalizacao"]
-		if len(asMap(t, pers)) != 0 {
-			t.Fatalf("expected empty personalizacao, got %v", pers)
+		// omitempty: nil slice → field absent in response
+		if pers != nil {
+			t.Fatalf("expected personalizacao absent, got %v", pers)
 		}
 	})
 
-	t.Run("personalizacao_empty_object_echoed", func(t *testing.T) {
+	t.Run("personalizacao_empty_array_echoed", func(t *testing.T) {
 		runID := baseRunID + 42
 		fx := setupChkCliFixtures(t, h, "persemp", runID)
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": map[string]string{}},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": []map[string]any{}},
 			},
 			"client_email": fmt.Sprintf("persemp-%d@example.com", runID),
 		})
@@ -810,9 +818,10 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 		if len(qrCodes) != 1 {
 			t.Fatalf("expected 1 qr_code, got %d", len(qrCodes))
 		}
+		// Empty slice [] → nil in unmarshalPersonalizacao → omitted via omitempty
 		pers := asMap(t, qrCodes[0])["personalizacao"]
-		if len(asMap(t, pers)) != 0 {
-			t.Fatalf("expected empty personalizacao, got %v", pers)
+		if pers != nil {
+			t.Fatalf("expected personalizacao absent for empty array, got %v", pers)
 		}
 	})
 
@@ -836,8 +845,12 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 
 		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
 			"items": []map[string]any{
-				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": map[string]string{"cor": "vermelho"}},
-				{"id": pkgID2, "quantity": 1, "retirada": pickup2.ID, "personalizacao": map[string]string{"tamanho": "GG"}},
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": []map[string]any{
+					{"nome": "cor", "valor": "vermelho"},
+				}},
+				{"id": pkgID2, "quantity": 1, "retirada": pickup2.ID, "personalizacao": []map[string]any{
+					{"nome": "tamanho", "valor": "GG"},
+				}},
 			},
 			"client_email": fmt.Sprintf("persmul-%d@example.com", runID),
 		})
@@ -849,14 +862,14 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			t.Fatalf("expected 2 qr_codes, got %d", len(qrCodes))
 		}
 
-		pers0 := asMap(t, asMap(t, qrCodes[0])["personalizacao"])
-		pers1 := asMap(t, asMap(t, qrCodes[1])["personalizacao"])
+		p0 := asSlice(t, asMap(t, qrCodes[0])["personalizacao"])
+		p1 := asSlice(t, asMap(t, qrCodes[1])["personalizacao"])
 
-		if asString(t, pers0["cor"]) != "vermelho" {
-			t.Fatalf("expected item 0 cor=vermelho, got %v", pers0)
+		if len(p0) != 1 || asString(t, asMap(t, p0[0])["nome"]) != "cor" || asString(t, asMap(t, p0[0])["valor"]) != "vermelho" {
+			t.Fatalf("expected item 0 [{cor vermelho}], got %v", p0)
 		}
-		if asString(t, pers1["tamanho"]) != "GG" {
-			t.Fatalf("expected item 1 tamanho=GG, got %v", pers1)
+		if len(p1) != 1 || asString(t, asMap(t, p1[0])["nome"]) != "tamanho" || asString(t, asMap(t, p1[0])["valor"]) != "GG" {
+			t.Fatalf("expected item 1 [{tamanho GG}], got %v", p1)
 		}
 	})
 }
