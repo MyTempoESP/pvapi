@@ -41,15 +41,15 @@ func unmarshalPersonalizacao(raw json.RawMessage) []Personalizacao {
 		return nil
 	}
 	var p []Personalizacao
-	json.Unmarshal(raw, &p)
+	_ = json.Unmarshal(raw, &p) // ponytail: malformed json returns nil, callers tolerate empty personalizacao
 	return p
 }
 
 type ConfirmItem struct {
-	PackageID      int               `json:"id" binding:"required"`
-	Quantity       int               `json:"quantity" binding:"required,min=1"`
-	Retirada       int               `json:"retirada" binding:"required"`
-	Personalizacao []Personalizacao  `json:"personalizacao,omitempty"`
+	PackageID      int              `json:"id" binding:"required"`
+	Quantity       int              `json:"quantity" binding:"required,min=1"`
+	Retirada       int              `json:"retirada" binding:"required"`
+	Personalizacao []Personalizacao `json:"personalizacao,omitempty"`
 }
 
 type ConfirmRequest struct {
@@ -66,8 +66,8 @@ type PackageStock struct {
 }
 
 type PickupLocationSummary struct {
-	ID      int    `json:"id"`
-	Name    string `json:"nome"`
+	ID      int             `json:"id"`
+	Name    string          `json:"nome"`
 	Address AddressResource `json:"address"`
 }
 
@@ -82,12 +82,13 @@ type AddressResource struct {
 }
 
 type QRCodeEntry struct {
-	ProductID      int                  `json:"product_id"`
-	QrCode         string               `json:"qr_code"`
-	Quantity       int                  `json:"quantity"`
-	Price          decimal.Decimal      `json:"price"`
-	Discount       decimal.Decimal      `json:"discount"`
-	Personalizacao []Personalizacao     `json:"personalizacao,omitempty"`
+	ProductID      int                   `json:"product_id"`
+	QrCode         string                `json:"qr_code"`
+	Quantity       int                   `json:"quantity"`
+	Price          decimal.Decimal       `json:"price"`
+	Discount       decimal.Decimal       `json:"discount"`
+	DiscountType   string                `json:"discount_type"`
+	Personalizacao []Personalizacao      `json:"personalizacao,omitempty"`
 	Retirada       PickupLocationSummary `json:"retirada"`
 }
 
@@ -99,14 +100,14 @@ type ConfirmResponse struct {
 }
 
 var (
-	ErrPackageNotFound     = errors.New("package not found")
-	ErrInsufficientStock   = errors.New("insufficient stock")
-	ErrRateLimited         = errors.New("rate limited")
-	ErrNoIdentity          = errors.New("no identity provided")
-	ErrCheckoutNotFound    = errors.New("checkout not found")
-	ErrCancelForbidden     = errors.New("not authorized to cancel this checkout")
-	ErrInvalidCallback     = errors.New("callback must be a valid http or https URL")
-	ErrInvalidRetirada     = errors.New("retirada inválida")
+	ErrPackageNotFound   = errors.New("package not found")
+	ErrInsufficientStock = errors.New("insufficient stock")
+	ErrRateLimited       = errors.New("rate limited")
+	ErrNoIdentity        = errors.New("no identity provided")
+	ErrCheckoutNotFound  = errors.New("checkout not found")
+	ErrCancelForbidden   = errors.New("not authorized to cancel this checkout")
+	ErrInvalidCallback   = errors.New("callback must be a valid http or https URL")
+	ErrInvalidRetirada   = errors.New("retirada inválida")
 )
 
 // RateLimitInfo holds the rate-limit error details for the API response.
@@ -498,6 +499,7 @@ type enrichedEntryRow struct {
 	Quantity        int             `db:"quantity"`
 	Price           decimal.Decimal `db:"price"`
 	Discount        decimal.Decimal `db:"discount"`
+	DiscountType    string          `db:"discount_type"`
 	PickupID        int             `db:"pickup_location_id"`
 	PickupName      string          `db:"pickup_name"`
 	AddrStreet      string          `db:"addrstreet"`
@@ -570,7 +572,8 @@ func writeCheckoutData(
 			Quantity:       r.Quantity,
 			Price:          r.Price,
 			Discount:       r.Discount,
-			Personalizacao: unmarshalPersonalizacao(r.Personalizacao),
+			DiscountType:   r.DiscountType,
+			Personalizacao: unmarshalPersonalizacao(r.Personalizacao), // FIXME: i'm pretty sure pgx does this automatically
 			Retirada: PickupLocationSummary{
 				ID:   r.PickupID,
 				Name: r.PickupName,

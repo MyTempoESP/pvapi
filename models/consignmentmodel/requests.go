@@ -8,15 +8,16 @@ import (
 )
 
 type AddProductUnit struct {
-	ID          int             `json:"productId" binding:"required"`
-	Quantity    int             `json:"quantity"  binding:"required"`
-	Price       decimal.Decimal `json:"price"     binding:"required"`
-	Color       string          `json:"color"     binding:"required"`
-	Discount    decimal.Decimal `json:"discount"  binding:"required"`
-	Featured    bool            `json:"featured"  binding:"required"`
-	Name        string          `json:"productName"`
-	Description string          `json:"description"`
-	Category    string          `json:"category"`
+	ID           int             `json:"productId" binding:"required"`
+	Quantity     int             `json:"quantity"  binding:"required"`
+	Price        decimal.Decimal `json:"price"     binding:"required"`
+	Color        string          `json:"color"     binding:"required"`
+	Discount     decimal.Decimal `json:"discount"  binding:"required"`
+	DiscountType string          `json:"discountType"`
+	Featured     bool            `json:"featured"  binding:"required"`
+	Name         string          `json:"productName"`
+	Description  string          `json:"description"`
+	Category     string          `json:"category"`
 }
 
 type AddProductRequest struct {
@@ -46,9 +47,11 @@ type UpdateConsignmentRequest struct {
 }
 
 type UpdateConsignmentProductRequest struct {
-	Price    *decimal.Decimal `json:"price"`
-	Quantity *int             `json:"quantity"`
-	Status   *string          `json:"status" binding:"omitempty,oneof=active paused"`
+	Price        *decimal.Decimal `json:"price"`
+	Quantity     *int             `json:"quantity"`
+	Status       *string          `json:"status" binding:"omitempty,oneof=active paused"`
+	Discount     *decimal.Decimal `json:"discount"`
+	DiscountType *string          `json:"discountType"`
 }
 
 func (p UpdateConsignmentProductRequest) Prepare(

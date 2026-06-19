@@ -158,15 +158,16 @@ type ConsignmentPickupResource struct {
 }
 
 type ProductConsignmentResource struct {
-	ID       int             `json:"id"`
-	Name     string          `json:"name"`
-	Stock    int             `json:"stock"`
-	Price    decimal.Decimal `json:"price"`
-	Discount decimal.Decimal `json:"discount"`
-	Featured bool            `json:"featured"`
-	Code     string          `json:"code"`
-	UUID     string          `json:"uuid"`
-	Status   string          `json:"status"`
+	ID           int             `json:"id"`
+	Name         string          `json:"name"`
+	Stock        int             `json:"stock"`
+	Price        decimal.Decimal `json:"price"`
+	Discount     decimal.Decimal `json:"discount"`
+	DiscountType string          `json:"discount_type"`
+	Featured     bool            `json:"featured"`
+	Code         string          `json:"code"`
+	UUID         string          `json:"uuid"`
+	Status       string          `json:"status"`
 
 	Colors []string `json:"colors,omitempty"`
 	Sizes  []string `json:"sizes,omitempty"`
@@ -187,15 +188,16 @@ type ProductConsignmentResource struct {
 
 func (r ConsignmentProductRow) ToConsignmentResource() ProductConsignmentResource {
 	return ProductConsignmentResource{
-		ID:       r.PackageID,
-		Name:     r.ProductName,
-		Stock:    r.ConsignmentStock,
-		Price:    r.ConsignmentPrice,
-		Discount: r.ConsignmentDiscount,
-		Featured: r.PackageFeatured,
-		Code:     r.ProductCode,
-		UUID:     r.ProductUUID,
-		Status:   r.PackageStatus,
+		ID:           r.PackageID,
+		Name:         r.ProductName,
+		Stock:        r.ConsignmentStock,
+		Price:        r.ConsignmentPrice,
+		Discount:     r.ConsignmentDiscount,
+		DiscountType: r.ConsignmentDiscountType,
+		Featured:     r.PackageFeatured,
+		Code:         r.ProductCode,
+		UUID:         r.ProductUUID,
+		Status:       r.PackageStatus,
 
 		Colors: r.ProductAttr.Colors,
 		Sizes:  r.ProductAttr.Sizes,

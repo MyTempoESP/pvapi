@@ -517,4 +517,342 @@ func TestConsignment(t *testing.T) {
 			t.Fatal("expected discount=-1 to be rejected")
 		}
 	})
+
+	// --- discountType validation ---
+
+	t.Run("fixed_discount_valid", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-fdv-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("FDV %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste fixed discount",
+					"category":    "porta-medalhas",
+					"discount":    5,
+					"discountType": "fixed",
+					"featured":    false,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("fixed_discount_greater_than_price", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-fdg-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("FDG %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste fixed discount > price",
+					"category":    "porta-medalhas",
+					"discount":    15,
+					"discountType": "fixed",
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected fixed discount > price to be rejected")
+		}
+	})
+
+	t.Run("fixed_discount_negative", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-fdn-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("FDN %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste fixed discount negative",
+					"category":    "porta-medalhas",
+					"discount":    -1,
+					"discountType": "fixed",
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected negative fixed discount to be rejected")
+		}
+	})
+
+	t.Run("explicit_percentage_discount", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-epd-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("EPD %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste explicit percentage",
+					"category":    "porta-medalhas",
+					"discount":    50,
+					"discountType": "percentage",
+					"featured":    false,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify via GET — the POST response does not include product data
+		rec2 := h.doRequest(t, http.MethodGet, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, "", nil)
+		assertStatus(t, rec2, http.StatusOK)
+
+		body := decodeJSON(t, rec2)
+		products := asSlice(t, body["products"])
+		for _, p := range products {
+			pm := asMap(t, p)
+			if asInt(t, pm["id"]) != prd.ID {
+				continue
+			}
+			pivot := asMap(t, pm["pivot"])
+			if dt := asString(t, pivot["discount_type"]); dt != "percentage" {
+				t.Fatalf("expected discount_type 'percentage', got %q", dt)
+			}
+			return
+		}
+		t.Fatalf("product %d not found in consignment listing", prd.ID)
+	})
+
+	t.Run("percentage_discount_above_100", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-pda-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("PDA %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste percentage > 100",
+					"category":    "porta-medalhas",
+					"discount":    101,
+					"discountType": "percentage",
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected percentage discount > 100 to be rejected")
+		}
+	})
+
+	t.Run("percentage_discount_negative", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-pdn-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("PDN %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste percentage negative",
+					"category":    "porta-medalhas",
+					"discount":    -1,
+					"discountType": "percentage",
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected negative percentage discount to be rejected")
+		}
+	})
+
+	t.Run("invalid_discountType", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-idt-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("IDT %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste invalid discountType",
+					"category":    "porta-medalhas",
+					"discount":    10,
+					"discountType": "bogus",
+					"featured":    false,
+				},
+			},
+		})
+		if rec.Code == http.StatusOK {
+			t.Fatal("expected invalid discountType to be rejected")
+		}
+	})
+
+	t.Run("default_discountType_percentage", func(t *testing.T) {
+		// omit discountType → defaults to "percentage"
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-ddp-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("DDP %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    1,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste default discountType",
+					"category":    "porta-medalhas",
+					"discount":    20,
+					"featured":    false,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// Verify via GET — the POST response does not include product data
+		rec2 := h.doRequest(t, http.MethodGet, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, "", nil)
+		assertStatus(t, rec2, http.StatusOK)
+
+		body := decodeJSON(t, rec2)
+		products := asSlice(t, body["products"])
+		for _, p := range products {
+			pm := asMap(t, p)
+			if asInt(t, pm["id"]) != prd.ID {
+				continue
+			}
+			pivot := asMap(t, pm["pivot"])
+			if dt := asString(t, pivot["discount_type"]); dt != "percentage" {
+				t.Fatalf("expected default discount_type 'percentage', got %q", dt)
+			}
+			return
+		}
+		t.Fatalf("product %d not found in consignment listing", prd.ID)
+	})
+
+	t.Run("update_consignment_product_discount", func(t *testing.T) {
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-upd-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("UPD %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		h.addProductToConsignment(t, &shopSession, cons.ID, prd.ID, prd.Name)
+
+		// update discount + discountType
+		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d/produtos/%d", cons.ID, prd.ID), &shopSession, map[string]any{
+			"discount":    3,
+			"discountType": "fixed",
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		// verify via GET
+		rec2 := h.doRequest(t, http.MethodGet, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, "", nil)
+		assertStatus(t, rec2, http.StatusOK)
+
+		body := decodeJSON(t, rec2)
+		products := asSlice(t, body["products"])
+		for _, p := range products {
+			pm := asMap(t, p)
+			if asInt(t, pm["id"]) != prd.ID {
+				continue
+			}
+			pivot := asMap(t, pm["pivot"])
+			// discount is decimal.Decimal serialized as JSON number, captured as json.Number
+			discountVal := fmt.Sprintf("%v", pivot["discount"])
+			if discountVal != "3" && discountVal != "3.0" {
+				t.Fatalf("expected discount 3, got %v", pivot["discount"])
+			}
+			if dt := asString(t, pivot["discount_type"]); dt != "fixed" {
+				t.Fatalf("expected discount_type 'fixed', got %q", dt)
+			}
+			return
+		}
+		t.Fatalf("product %d not found in consignment listing", prd.ID)
+	})
+
+	t.Run("public_listing_returns_discount_type", func(t *testing.T) {
+		// Reset consignment to LIBERADO so the public listing endpoint accepts it
+		h.doJSON(t, http.MethodPut, fmt.Sprintf("/remessas/%d", cons.ID), &shopSession, map[string]any{
+			"status": "LIBERADO",
+		})
+
+		cat := h.createCategory(t, &shopSession, fmt.Sprintf("cat-pldt-%d", time.Now().UnixNano()))
+		prd := h.createProduct(t, &shopSession, fmt.Sprintf("PLDT %d", time.Now().UnixNano()), cat.ID)
+		h.approveProduct(t, &admin, prd.ID)
+
+		// Use explicit percentage to make the assertion unambiguous
+		rec := h.doJSON(t, http.MethodPost, fmt.Sprintf("/remessas/%d/produtos", cons.ID), &shopSession, map[string]any{
+			"products": []map[string]any{
+				{
+					"productId":   prd.ID,
+					"productName": prd.Name,
+					"quantity":    2,
+					"price":       10,
+					"color":       "#000000",
+					"description": "teste public discount_type",
+					"category":    "porta-medalhas",
+					"discount":    15,
+					"discountType": "percentage",
+					"featured":    false,
+				},
+			},
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		code := h.getConsignmentCode(t, &shopSession, cons.ID)
+
+		rec2 := h.doRequest(t, http.MethodGet, fmt.Sprintf("/produtos?token=%s", code), nil, "", nil)
+		assertStatus(t, rec2, http.StatusOK)
+
+		body := decodeJSON(t, rec2)
+		products := asSlice(t, body["produtos"])
+		found := false
+		for _, p := range products {
+			pm := asMap(t, p)
+			if asString(t, pm["name"]) != prd.Name {
+				continue
+			}
+			found = true
+			dt := asString(t, pm["discount_type"])
+			if dt != "percentage" {
+				t.Fatalf("expected discount_type 'percentage' in public listing, got %q", dt)
+			}
+			discountVal := fmt.Sprintf("%v", pm["discount"])
+			if discountVal != "15" && discountVal != "15.0" {
+				t.Fatalf("expected discount 15 in public listing, got %v", pm["discount"])
+			}
+		}
+		if !found {
+			t.Fatalf("product %q not found in public listing", prd.Name)
+		}
+	})
 }

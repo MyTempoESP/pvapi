@@ -21,11 +21,39 @@ func (a AddProductAction) Exec(
 	tx pgx.Tx,
 ) (err error) {
 	for _, p := range a.Products {
-		if p.Discount.LessThan(decimal.NewFromInt(0)) || p.Discount.GreaterThan(decimal.NewFromInt(100)) {
+		dt := p.DiscountType
+		if dt == "" {
+			dt = "percentage"
+		}
+
+		switch dt {
+		case "percentage":
+			if p.Discount.LessThan(decimal.NewFromInt(0)) || p.Discount.GreaterThan(decimal.NewFromInt(100)) {
+				return fmt.Errorf(
+					"percentage discount must be between 0 and 100, got %s: %w",
+					p.Discount.String(),
+					util.ErrBadRequest,
+				)
+			}
+		case "fixed":
+			if p.Discount.LessThan(decimal.NewFromInt(0)) {
+				return fmt.Errorf(
+					"fixed discount must be >= 0, got %s: %w",
+					p.Discount.String(),
+					util.ErrBadRequest,
+				)
+			}
+			if p.Discount.GreaterThan(p.Price) {
+				return fmt.Errorf(
+					"fixed discount %s cannot exceed package price %s: %w",
+					p.Discount.String(), p.Price.String(),
+					util.ErrBadRequest,
+				)
+			}
+		default:
 			return fmt.Errorf(
-				"discount must be between 0 and 100, got %s: %w",
-				p.Discount.String(),
-				util.ErrBadRequest,
+				"discountType must be 'percentage' or 'fixed', got %q: %w",
+				dt, util.ErrBadRequest,
 			)
 		}
 
@@ -65,6 +93,7 @@ func (a AddProductAction) Exec(
 				"price":          product.Price,
 				"attr":           product.AttrVal,
 				"discount":       product.Discount,
+				"discount_type":  product.DiscountType,
 				"featured":       product.Featured,
 			},
 		)
@@ -109,6 +138,14 @@ func (p UpdateConsignmentProductBlueprint) Exec(
 
 	if p.Status != nil {
 		fields["status"] = *p.Status
+	}
+
+	if p.Discount != nil {
+		fields["discount"] = *p.Discount
+	}
+
+	if p.DiscountType != nil {
+		fields["discount_type"] = *p.DiscountType
 	}
 
 	if len(fields) == 0 {
@@ -198,12 +235,12 @@ func (c ConsignmentBlueprint) Save(
 		base,
 		query.CreateConsignmentQuery,
 		util.Args{
-			"shop_id":            c.ShopID,
-			"consignee_id":       c.ConsigneeID,
-			"comission_type":     c.ComissionType,
-			"comission_value":    c.ComissionValue,
-			"status":             c.Status,
-			"name":               c.Name,
+			"shop_id":         c.ShopID,
+			"consignee_id":    c.ConsigneeID,
+			"comission_type":  c.ComissionType,
+			"comission_value": c.ComissionValue,
+			"status":          c.Status,
+			"name":            c.Name,
 		},
 	)
 	if err != nil {

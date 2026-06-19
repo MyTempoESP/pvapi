@@ -647,9 +647,10 @@ type ConsignmentProductRow struct {
 	ProductShopID      int             `db:"product_shop_id"`
 	ProductShopName    string          `db:"product_shop_name"`
 
-	ConsignmentPrice    decimal.Decimal `db:"consignment_price"`
-	ConsignmentStock    int             `db:"consignment_stock"`
-	ConsignmentDiscount decimal.Decimal `db:"consignment_discount"`
+	ConsignmentPrice         decimal.Decimal `db:"consignment_price"`
+	ConsignmentStock         int             `db:"consignment_stock"`
+	ConsignmentDiscount      decimal.Decimal `db:"consignment_discount"`
+	ConsignmentDiscountType  string          `db:"consignment_discount_type"`
 }
 
 type PickupByCodeRow struct {

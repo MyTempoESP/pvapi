@@ -26,7 +26,7 @@ WITH decrement AS (
 	UPDATE packages
 	SET quantity = quantity - $3
 	WHERE id = $1 AND quantity >= $3
-	RETURNING id, product_id, consignment_id, price, discount
+	RETURNING id, product_id, consignment_id, price, discount, discount_type
 )
 INSERT INTO package_reserved
 	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status, pickup_location_id, personalizacao)
@@ -34,17 +34,17 @@ SELECT
 	d.id,
 	$2,
 	$3::integer,
-	(p.platform_cut / 100.0) * d.price * (1.0 - d.discount / 100.0) * $3::numeric,
+	(p.platform_cut / 100.0) * effective_unit_price(d.price, d.discount, d.discount_type) * $3::numeric,
 	CASE
 		-- FIXED: commission is the flat comission_value per checkout,
 		--        not added to the package price
 		WHEN c.comission_type = 'PERCENT'
-			THEN (c.comission_value / 100.0) * d.price * (1.0 - d.discount / 100.0) * $3::numeric
+			THEN (c.comission_value / 100.0) * effective_unit_price(d.price, d.discount, d.discount_type) * $3::numeric
 		ELSE c.comission_value
 	END,
 	c.shop_id,
 	d.consignment_id,
-	d.price * (1.0 - d.discount / 100.0) * $3::numeric,
+	effective_unit_price(d.price, d.discount, d.discount_type) * $3::numeric,
 	'pending',
 	$4,
 	$5::jsonb
@@ -169,6 +169,7 @@ SELECT
 	pr.quantity,
 	pkg.price,
 	pkg.discount,
+	pkg.discount_type,
 	pr.pickup_location_id,
 	pr.personalizacao,
 	pl.name         AS pickup_name,

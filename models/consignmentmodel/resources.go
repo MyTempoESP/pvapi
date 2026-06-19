@@ -21,9 +21,11 @@ type ProductResource struct {
 }
 
 type PackageResource struct {
-	Price    decimal.Decimal `json:"price"`
-	Quantity int             `json:"quantity"`
-	Status   string          `json:"status"`
+	Price        decimal.Decimal `json:"price"`
+	Quantity     int             `json:"quantity"`
+	Status       string          `json:"status"`
+	Discount     decimal.Decimal `json:"discount"`
+	DiscountType string          `json:"discount_type"`
 }
 
 type DestinationsResource []PickupResource
@@ -159,9 +161,11 @@ func (p ConsignmentProduct) ToResource() ProductResource {
 
 		// The nested "pivot" object
 		Package: PackageResource{
-			Price:    p.Package.Price,
-			Quantity: p.Quantity,
-			Status:   p.Status,
+			Price:        p.Package.Price,
+			Quantity:     p.Quantity,
+			Status:       p.Status,
+			Discount:     p.Package.Discount,
+			DiscountType: p.DiscountType,
 		},
 	}
 }

@@ -53,6 +53,7 @@ INSERT INTO packages
 		price,
 		attributesValues,
 		discount,
+		discount_type,
 		featured
 	)
 SELECT
@@ -62,6 +63,7 @@ SELECT
 	@price,
 	@attr,
 	@discount,
+	COALESCE(NULLIF(@discount_type, ''), 'percentage'),
 	@featured
 FROM inventory_check
 RETURNING id
@@ -241,7 +243,9 @@ SELECT
 
 	p.price AS package_price,
 	p.quantity AS package_quantity,
-	p.status AS package_status
+	p.status AS package_status,
+	p.discount AS package_discount,
+	p.discount_type AS package_discount_type
 FROM packages p
 LEFT JOIN product_catalog_view c ON c.product_id = p.product_id
 WHERE p.consignment_id = $1
@@ -348,7 +352,8 @@ SELECT
 
 	pkg.price          AS consignment_price,
 	pkg.quantity       AS consignment_stock,
-	pkg.discount       AS consignment_discount
+	pkg.discount       AS consignment_discount,
+	pkg.discount_type  AS consignment_discount_type
 FROM packages pkg
 JOIN consignments c ON c.id = pkg.consignment_id
 JOIN product_catalog_view p ON p.product_id = pkg.product_id

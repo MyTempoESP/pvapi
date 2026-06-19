@@ -413,6 +413,16 @@ components:
           type: string
 
     # ── Checkout ────────────────────────────────────────────────
+    PersonalizacaoEntry:
+      description: Par nome/valor de personalização.
+      type: object
+      required: [nome, valor]
+      properties:
+        nome:
+          type: string
+        valor:
+          type: string
+
     ItemCheckout:
       description: Item individual da compra — um pacote, a quantidade desejada, o ponto de retirada e personalização opcional.
       type: object
@@ -431,10 +441,16 @@ components:
           minimum: 1
           description: ID do ponto de retirada — é o `id` recebido no array `retiradas` de `GET /produtos?token={token_de_remessa}`
         personalizacao:
-          type: object
-          additionalProperties:
-            type: string
-          description: 'Pares chave-valor de personalização do pacote (opcional). Ex.: `{"name": "Fulano", "number": "10"}`.'
+          type: array
+          items:
+            type: object
+            required: [nome, valor]
+            properties:
+              nome:
+                type: string
+              valor:
+                type: string
+          description: 'Lista de personalizações do pacote (opcional). Cada item é um par nome/valor. Ex.: `[{"nome": "Name", "valor": "Fulano"}, {"nome": "Number", "valor": "10"}]`.'
 
     ConfirmarCheckoutRequest:
       description: "Payload de confirmação de checkout: itens da compra, identificação do cliente (CPF ou telefone) e callback opcional."
@@ -469,8 +485,10 @@ components:
             quantity: 1
             retirada: 5
             personalizacao:
-              name: "Fulano"
-              number: "10"
+              - nome: "Name"
+                valor: "Fulano"
+              - nome: "Number"
+                valor: "10"
         telephone: "11988887777"
         cpf: "12345678901"
         client_name: "Nome do Cliente"
@@ -541,9 +559,9 @@ components:
           type: number
           description: Desconto do pacote (decimal)
         personalizacao:
-          type: object
-          additionalProperties:
-            type: string
+          type: array
+          items:
+            $ref: "#/components/schemas/PersonalizacaoEntry"
           description: Personalização enviada no item do checkout (opcional).
         retirada:
           $ref: "#/components/schemas/PickupLocationSummary"
