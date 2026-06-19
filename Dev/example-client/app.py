@@ -9,6 +9,7 @@ import requests
 import streamlit as st
 
 BASE_URL = os.environ.get("PV_API_BASE_URL", "https://pvauto.linhazero.com")
+_DEFAULT_API_TOKEN = os.environ.get("PV_API_TOKEN", "")
 
 # ── Session state defaults ──────────────────────────────────────────────────
 
@@ -87,9 +88,8 @@ if menu == "Checkout via Token":
     api_token = st.text_input(
         "API Token (Bearer)",
         value=st.session_state.get("token_api_token", ""),
-        placeholder="pv_...",
+        placeholder="pv_... (deixe vazio para usar chave integrada)",
         key="token_api_token",
-        type="password",
     )
 
     # ── Section 1: Token de Remessa ───────────────────────────────────────
@@ -361,7 +361,7 @@ if menu == "Checkout via Token":
             if cpf.strip():
                 payload["cpf"] = cpf.strip()
 
-            api_token_val = st.session_state.get("token_api_token", "").strip()
+            api_token_val = st.session_state.get("token_api_token", "").strip() or _DEFAULT_API_TOKEN
             if not api_token_val:
                 st.error("Informe o API Token (seção 0).")
             else:
@@ -429,10 +429,8 @@ if menu == "Checkout via Token":
     )
 
     if st.button("🗑️ Cancelar checkout", use_container_width=True, key="cancel_checkout_btn"):
-        api_token_val = st.session_state.get("token_api_token", "").strip()
-        if not api_token_val:
-            st.error("Informe o API Token (seção 0).")
-        elif not cancel_unique_id.strip():
+        api_token_val = st.session_state.get("token_api_token", "").strip() or _DEFAULT_API_TOKEN
+        if not cancel_unique_id.strip():
             st.error("Informe o UUID do checkout.")
         else:
             with st.spinner("Cancelando checkout..."):
