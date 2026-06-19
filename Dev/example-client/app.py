@@ -282,12 +282,13 @@ if menu == "Checkout via Token":
                         del st.session_state.token_personalizacoes[pers_key][to_delete]
                         st.rerun()
 
-                    # Add new entry
+                    # Add new entry — key suffix tied to list length so fields clear after add
+                    suffix = len(existing)
                     col_n, col_v, col_add = st.columns([2, 2, 1])
                     with col_n:
-                        new_nome = st.text_input("Nome", key=f"{pers_key}_new_n", placeholder="Name", label_visibility="collapsed")
+                        new_nome = st.text_input("Nome", key=f"{pers_key}_new_n_{suffix}", placeholder="Name", label_visibility="collapsed")
                     with col_v:
-                        new_valor = st.text_input("Valor", key=f"{pers_key}_new_v", placeholder="Fulano", label_visibility="collapsed")
+                        new_valor = st.text_input("Valor", key=f"{pers_key}_new_v_{suffix}", placeholder="Fulano", label_visibility="collapsed")
                     with col_add:
                         if st.button("＋", key=f"{pers_key}_add"):
                             if new_nome.strip() and new_valor.strip():
