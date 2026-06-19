@@ -23,7 +23,11 @@ type ProductResource struct {
 	Status           string          `json:"status"`
 	Discount         decimal.Decimal `json:"discount"`
 	DiscountType     string          `json:"discount_type"`
-	Featured         bool            `json:"featured"`
+
+	// ponytail: duplicated for backwards compatibility
+	ConsignmentPrice    decimal.Decimal `json:"consignment_price"`
+	ConsignmentQuantity int             `json:"consignment_quantity"`
+	Featured            bool            `json:"featured"`
 
 	Colors []string `json:"colors,omitempty"`
 	Sizes  []string `json:"sizes,omitempty"`
@@ -35,10 +39,10 @@ type ProductResource struct {
 	PlatformCut     decimal.Decimal `json:"platform_cut"`
 	PlatformCutType string          `json:"platform_cut_type"`
 
-	Specifications       []productSpecResource `json:"specifications"`
-	SpecificationImages  []string              `json:"specificationsImages"`
-	DescriptionImages    []string              `json:"descriptionImages"`
-	DeliveryImages       []string              `json:"deliveryImages"`
+	Specifications      []productSpecResource `json:"specifications"`
+	SpecificationImages []string              `json:"specificationsImages"`
+	DescriptionImages   []string              `json:"descriptionImages"`
+	DeliveryImages      []string              `json:"deliveryImages"`
 }
 
 type productSpecResource struct {
@@ -173,23 +177,26 @@ func (p ConsignmentProduct) ToResource() ProductResource {
 	}
 
 	return ProductResource{
-		ID:               p.Product.ID,
-		Name:             p.Product.Name,
-		Code:             p.Product.Code,
-		UUID:             p.Product.UUID,
+		ID:               p.ID,
+		Name:             p.Name,
+		Code:             p.Code,
+		UUID:             p.UUID,
 		Image:            p.Attributes.Image,
 		ImageURL:         p.Attributes.Image,
-		Category:         p.Product.Category,
-		CategoryID:       p.Product.CategoryID,
-		Description:      p.Product.Description,
+		Category:         p.Category,
+		CategoryID:       p.CategoryID,
+		Description:      p.Description,
 		OriginalPrice:    p.Product.Price,
 		OriginalQuantity: p.Stock,
 		Price:            p.Package.Price,
-		Quantity:         p.Package.Quantity,
-		Status:           p.Package.Status,
+		Quantity:         p.Quantity,
+		Status:           p.Status,
 		Discount:         p.Package.Discount,
-		DiscountType:     p.Package.DiscountType,
-		Featured:         p.Product.Featured,
+		DiscountType:     p.DiscountType,
+
+		ConsignmentPrice:    p.Package.Price,
+		ConsignmentQuantity: p.Quantity,
+		Featured:            p.Featured,
 
 		Colors: p.Attributes.Colors,
 		Sizes:  p.Attributes.Sizes,
@@ -198,8 +205,8 @@ func (p ConsignmentProduct) ToResource() ProductResource {
 		AllowCustomModality:       p.Attributes.AllowCustomModality,
 		AllowCustomColorSelection: p.Attributes.AllowCustomColor,
 
-		PlatformCut:     p.Product.PlatformCut,
-		PlatformCutType: p.Product.PlatformCutType,
+		PlatformCut:     p.PlatformCut,
+		PlatformCutType: p.PlatformCutType,
 
 		Specifications:      specs,
 		SpecificationImages: p.Attributes.SpecImages,
