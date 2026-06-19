@@ -241,7 +241,7 @@ func (h *apiHarness) createConsignmentWithPickups(t *testing.T, session *apiSess
 		"destinationId": ids,
 		"monitorId":     monitorID,
 		"name":          "Remessa Teste",
-		"status":        "CONFERIR - DEVOLUCAO",
+		"status":        "LIBERADO",
 		"monitorProfit": 3,
 	})
 	assertStatus(t, rec, http.StatusOK)

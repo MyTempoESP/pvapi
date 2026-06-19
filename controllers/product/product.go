@@ -57,6 +57,11 @@ func PublicListingHandler(
 			return
 		}
 
+		if lookup.Status == "PAUSADO" {
+			util.Handle404(c, fmt.Errorf("remessa temporariamente indisponível"))
+			return
+		}
+
 		// Fetch products
 		products, err := productmodel.PublicIndexByConsignmentCode(
 			c.Request.Context(), pool, token,

@@ -354,7 +354,7 @@ JOIN consignments c ON c.id = pkg.consignment_id
 JOIN product_catalog_view p ON p.product_id = pkg.product_id
 WHERE c.code = $1
   AND p.product_moderation_status = 'approved'
-  AND c.status != 'ARQUIVADO'
+  AND c.status NOT IN ('ARQUIVADO', 'PAUSADO')
   AND pkg.status != 'paused'
 `
 )
