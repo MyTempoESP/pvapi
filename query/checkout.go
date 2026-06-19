@@ -29,7 +29,7 @@ WITH decrement AS (
 	RETURNING id, product_id, consignment_id, price, discount
 )
 INSERT INTO package_reserved
-	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status, pickup_location_id)
+	(package_id, checkout_id, quantity, tax, commission, shop_id, consignment_id, shop_value, status, pickup_location_id, personalizacao)
 SELECT
 	d.id,
 	$2,
@@ -46,7 +46,8 @@ SELECT
 	d.consignment_id,
 	d.price * (1.0 - d.discount / 100.0) * $3::numeric,
 	'pending',
-	$4
+	$4,
+	$5::jsonb
 FROM decrement d
 JOIN products p ON p.id = d.product_id
 JOIN consignments c ON c.id = d.consignment_id
@@ -169,6 +170,7 @@ SELECT
 	pkg.price,
 	pkg.discount,
 	pr.pickup_location_id,
+	pr.personalizacao,
 	pl.name         AS pickup_name,
 	a.addrstreet,
 	a.addrnumber::text,

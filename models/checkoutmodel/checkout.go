@@ -23,9 +23,10 @@ import (
 var RateLimitWindowSeconds = 60
 
 type ConfirmItem struct {
-	PackageID int `json:"id" binding:"required"`
-	Quantity  int `json:"quantity" binding:"required,min=1"`
-	Retirada  int `json:"retirada" binding:"required"`
+	PackageID      int               `json:"id" binding:"required"`
+	Quantity       int               `json:"quantity" binding:"required,min=1"`
+	Retirada       int               `json:"retirada" binding:"required"`
+	Personalizacao map[string]string `json:"personalizacao"`
 }
 
 type ConfirmRequest struct {
@@ -58,12 +59,13 @@ type AddressResource struct {
 }
 
 type QRCodeEntry struct {
-	ProductID int                  `json:"product_id"`
-	QrCode    string               `json:"qr_code"`
-	Quantity  int                  `json:"quantity"`
-	Price     decimal.Decimal      `json:"price"`
-	Discount  decimal.Decimal      `json:"discount"`
-	Retirada  PickupLocationSummary `json:"retirada"`
+	ProductID      int                  `json:"product_id"`
+	QrCode         string               `json:"qr_code"`
+	Quantity       int                  `json:"quantity"`
+	Price          decimal.Decimal      `json:"price"`
+	Discount       decimal.Decimal      `json:"discount"`
+	Personalizacao map[string]string    `json:"personalizacao"`
+	Retirada       PickupLocationSummary `json:"retirada"`
 }
 
 type ConfirmResponse struct {
@@ -481,7 +483,8 @@ type enrichedEntryRow struct {
 	AddrState       string          `db:"addrstate"`
 	AddrCEP         string          `db:"addrcep"`
 	AddrNeigh       string          `db:"addrneigh"`
-	AddrComplement  string          `db:"addrcomplement"`
+	AddrComplement  string           `db:"addrcomplement"`
+	Personalizacao  *map[string]string `db:"personalizacao"`
 }
 
 // writeCheckoutData writes package reservations, generates QR codes per
@@ -497,6 +500,11 @@ func writeCheckoutData(
 		var pkgUniqueID string
 		var pkgID int
 
+		// ponytail: nil → empty map avoids NULL in NOT NULL jsonb column
+		pers := item.Personalizacao
+		if pers == nil {
+			pers = map[string]string{}
+		}
 		err := tx.QueryRow(
 			ctx,
 			query.InsertPackageReservedQuery,
@@ -504,6 +512,7 @@ func writeCheckoutData(
 			checkoutID,
 			item.Quantity,
 			item.Retirada,
+			pers,
 		).Scan(&pkgUniqueID, &pkgID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to reserve package %d: %w", item.PackageID, err)
@@ -537,12 +546,17 @@ func writeCheckoutData(
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate qr code: %w", err)
 		}
+		pers := map[string]string{}
+		if r.Personalizacao != nil {
+			pers = *r.Personalizacao
+		}
 		entries = append(entries, QRCodeEntry{
-			ProductID: r.ProductID,
-			QrCode:    qr,
-			Quantity:  r.Quantity,
-			Price:     r.Price,
-			Discount:  r.Discount,
+			ProductID:      r.ProductID,
+			QrCode:         qr,
+			Quantity:       r.Quantity,
+			Price:          r.Price,
+			Discount:       r.Discount,
+			Personalizacao: pers,
 			Retirada: PickupLocationSummary{
 				ID:   r.PickupID,
 				Name: r.PickupName,

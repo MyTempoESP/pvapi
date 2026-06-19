@@ -742,6 +742,123 @@ func TestCheckoutClientAutoCreation(t *testing.T) {
 			t.Fatalf("expected retirada inválida message, got %q", asString(t, body["message"]))
 		}
 	})
+
+	t.Run("personalizacao_in_request_echoed_in_response", func(t *testing.T) {
+		runID := baseRunID + 40
+		fx := setupChkCliFixtures(t, h, "pers", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
+			"items": []map[string]any{
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": map[string]string{"tamanho": "G", "cor": "azul"}},
+			},
+			"client_email": fmt.Sprintf("pers-%d@example.com", runID),
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		qrCodes := asSlice(t, body["qr_codes"])
+		if len(qrCodes) != 1 {
+			t.Fatalf("expected 1 qr_code, got %d", len(qrCodes))
+		}
+		pers := asMap(t, qrCodes[0])["personalizacao"]
+		persMap := asMap(t, pers)
+		if asString(t, persMap["tamanho"]) != "G" {
+			t.Fatalf("expected tamanho=G, got %v", persMap["tamanho"])
+		}
+		if asString(t, persMap["cor"]) != "azul" {
+			t.Fatalf("expected cor=azul, got %v", persMap["cor"])
+		}
+	})
+
+	t.Run("personalizacao_omitted_defaults_to_empty", func(t *testing.T) {
+		runID := baseRunID + 41
+		fx := setupChkCliFixtures(t, h, "persdef", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
+			"items": []map[string]any{
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID},
+			},
+			"client_email": fmt.Sprintf("persdef-%d@example.com", runID),
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		qrCodes := asSlice(t, body["qr_codes"])
+		if len(qrCodes) != 1 {
+			t.Fatalf("expected 1 qr_code, got %d", len(qrCodes))
+		}
+		pers := asMap(t, qrCodes[0])["personalizacao"]
+		if len(asMap(t, pers)) != 0 {
+			t.Fatalf("expected empty personalizacao, got %v", pers)
+		}
+	})
+
+	t.Run("personalizacao_empty_object_echoed", func(t *testing.T) {
+		runID := baseRunID + 42
+		fx := setupChkCliFixtures(t, h, "persemp", runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
+			"items": []map[string]any{
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": map[string]string{}},
+			},
+			"client_email": fmt.Sprintf("persemp-%d@example.com", runID),
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		qrCodes := asSlice(t, body["qr_codes"])
+		if len(qrCodes) != 1 {
+			t.Fatalf("expected 1 qr_code, got %d", len(qrCodes))
+		}
+		pers := asMap(t, qrCodes[0])["personalizacao"]
+		if len(asMap(t, pers)) != 0 {
+			t.Fatalf("expected empty personalizacao, got %v", pers)
+		}
+	})
+
+	t.Run("multiple_items_each_with_different_personalizacao", func(t *testing.T) {
+		runID := baseRunID + 43
+		fx := setupChkCliFixtures(t, h, "persmul", runID)
+
+		// Second product with its own consignment and pickup
+		monitor2 := h.createMonitor(t, &fx.shopSession,
+			fmt.Sprintf("Monitor PersMul2 %d", runID),
+			fmt.Sprintf("api-chkcli-mon-persmul2-%d@example.com", runID),
+			"27998209675")
+		pickup2 := h.createPickup(t, &fx.shopSession)
+		cat2 := h.createCategory(t, &fx.shopSession, fmt.Sprintf("cat-persmul-%d", runID))
+		prd2Name := fmt.Sprintf("Produto PersMul %d", runID)
+		prd2 := h.createProduct(t, &fx.shopSession, prd2Name, cat2.ID)
+		h.approveProduct(t, &fx.admin, prd2.ID)
+		cons2 := h.createConsignment(t, &fx.shopSession, pickup2.ID, monitor2.ID)
+		h.addProductToConsignment(t, &fx.shopSession, cons2.ID, prd2.ID, prd2Name)
+		pkgID2 := h.getPackageID(t, prd2.ID, runID)
+
+		rec := h.doJSON(t, http.MethodPost, "/checkouts/confirm", h.defaultAPISession, map[string]any{
+			"items": []map[string]any{
+				{"id": fx.packageID, "quantity": 1, "retirada": fx.pickupID, "personalizacao": map[string]string{"cor": "vermelho"}},
+				{"id": pkgID2, "quantity": 1, "retirada": pickup2.ID, "personalizacao": map[string]string{"tamanho": "GG"}},
+			},
+			"client_email": fmt.Sprintf("persmul-%d@example.com", runID),
+		})
+		assertStatus(t, rec, http.StatusOK)
+
+		body := decodeJSON(t, rec)
+		qrCodes := asSlice(t, body["qr_codes"])
+		if len(qrCodes) != 2 {
+			t.Fatalf("expected 2 qr_codes, got %d", len(qrCodes))
+		}
+
+		pers0 := asMap(t, asMap(t, qrCodes[0])["personalizacao"])
+		pers1 := asMap(t, asMap(t, qrCodes[1])["personalizacao"])
+
+		if asString(t, pers0["cor"]) != "vermelho" {
+			t.Fatalf("expected item 0 cor=vermelho, got %v", pers0)
+		}
+		if asString(t, pers1["tamanho"]) != "GG" {
+			t.Fatalf("expected item 1 tamanho=GG, got %v", pers1)
+		}
+	})
 }
 
 // clientRow is a lightweight struct for querying client data directly from the database.
