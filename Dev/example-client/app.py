@@ -187,7 +187,7 @@ if menu == "Checkout via Token":
                     st.markdown(f"**Cores:** {', '.join(colors) if colors else '-'}")
                     sizes = prod.get("sizes") or []
                     st.markdown(f"**Tamanhos:** {', '.join(sizes) if sizes else '-'}")
-                    st.markdown(f"**Personalização:** nome={'Sim' if prod.get('allowCustomName') else 'Não'}, modalidade={'Sim' if prod.get('allowCustomModality') else 'Não'}, cor={'Sim' if prod.get('allowCustomColorSelection') else 'Não'}")
+                    st.markdown(f"**Regras:** nome={'Sim' if prod.get('allowCustomName') else 'Não'}, modalidade={'Sim' if prod.get('allowCustomModality') else 'Não'}, cor={'Sim' if prod.get('allowCustomColorSelection') else 'Não'}")
 
                 # Description
                 desc = prod.get("description", "")
