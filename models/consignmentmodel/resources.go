@@ -4,28 +4,46 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	"linhazero.com/pvapi/models/productmodel"
 )
 
 type ProductResource struct {
+	ID               int             `json:"id"`
+	Name             string          `json:"name"`
+	Code             string          `json:"code"`
+	UUID             string          `json:"uuid"`
 	Image            string          `json:"image"`
+	ImageURL         string          `json:"imageUrl"`
+	Category         string          `json:"category"`
+	CategoryID       int             `json:"category_id"`
+	Description      string          `json:"description"`
 	OriginalPrice    decimal.Decimal `json:"original_price"`
 	OriginalQuantity int             `json:"original_quantity"`
+	Price            decimal.Decimal `json:"price"`
+	Quantity         int             `json:"quantity"`
+	Status           string          `json:"status"`
+	Discount         decimal.Decimal `json:"discount"`
+	DiscountType     string          `json:"discount_type"`
+	Featured         bool            `json:"featured"`
 
-	// duplication here is intentional for backwards compatibility
-	PackagePrice    decimal.Decimal `json:"consignment_price"`
-	PackageQuantity int             `json:"consignment_quantity"`
+	Colors []string `json:"colors,omitempty"`
+	Sizes  []string `json:"sizes,omitempty"`
 
-	productmodel.ProductResource
-	Package PackageResource `json:"pivot"`
+	AllowCustomName           bool `json:"allowCustomName"`
+	AllowCustomModality       bool `json:"allowCustomModality"`
+	AllowCustomColorSelection bool `json:"allowCustomColorSelection"`
+
+	PlatformCut     decimal.Decimal `json:"platform_cut"`
+	PlatformCutType string          `json:"platform_cut_type"`
+
+	Specifications       []productSpecResource `json:"specifications"`
+	SpecificationImages  []string              `json:"specificationsImages"`
+	DescriptionImages    []string              `json:"descriptionImages"`
+	DeliveryImages       []string              `json:"deliveryImages"`
 }
 
-type PackageResource struct {
-	Price        decimal.Decimal `json:"price"`
-	Quantity     int             `json:"quantity"`
-	Status       string          `json:"status"`
-	Discount     decimal.Decimal `json:"discount"`
-	DiscountType string          `json:"discount_type"`
+type productSpecResource struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type DestinationsResource []PickupResource
@@ -149,23 +167,43 @@ func (c Consignment) ToPublicResource() PublicConsignmentResource {
 }
 
 func (p ConsignmentProduct) ToResource() ProductResource {
+	specs := make([]productSpecResource, len(p.Attributes.Specifications))
+	for i, s := range p.Attributes.Specifications {
+		specs[i] = productSpecResource{Name: s.Name, Value: s.Value}
+	}
+
 	return ProductResource{
+		ID:               p.Product.ID,
+		Name:             p.Product.Name,
+		Code:             p.Product.Code,
+		UUID:             p.Product.UUID,
 		Image:            p.Attributes.Image,
+		ImageURL:         p.Attributes.Image,
+		Category:         p.Product.Category,
+		CategoryID:       p.Product.CategoryID,
+		Description:      p.Product.Description,
 		OriginalPrice:    p.Product.Price,
 		OriginalQuantity: p.Stock,
+		Price:            p.Package.Price,
+		Quantity:         p.Package.Quantity,
+		Status:           p.Package.Status,
+		Discount:         p.Package.Discount,
+		DiscountType:     p.Package.DiscountType,
+		Featured:         p.Product.Featured,
 
-		PackagePrice:    p.Package.Price,
-		PackageQuantity: p.Quantity,
+		Colors: p.Attributes.Colors,
+		Sizes:  p.Attributes.Sizes,
 
-		ProductResource: p.Product.ToResource(),
+		AllowCustomName:           p.Attributes.AllowCustomName,
+		AllowCustomModality:       p.Attributes.AllowCustomModality,
+		AllowCustomColorSelection: p.Attributes.AllowCustomColor,
 
-		// The nested "pivot" object
-		Package: PackageResource{
-			Price:        p.Package.Price,
-			Quantity:     p.Quantity,
-			Status:       p.Status,
-			Discount:     p.Package.Discount,
-			DiscountType: p.DiscountType,
-		},
+		PlatformCut:     p.Product.PlatformCut,
+		PlatformCutType: p.Product.PlatformCutType,
+
+		Specifications:      specs,
+		SpecificationImages: p.Attributes.SpecImages,
+		DescriptionImages:   p.Attributes.DescImages,
+		DeliveryImages:      p.Attributes.PackImages,
 	}
 }

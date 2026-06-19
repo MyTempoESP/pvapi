@@ -630,8 +630,7 @@ func TestConsignment(t *testing.T) {
 			if asInt(t, pm["id"]) != prd.ID {
 				continue
 			}
-			pivot := asMap(t, pm["pivot"])
-			if dt := asString(t, pivot["discount_type"]); dt != "percentage" {
+			if dt := asString(t, pm["discount_type"]); dt != "percentage" {
 				t.Fatalf("expected discount_type 'percentage', got %q", dt)
 			}
 			return
@@ -751,8 +750,7 @@ func TestConsignment(t *testing.T) {
 			if asInt(t, pm["id"]) != prd.ID {
 				continue
 			}
-			pivot := asMap(t, pm["pivot"])
-			if dt := asString(t, pivot["discount_type"]); dt != "percentage" {
+			if dt := asString(t, pm["discount_type"]); dt != "percentage" {
 				t.Fatalf("expected default discount_type 'percentage', got %q", dt)
 			}
 			return
@@ -785,13 +783,11 @@ func TestConsignment(t *testing.T) {
 			if asInt(t, pm["id"]) != prd.ID {
 				continue
 			}
-			pivot := asMap(t, pm["pivot"])
-			// discount is decimal.Decimal serialized as JSON number, captured as json.Number
-			discountVal := fmt.Sprintf("%v", pivot["discount"])
+			discountVal := fmt.Sprintf("%v", pm["discount"])
 			if discountVal != "3" && discountVal != "3.0" {
-				t.Fatalf("expected discount 3, got %v", pivot["discount"])
+				t.Fatalf("expected discount 3, got %v", pm["discount"])
 			}
-			if dt := asString(t, pivot["discount_type"]); dt != "fixed" {
+			if dt := asString(t, pm["discount_type"]); dt != "fixed" {
 				t.Fatalf("expected discount_type 'fixed', got %q", dt)
 			}
 			return
