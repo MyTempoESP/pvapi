@@ -45,6 +45,7 @@ Response 200:
       "stock": 5,
       "price": 99.90,
       "discount": 0.00,
+      "discount_type": "percentage",
       "featured": false,
       "code": "PROD-001",
       "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
@@ -90,6 +91,7 @@ Response 200:
 | stock | integer | Stock quantity in this consignment |
 | price | number | Price (decimal) |
 | discount | number | Discount (decimal) |
+| discount_type | string | Discount type (`"percentage"` or `"fixed"`) |
 | featured | boolean | Whether product is featured |
 | code | string | Product code |
 | uuid | string | Product UUID |
@@ -254,6 +256,7 @@ Response 200:
       "quantity": 1,
       "price": 99.90,
       "discount": 0.00,
+      "discount_type": "percentage",
       "personalizacao": [
         { "nome": "Name", "valor": "Fulano" },
         { "nome": "Number", "valor": "10" }
@@ -286,6 +289,7 @@ Response 200:
 | qr_codes[].quantity | integer | Reserved quantity |
 | qr_codes[].price | number | Package price (decimal) |
 | qr_codes[].discount | number | Package discount (decimal) |
+| qr_codes[].discount_type | string | Discount type (`"percentage"` or `"fixed"`) |
 | qr_codes[].personalizacao | object[] | Array of `{nome, valor}` customization pairs sent in the checkout item |
 | qr_codes[].retirada | object | Pickup location summary (`id`, `nome`, `address`) |
 

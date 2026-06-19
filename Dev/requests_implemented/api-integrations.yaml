@@ -558,6 +558,9 @@ components:
         discount:
           type: number
           description: Desconto do pacote (decimal)
+        discount_type:
+          type: string
+          description: Tipo de desconto ("percentage" ou "fixed")
         personalizacao:
           type: array
           items:
@@ -851,6 +854,9 @@ components:
         discount:
           type: number
           description: Desconto (decimal)
+        discount_type:
+          type: string
+          description: Tipo de desconto ("percentage" ou "fixed")
         featured:
           type: boolean
           description: Produto em destaque
