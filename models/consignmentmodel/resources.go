@@ -23,6 +23,7 @@ type ProductResource struct {
 type PackageResource struct {
 	Price    decimal.Decimal `json:"price"`
 	Quantity int             `json:"quantity"`
+	Status   string          `json:"status"`
 }
 
 type DestinationsResource []PickupResource
@@ -160,6 +161,7 @@ func (p ConsignmentProduct) ToResource() ProductResource {
 		Package: PackageResource{
 			Price:    p.Package.Price,
 			Quantity: p.Quantity,
+			Status:   p.Status,
 		},
 	}
 }

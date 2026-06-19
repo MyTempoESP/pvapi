@@ -166,6 +166,7 @@ type ProductConsignmentResource struct {
 	Featured bool            `json:"featured"`
 	Code     string          `json:"code"`
 	UUID     string          `json:"uuid"`
+	Status   string          `json:"status"`
 
 	Colors []string `json:"colors,omitempty"`
 	Sizes  []string `json:"sizes,omitempty"`
@@ -194,6 +195,7 @@ func (r ConsignmentProductRow) ToConsignmentResource() ProductConsignmentResourc
 		Featured: r.PackageFeatured,
 		Code:     r.ProductCode,
 		UUID:     r.ProductUUID,
+		Status:   r.PackageStatus,
 
 		Colors: r.ProductAttr.Colors,
 		Sizes:  r.ProductAttr.Sizes,

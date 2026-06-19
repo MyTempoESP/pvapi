@@ -625,8 +625,9 @@ func TakeFromPackage(
 }
 
 type ConsignmentProductRow struct {
-	PackageID     int             `db:"package_id"`
-	PackageFeatured bool          `db:"package_featured"`
+	PackageID          int             `db:"package_id"`
+	PackageFeatured    bool            `db:"package_featured"`
+	PackageStatus      string          `db:"package_status"`
 
 	ProductID          int             `db:"product_id"`
 	ProductName        string          `db:"product_name"`

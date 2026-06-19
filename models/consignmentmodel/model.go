@@ -107,6 +107,10 @@ func (p UpdateConsignmentProductBlueprint) Exec(
 		fields["quantity"] = *p.Quantity
 	}
 
+	if p.Status != nil {
+		fields["status"] = *p.Status
+	}
+
 	if len(fields) == 0 {
 		return
 	}

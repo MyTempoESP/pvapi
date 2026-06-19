@@ -240,7 +240,8 @@ SELECT
 	c.product_shop_name,
 
 	p.price AS package_price,
-	p.quantity AS package_quantity
+	p.quantity AS package_quantity,
+	p.status AS package_status
 FROM packages p
 LEFT JOIN product_catalog_view c ON c.product_id = p.product_id
 WHERE p.consignment_id = $1
@@ -325,6 +326,7 @@ SELECT product_increment_inventory($1, $2)
 SELECT
 	pkg.id              AS package_id,
 	pkg.featured        AS package_featured,
+	pkg.status          AS package_status,
 
 	p.product_id,
 	p.product_name,
@@ -353,5 +355,6 @@ JOIN product_catalog_view p ON p.product_id = pkg.product_id
 WHERE c.code = $1
   AND p.product_moderation_status = 'approved'
   AND c.status != 'ARQUIVADO'
+  AND pkg.status != 'paused'
 `
 )

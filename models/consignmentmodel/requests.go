@@ -48,6 +48,7 @@ type UpdateConsignmentRequest struct {
 type UpdateConsignmentProductRequest struct {
 	Price    *decimal.Decimal `json:"price"`
 	Quantity *int             `json:"quantity"`
+	Status   *string          `json:"status" binding:"omitempty,oneof=active paused"`
 }
 
 func (p UpdateConsignmentProductRequest) Prepare(

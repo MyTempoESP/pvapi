@@ -15,6 +15,7 @@ type ConsignmentProduct struct {
 type Package struct {
 	Price    decimal.Decimal `db:"package_price"`
 	Quantity int             `db:"package_quantity"`
+	Status   string          `db:"package_status"`
 }
 
 type Consignee struct {
