@@ -243,6 +243,8 @@ paths:
                 retiradas:
                   - id: 5
                     name: "Loja Centro"
+                    description: "Ponto central com fácil acesso"
+                    validUntil: "2026-12-31T23:59:59Z"
                     address:
                       street: "Rua XV de Novembro"
                       number: "123"
@@ -253,6 +255,8 @@ paths:
                       complement: "Sala 1"
                   - id: 6
                     name: "Shopping Norte"
+                    description: "Retirada no piso térreo do shopping"
+                    validUntil: "2026-12-31T23:59:59Z"
                     address:
                       street: "Av. Paulista"
                       number: "1000"
@@ -268,7 +272,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RespostaErro"
         "404":
-          description: Remessa não encontrada para o token informado
+          description: Remessa não encontrada ou temporariamente indisponível (PAUSADA)
           content:
             application/json:
               schema:
@@ -597,6 +601,9 @@ components:
         id:
           type: integer
           description: ID da remessa
+        name:
+          type: string
+          description: Nome da remessa
         commission_type:
           type: string
           description: Tipo de comissão (fixed / percentage)
@@ -611,7 +618,7 @@ components:
           description: Slug identificador
         status:
           type: string
-          description: Status da remessa
+          description: Status da remessa (RASCUNHO, PAUSADO, LIBERADO, ARQUIVADO). Apenas LIBERADO aparece na listagem pública
         destination:
           type: string
           description: Nome do ponto de retirada
@@ -698,7 +705,7 @@ components:
           description: Nome do ponto de retirada
         pickup_date:
           type: string
-          description: Data/hora do ponto de retirada
+          description: Data/hora de início do ponto de retirada (ISO 8601)
         address:
           $ref: "#/components/schemas/Endereco"
 
@@ -822,6 +829,9 @@ components:
         uuid:
           type: string
           description: UUID do produto
+        status:
+          type: string
+          description: Status do pacote ("active" ou "paused"). Pacotes pausados são excluídos da listagem pública
         colors:
           type: array
           items:
@@ -894,7 +904,7 @@ components:
           type: string
 
     ConsignmentPickupResource:
-      description: Ponto de retirada no contexto de uma remessa (id + nome + endereço).
+      description: Ponto de retirada no contexto de uma remessa (id + nome + descrição + validade + endereço opcional).
       type: object
       properties:
         id:
@@ -903,8 +913,16 @@ components:
         name:
           type: string
           description: Nome do ponto de retirada
+        description:
+          type: string
+          description: Descrição do ponto de retirada
+        validUntil:
+          type: string
+          format: date-time
+          description: Data/hora de expiração (ISO 8601). Pontos expirados são excluídos dos resultados
         address:
           $ref: "#/components/schemas/ConsignmentPickupAddressResource"
+          description: Endereço (opcional — omitido do JSON quando vazio)
 
     RespostaListaProdutosToken:
       description: Resposta de GET /produtos?token=... — produtos da remessa (cada um com seu package_id) e pontos de retirada.

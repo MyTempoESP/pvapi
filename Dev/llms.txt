@@ -93,6 +93,7 @@ Response 200:
 | featured | boolean | Whether product is featured |
 | code | string | Product code |
 | uuid | string | Product UUID |
+| status | string | Package status: `"active"` or `"paused"`. Paused packages are excluded from public listing |
 | colors | string[] | Available colors for the product |
 | sizes | string[] | Available sizes for the product |
 | allowCustomName | boolean | Whether custom name personalization is allowed |
@@ -111,11 +112,13 @@ Response 200:
 |--------------|------|-------------|
 | id | integer | Pickup location ID — use as `retirada` in POST /checkouts/confirm |
 | name | string | Pickup location name |
-| address | object | Address with street, number, neighborhood, city, state, cep, complement |
+| description | string | Pickup location description |
+| validUntil | string | Expiration datetime (ISO 8601). Expired pickups are excluded from results |
+| address | object? | Address (optional, omitted when empty). When present: street, number, neighborhood, city, state, cep, complement |
 
 Error responses:
 - **400** — token inválido (formato UUID esperado)
-- **404** — remessa não encontrada para o token informado
+- **404** — remessa não encontrada ou temporariamente indisponível (PAUSADA)
 - **410** — remessa arquivada, não está mais disponível
 
 ---
@@ -325,7 +328,7 @@ Error responses:
 
 ### GET /remessas-publicas - List active consignments
 
-Returns all active consignments with approved status, including pickup point info, responsible monitor, and owning shop.
+Returns all LIBERADO (active) consignments, including pickup point info, responsible monitor, and owning shop.
 
 Query parameters:
 
@@ -341,11 +344,12 @@ Response 200:
   "data": [
     {
       "id": 1,
+      "name": "Remessa de Verão",
       "commission_type": "percentage",
       "commission_value": 10.00,
       "code": "REM-001",
       "slug": "remessa-exemplo",
-      "status": "approved",
+      "status": "LIBERADO",
       "destination": "Ponto de retirada A",
       "responsibleMonitor": "Nome do Monitor",
       "shop": {
@@ -361,11 +365,12 @@ Response 200:
 | Field | Type | Description |
 |-------|------|-------------|
 | id | integer | Remessa ID |
+| name | string | Remessa name |
 | commission_type | string | Commission type ("fixed" or "percentage") |
 | commission_value | number | Commission value (decimal) |
 | code | string | Remessa code |
 | slug | string | Identifier slug |
-| status | string | Remessa status |
+| status | string | Remessa status: `RASCUNHO`, `PAUSADO`, `LIBERADO`, or `ARQUIVADO`. Only `LIBERADO` remessas appear in the public listing |
 | destination | string | Pickup point name |
 | responsibleMonitor | string | Responsible monitor name |
 | shop | object | Owning shop `{ id, name }` |
