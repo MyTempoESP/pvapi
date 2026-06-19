@@ -14,9 +14,10 @@ BASE_URL = os.environ.get("PV_API_BASE_URL", "https://pvauto.linhazero.com")
 
 _DEFAULTS = {
     "auth_token": None,
-    "products": None,
-    "selected_items": {},
-    "bank_account_id": None,
+    "token_products": None,
+    "token_retiradas": None,
+    "token_selected": {},
+    "token_personalizacoes": {},
 }
 for key, val in _DEFAULTS.items():
     if key not in st.session_state:
@@ -69,299 +70,13 @@ st.markdown("Interface de demonstração para a API do **pvauto.linhazero.com**"
 
 # ── Sidebar navigation ──────────────────────────────────────────────────────
 
-menu = st.sidebar.radio("Menu", ["Checkout", "Checkout (Token)", "Banco & Saque", "Monitores", "Admin Tokens", "Requisição HTTP"])
+menu = st.sidebar.radio("Menu", ["Checkout via Token", "Requisição HTTP"])
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CHECKOUT
+# CHECKOUT VIA TOKEN
 # ─────────────────────────────────────────────────────────────────────────────
 
-if menu == "Checkout":
-    st.header("🛍️ Checkout")
-
-    # ── Section 0: API Key ────────────────────────────────────────────────
-    st.subheader("0. Chave de API (API Token)")
-    st.caption("O endpoint /checkouts/confirm requer autenticação via API token (Bearer pv_...).")
-
-    api_token = st.text_input(
-        "API Token (Bearer)",
-        value=st.session_state.get("checkout_api_token", ""),
-        placeholder="pv_...",
-        key="checkout_api_token",
-        type="password",
-    )
-
-    # ── Section 1: Lojas ───────────────────────────────────────────────────
-    st.subheader("1. Lojas")
-    if "shops" not in st.session_state:
-        st.session_state.shops = None
-
-    if st.button("🏪 Carregar lojas", key="load_shops_btn"):
-        with st.spinner("Carregando lojas..."):
-            r = req("GET", "/estabelecimentos")
-            if r.ok:
-                data = r.json()
-                st.session_state.shops = data.get("shops", data if isinstance(data, list) else [])
-                st.success(f"{len(st.session_state.shops)} lojas carregadas.")
-            else:
-                st.session_state.shops = []
-                show_response(r)
-
-    selected_shop_id = None
-    if st.session_state.shops:
-        shop_options = {
-            f"{s.get('name', '?')} (ID {s.get('id', '?')})": s.get("id")
-            for s in st.session_state.shops
-        }
-        selected_shop_label = st.selectbox(
-            "Filtrar por loja (opcional)",
-            ["Todas"] + list(shop_options.keys()),
-            key="shop_filter",
-        )
-        if selected_shop_label != "Todas":
-            selected_shop_id = shop_options[selected_shop_label]
-
-    # ── Section 2: Products ────────────────────────────────────────────────
-    st.subheader("2. Produtos disponíveis")
-    col_load, col_clear = st.columns([1, 1])
-    with col_load:
-        if st.button("📦 Carregar produtos", key="load_products_btn"):
-            params = {}
-            if selected_shop_id:
-                params["loja"] = [str(selected_shop_id)]
-            with st.spinner("Carregando produtos..."):
-                r = req("GET", "/produtos", params=params if params else None)
-                if r.ok:
-                    data = r.json()
-                    st.session_state.products = data if isinstance(data, list) else data.get("produtos", [])
-                    st.success(f"{len(st.session_state.products)} produtos carregados.")
-                else:
-                    st.session_state.products = []
-                    show_response(r)
-    with col_clear:
-        if st.button("🧹 Limpar seleção", key="clear_selection_btn"):
-            st.session_state.selected_items = {}
-            st.rerun()
-
-    if not st.session_state.products:
-        st.info("Clique em **Carregar produtos** para ver a lista.")
-    else:
-        # Build lookup: package_id -> {product info, package info}
-        pkg_lookup = {}
-        for prod in st.session_state.products:
-            pickups = prod.get("pickups") or []
-            for pkg in pickups:
-                pid = pkg.get("package_id")
-                if pid is not None:
-                    pkg_lookup[pid] = {
-                        "product_name": prod.get("name", "?"),
-                        "product_id": prod.get("id"),
-                        "product_price": prod.get("price", "?"),
-                        "package_price": pkg.get("price", "?"),
-                        "package_stock": pkg.get("quantity", 0),
-                        "pickup_name": pkg.get("pickup_name", "?"),
-                        "pickup_date": pkg.get("pickup_date", ""),
-                        "address": pkg.get("address", {}),
-                    }
-
-        # Show products table
-        st.markdown("**Produtos**")
-        st.dataframe(
-            [
-                {
-                    "ID": p.get("id"),
-                    "Nome": p.get("name", "?"),
-                    "Preço": p.get("price", "?"),
-                    "Pacotes": len(p.get("pickups") or []),
-                }
-                for p in st.session_state.products
-            ],
-            use_container_width=True,
-            hide_index=True,
-        )
-
-        # Show packages with quantity inputs
-        if pkg_lookup:
-            st.markdown("---")
-            st.subheader("3. Selecionar pacotes")
-            st.caption("Escolha os pacotes e quantidades desejadas.")
-
-            for pkg_id, info in sorted(pkg_lookup.items(), key=lambda x: x[1]["product_name"]):
-                addr = info["address"]
-                addr_str = ""
-                if addr:
-                    parts = [
-                        addr.get("street", ""),
-                        addr.get("number", ""),
-                        addr.get("neighborhood", ""),
-                        addr.get("city", ""),
-                        addr.get("state", ""),
-                    ]
-                    addr_str = ", ".join(p for p in parts if p)
-
-                qty_key = f"qty_pkg_{pkg_id}"
-                cur_qty = st.session_state.selected_items.get(pkg_id, 0)
-
-                col_info, col_qty = st.columns([4, 1])
-                with col_info:
-                    st.markdown(
-                        f"**Pacote {pkg_id}** — {info['product_name']} — "
-                        f"R$ {info['package_price']} — estoque: {info['package_stock']}  \n"
-                        f"Retirada: **{info['pickup_name']}**  \n"
-                        f"{addr_str}"
-                    )
-                with col_qty:
-                    new_qty = st.number_input(
-                        "Qtd",
-                        min_value=0,
-                        max_value=info["package_stock"],
-                        value=cur_qty,
-                        key=qty_key,
-                    )
-                    if new_qty != cur_qty:
-                        if new_qty > 0:
-                            st.session_state.selected_items[pkg_id] = new_qty
-                        elif pkg_id in st.session_state.selected_items:
-                            del st.session_state.selected_items[pkg_id]
-                st.markdown("---")
-        else:
-            st.info("Nenhum pacote disponível nos produtos carregados.")
-
-    # ── Section 4: Confirm ─────────────────────────────────────────────────
-    st.subheader("4. Confirmar compra")
-    col1, col2 = st.columns(2)
-    with col1:
-        client_email = st.text_input(
-            "E-mail do cliente (opcional)",
-            value="",
-            placeholder="cliente@exemplo.com",
-            help="Se informado, cria conta de cliente e envia e-mail de confirmação. Pode ser omitido se telephone ou CPF forem fornecidos.",
-        )
-
-    col3, _ = st.columns(2)
-    with col3:
-        client_name = st.text_input("Nome do cliente (opcional)", value="", placeholder="Fulano de Tal")
-
-    col5, col6 = st.columns(2)
-    with col5:
-        telephone = st.text_input(
-            "Telefone (opcional)",
-            value="",
-            placeholder="11988887777",
-            help="Dígitos são extraídos; formatação é ignorada. Usado como senha da conta e como identidade fallback.",
-        )
-    with col6:
-        cpf = st.text_input(
-            "CPF (opcional)",
-            value="",
-            placeholder="12345678901",
-            help="11 dígitos; formatação é ignorada. Usado como identidade fallback (prioridade sobre telephone).",
-        )
-
-    # Summary of selected items
-    if st.session_state.selected_items:
-        st.caption(
-            f"{sum(st.session_state.selected_items.values())} itens em "
-            f"{len(st.session_state.selected_items)} pacotes selecionados."
-        )
-
-    if st.button("✅ Confirmar compra", type="primary", use_container_width=True):
-        if not st.session_state.selected_items:
-            st.error("Selecione pelo menos um pacote (seção 3).")
-        else:
-            items = [
-                {"package_id": int(pkg_id), "quantity": qty}
-                for pkg_id, qty in st.session_state.selected_items.items()
-            ]
-            payload = {
-                "items": items,
-            }
-            if client_email.strip():
-                payload["client_email"] = client_email.strip()
-                if client_name.strip():
-                    payload["client_name"] = client_name.strip()
-            if telephone.strip():
-                payload["telephone"] = telephone.strip()
-            if cpf.strip():
-                payload["cpf"] = cpf.strip()
-
-            api_token = st.session_state.get("checkout_api_token", "").strip()
-            if not api_token:
-                st.error("Informe o API Token (seção 0).")
-            else:
-                with st.spinner("Finalizando compra..."):
-                    r = req(
-                        "POST",
-                        "/checkouts/confirm",
-                        data=payload,
-                        token=api_token,
-                    )
-                if r.ok:
-                    data = r.json()
-                    unique_id = data.get("unique_id", "?")
-                    status = data.get("status", "?")
-                    qr_codes = data.get("qr_codes", [])
-                    st.balloons()
-                    st.success(
-                        f"**Compra confirmada!**  \n"
-                        f"ID único: `{unique_id}`  \n"
-                        f"Status: `{status}`"
-                    )
-                    if qr_codes:
-                        st.subheader("📱 QR Codes para retirada")
-                        for entry in qr_codes:
-                            pkg_id = entry.get("package_id", "?")
-                            qr_data_uri = entry.get("qr_code", "")
-                            col_qr, col_label = st.columns([1, 3])
-                            with col_qr:
-                                st.image(qr_data_uri, width=200)
-                            with col_label:
-                                st.markdown(f"**Pacote {pkg_id}**")
-                    st.session_state.selected_items = {}
-                else:
-                    show_response(r)
-
-    # ── Section 5: Cancel checkout ────────────────────────────────────────
-    st.markdown("---")
-    st.subheader("5. Cancelar checkout")
-    st.caption("Cancela um checkout previamente confirmado. Apenas pacotes PENDING são cancelados; RECEIVED permanecem.")
-
-    cancel_unique_id = st.text_input(
-        "UUID do checkout (unique_id)",
-        value="",
-        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        key="cancel_unique_id",
-    )
-
-    if st.button("🗑️ Cancelar checkout", use_container_width=True, key="cancel_checkout_btn"):
-        api_token = st.session_state.get("checkout_api_token", "").strip()
-        if not api_token:
-            st.error("Informe o API Token (seção 0).")
-        elif not cancel_unique_id.strip():
-            st.error("Informe o UUID do checkout.")
-        else:
-            with st.spinner("Cancelando checkout..."):
-                r = req(
-                    "DELETE",
-                    f"/checkouts/{cancel_unique_id.strip()}",
-                    token=api_token,
-                )
-            if r.ok:
-                data = r.json()
-                st.success(
-                    f"**Checkout cancelado!**  \n"
-                    f"Pacotes cancelados: `{data.get('cancelled_count', '?')}`  \n"
-                    f"Pacotes restantes: `{data.get('remaining_count', '?')}`"
-                )
-                if data.get("remaining_count", 0) == 0:
-                    st.info("Todos os pacotes foram cancelados — o checkout foi removido.")
-            else:
-                show_response(r)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CHECKOUT (TOKEN)
-# ─────────────────────────────────────────────────────────────────────────────
-
-elif menu == "Checkout (Token)":
+if menu == "Checkout via Token":
     st.header("🪙 Checkout via Token de Remessa")
     st.caption("Fluxo: token de remessa → produtos (id = package_id) + retiradas → confirmar compra.")
 
@@ -401,6 +116,7 @@ elif menu == "Checkout (Token)":
                     st.session_state.token_products = data.get("produtos", [])
                     st.session_state.token_retiradas = data.get("retiradas", [])
                     st.session_state.token_selected = {}
+                    st.session_state.token_personalizacoes = {}
                     st.success(f"{len(st.session_state.token_products)} produtos carregados.")
                 else:
                     st.session_state.token_products = []
@@ -413,7 +129,9 @@ elif menu == "Checkout (Token)":
         st.subheader("2. Pontos de retirada")
         for ret in retiradas:
             name = ret.get("name", "?")
-            addr = ret.get("address", {})
+            desc = ret.get("description", "")
+            valid = ret.get("validUntil", "")
+            addr = ret.get("address") or {}
             parts = [
                 addr.get("street", ""),
                 addr.get("number", ""),
@@ -422,32 +140,94 @@ elif menu == "Checkout (Token)":
                 addr.get("state", ""),
             ]
             addr_str = ", ".join(p for p in parts if p)
-            st.markdown(f"📍 **{name}** — {addr_str}")
+            extra = []
+            if desc:
+                extra.append(desc)
+            if valid:
+                extra.append(f"Válido até: {valid[:10]}")
+            st.markdown(f"📍 **{name}** (ID {ret.get('id')}) — {addr_str}")
+            if extra:
+                st.caption(" — ".join(extra))
 
     # ── Section 3: Produtos ───────────────────────────────────────────────
     produtos = st.session_state.get("token_products", [])
     if produtos:
         st.markdown("---")
         st.subheader("3. Selecionar produtos")
-        st.caption("O id de cada produto é o package_id para o checkout. Escolha as quantidades desejadas.")
+        st.caption("O id de cada produto é o package_id para o checkout. Escolha quantidades e, opcionalmente, a retirada e personalização.")
+
+        # Build retirada lookup
+        retirada_by_id = {r["id"]: r for r in retiradas} if retiradas else {}
 
         for prod in produtos:
             pkg_id = prod.get("id")
             name = prod.get("name", "?")
-            price = prod.get("price", "?")
+            price = prod.get("price", 0)
+            discount = prod.get("discount", 0)
+            discount_type = prod.get("discount_type", "")
             stock = prod.get("stock", 0)
 
             cur_qty = st.session_state.get("token_selected", {}).get(pkg_id, 0)
 
-            col_info, col_qty = st.columns([4, 1])
-            with col_info:
-                st.markdown(
-                    f"**{name}** (ID {pkg_id}) — R$ {price} — estoque: {stock}"
-                )
-            with col_qty:
+            with st.expander(f"{name} (ID {pkg_id}) — R$ {price} — estoque: {stock}", expanded=cur_qty > 0):
+                # Product info
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown(f"**Preço:** R$ {price}")
+                    if discount:
+                        disc_label = f"{discount}%" if discount_type == "percentage" else f"R$ {discount}"
+                        st.markdown(f"**Desconto:** {disc_label} ({discount_type})")
+                    st.markdown(f"**Código:** {prod.get('code', '-')}")
+                    st.markdown(f"**Categoria:** {prod.get('category', '-')} (ID {prod.get('category_id', '-')})")
+                    st.markdown(f"**Destaque:** {'Sim' if prod.get('featured') else 'Não'}")
+                with col_b:
+                    st.markdown(f"**UUID:** `{prod.get('uuid', '-')}`")
+                    colors = prod.get("colors") or []
+                    st.markdown(f"**Cores:** {', '.join(colors) if colors else '-'}")
+                    sizes = prod.get("sizes") or []
+                    st.markdown(f"**Tamanhos:** {', '.join(sizes) if sizes else '-'}")
+                    st.markdown(f"**Personalização:** nome={'Sim' if prod.get('allowCustomName') else 'Não'}, modalidade={'Sim' if prod.get('allowCustomModality') else 'Não'}, cor={'Sim' if prod.get('allowCustomColorSelection') else 'Não'}")
+
+                # Description
+                desc = prod.get("description", "")
+                if desc:
+                    st.markdown(f"**Descrição:** {desc}")
+
+                # Specifications
+                specs = prod.get("specifications") or []
+                if specs:
+                    st.markdown("**Especificações:**")
+                    st.dataframe(
+                        [{"Nome": s.get("name", ""), "Valor": s.get("value", "")} for s in specs],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                # Image
+                img = prod.get("imageUrl", "")
+                if img:
+                    st.image(img, width=200)
+
+                # Extra images (collapsed by default)
+                spec_imgs = prod.get("specificationsImages") or []
+                desc_imgs = prod.get("descriptionImages") or []
+                deli_imgs = prod.get("deliveryImages") or []
+                if spec_imgs or desc_imgs or deli_imgs:
+                    with st.expander("📷 Mais imagens"):
+                        for url in spec_imgs:
+                            st.caption("Especificação")
+                            st.image(url, width=200)
+                        for url in desc_imgs:
+                            st.caption("Descrição")
+                            st.image(url, width=200)
+                        for url in deli_imgs:
+                            st.caption("Entrega")
+                            st.image(url, width=200)
+
+                # Quantity
                 qty_key = f"tkn_qty_{pkg_id}"
                 new_qty = st.number_input(
-                    "Qtd",
+                    "Quantidade",
                     min_value=0,
                     max_value=stock,
                     value=cur_qty,
@@ -460,10 +240,66 @@ elif menu == "Checkout (Token)":
                         st.session_state.token_selected[pkg_id] = new_qty
                     elif pkg_id in st.session_state.token_selected:
                         del st.session_state.token_selected[pkg_id]
-            st.markdown("---")
+
+                # Retirada selection (only if there are retiradas and qty > 0)
+                if retiradas and new_qty > 0:
+                    ret_options = {f"{r['name']} (ID {r['id']})": r["id"] for r in retiradas}
+                    ret_key = f"tkn_ret_{pkg_id}"
+                    cur_ret = st.session_state.get("token_retiradas_selected", {}).get(pkg_id, retiradas[0]["id"])
+                    selected_ret = st.selectbox(
+                        "Ponto de retirada",
+                        list(ret_options.keys()),
+                        index=list(ret_options.values()).index(cur_ret) if cur_ret in ret_options.values() else 0,
+                        key=ret_key,
+                    )
+                    if "token_retiradas_selected" not in st.session_state:
+                        st.session_state.token_retiradas_selected = {}
+                    st.session_state.token_retiradas_selected[pkg_id] = ret_options[selected_ret]
+
+                # Personalizacao
+                if new_qty > 0:
+                    st.markdown("**Personalização (opcional):**")
+                    pers_key = f"tkn_pers_{pkg_id}"
+                    if pers_key not in st.session_state.token_personalizacoes:
+                        st.session_state.token_personalizacoes[pers_key] = []
+
+                    existing = st.session_state.token_personalizacoes[pers_key]
+
+                    # Show existing entries
+                    to_delete = None
+                    for i, entry in enumerate(existing):
+                        col_n, col_v, col_x = st.columns([2, 2, 1])
+                        with col_n:
+                            st.text_input("Nome", value=entry["nome"], key=f"{pers_key}_n{i}", disabled=True, label_visibility="collapsed")
+                        with col_v:
+                            st.text_input("Valor", value=entry["valor"], key=f"{pers_key}_v{i}", disabled=True, label_visibility="collapsed")
+                        with col_x:
+                            if st.button("✕", key=f"{pers_key}_x{i}"):
+                                to_delete = i
+
+                    if to_delete is not None:
+                        del st.session_state.token_personalizacoes[pers_key][to_delete]
+                        st.rerun()
+
+                    # Add new entry
+                    col_n, col_v, col_add = st.columns([2, 2, 1])
+                    with col_n:
+                        new_nome = st.text_input("Nome", key=f"{pers_key}_new_n", placeholder="Name", label_visibility="collapsed")
+                    with col_v:
+                        new_valor = st.text_input("Valor", key=f"{pers_key}_new_v", placeholder="Fulano", label_visibility="collapsed")
+                    with col_add:
+                        if st.button("＋", key=f"{pers_key}_add"):
+                            if new_nome.strip() and new_valor.strip():
+                                st.session_state.token_personalizacoes[pers_key].append({
+                                    "nome": new_nome.strip(),
+                                    "valor": new_valor.strip(),
+                                })
+                                st.rerun()
 
         if st.button("🧹 Limpar seleção", key="clear_token_selection"):
             st.session_state.token_selected = {}
+            st.session_state.token_personalizacoes = {}
+            st.session_state.token_retiradas_selected = {}
             st.rerun()
     else:
         st.info("Informe um token de remessa e clique em **Carregar**.")
@@ -483,7 +319,7 @@ elif menu == "Checkout (Token)":
             value="",
             placeholder="11988887777",
             key="tok_telephone",
-            help="Dígitos são extraídos; formatação é ignorada. Usado como senha da conta e como identidade fallback.",
+            help="Dígitos são extraídos; formatação é ignorada. Ao menos um de CPF ou telefone é obrigatório.",
         )
     with col_cpf:
         cpf = st.text_input(
@@ -491,7 +327,7 @@ elif menu == "Checkout (Token)":
             value="",
             placeholder="12345678901",
             key="tok_cpf",
-            help="11 dígitos; formatação é ignorada. Usado como identidade fallback (prioridade sobre telephone).",
+            help="11 dígitos; formatação é ignorada. Tem prioridade sobre telefone.",
         )
 
     selected = st.session_state.get("token_selected", {})
@@ -505,10 +341,18 @@ elif menu == "Checkout (Token)":
         if not selected:
             st.error("Selecione pelo menos um produto (seção 3).")
         else:
-            items = [
-                {"package_id": int(pkg_id), "quantity": qty}
-                for pkg_id, qty in selected.items()
-            ]
+            ret_selected = st.session_state.get("token_retiradas_selected", {})
+            items = []
+            for pkg_id, qty in selected.items():
+                item = {"id": int(pkg_id), "quantity": qty}
+                ret_id = ret_selected.get(pkg_id)
+                if ret_id is not None:
+                    item["retirada"] = ret_id
+                pers = st.session_state.token_personalizacoes.get(f"tkn_pers_{pkg_id}", [])
+                if pers:
+                    item["personalizacao"] = pers
+                items.append(item)
+
             payload = {"items": items}
             if client_name.strip():
                 payload["client_name"] = client_name.strip()
@@ -542,551 +386,70 @@ elif menu == "Checkout (Token)":
                     if qr_codes:
                         st.subheader("📱 QR Codes para retirada")
                         for entry in qr_codes:
-                            pkg_id = entry.get("package_id", "?")
+                            st.markdown(f"**Produto ID {entry.get('product_id', '?')}** — Qtd: {entry.get('quantity', '?')} — R$ {entry.get('price', '?')}")
+                            disc = entry.get("discount", 0)
+                            disc_type = entry.get("discount_type", "")
+                            if disc:
+                                disc_label = f"{disc}%" if disc_type == "percentage" else f"R$ {disc}"
+                                st.caption(f"Desconto: {disc_label}")
+                            pers_out = entry.get("personalizacao") or []
+                            if pers_out:
+                                st.caption("Personalização: " + ", ".join(f"{p['nome']}={p['valor']}" for p in pers_out))
+                            ret_out = entry.get("retirada") or {}
+                            if ret_out:
+                                addr_out = ret_out.get("address") or {}
+                                addr_parts = [
+                                    addr_out.get("street", ""),
+                                    addr_out.get("number", ""),
+                                    addr_out.get("neighborhood", ""),
+                                    addr_out.get("city", ""),
+                                    addr_out.get("state", ""),
+                                ]
+                                st.caption(f"Retirada: {ret_out.get('nome', '?')} — {', '.join(p for p in addr_parts if p)}")
                             qr_data_uri = entry.get("qr_code", "")
-                            col_qr, col_label = st.columns([1, 3])
-                            with col_qr:
+                            if qr_data_uri:
                                 st.image(qr_data_uri, width=200)
-                            with col_label:
-                                st.markdown(f"**Pacote {pkg_id}**")
+                            st.markdown("---")
                     st.session_state.token_selected = {}
+                    st.session_state.token_personalizacoes = {}
+                    st.session_state.token_retiradas_selected = {}
                 else:
                     show_response(r)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# BANCO & SAQUE
-# ─────────────────────────────────────────────────────────────────────────────
+    # ── Section 5: Cancel checkout ────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("5. Cancelar checkout")
+    st.caption("Cancela um checkout previamente confirmado. Apenas pacotes PENDING são cancelados; RECEIVED permanecem.")
 
-elif menu == "Banco & Saque":
-    st.header("🏦 Banco & Saque")
+    cancel_unique_id = st.text_input(
+        "UUID do checkout (unique_id)",
+        value="",
+        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        key="cancel_unique_id",
+    )
 
-    # ── Section 1: Login ───────────────────────────────────────────────────
-    st.subheader("1. Login (estabelecimento)")
-    col1, col2, col3 = st.columns([2, 2, 1])
-    with col1:
-        login_email = st.text_input("E-mail", value="", key="bs_email")
-    with col2:
-        login_pass = st.text_input("Senha", type="password", value="", key="bs_pass")
-    with col3:
-        st.write("")
-        st.write("")
-        if st.button("🔑 Entrar", use_container_width=True):
-            with st.spinner("Autenticando..."):
-                r = req("POST", "/login", data={"email": login_email, "password": login_pass})
-            if r.ok:
-                data = r.json()
-                token = data.get("access_token") or data.get("token", "")
-                if token:
-                    st.session_state.auth_token = token
-                    st.success("Login realizado com sucesso!")
-                else:
-                    st.error("Token não encontrado na resposta.")
-                    show_response(r)
-            else:
-                st.session_state.auth_token = None
-                show_response(r)
-
-    if st.session_state.auth_token:
-        st.info("✅ Autenticado. Token armazenado na sessão.")
-    else:
-        st.info("Faça login para acessar os recursos autenticados.")
-
-    # ── Section 2: Bank Account ────────────────────────────────────────────
-    st.subheader("2. Conta bancária")
-    col1, col2 = st.columns(2)
-    with col1:
-        ba_name = st.text_input("Nome da conta", placeholder="Conta Principal", key="ba_name")
-    with col2:
-        ba_bank = st.text_input("Banco", placeholder="Nubank", key="ba_bank")
-
-    col3, col4 = st.columns(2)
-    with col3:
-        ba_pix_key = st.text_input("Chave PIX (opcional)", placeholder="12345678900", key="ba_pix")
-    with col4:
-        ba_pix_titular = st.text_input("Titular PIX (opcional)", placeholder="Loja Teste", key="ba_titular")
-
-    if st.button("📋 Criar conta bancária", use_container_width=True):
-        if not ba_name or not ba_bank:
-            st.error("Preencha nome da conta e banco.")
-        elif not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
+    if st.button("🗑️ Cancelar checkout", use_container_width=True, key="cancel_checkout_btn"):
+        api_token_val = st.session_state.get("token_api_token", "").strip()
+        if not api_token_val:
+            st.error("Informe o API Token (seção 0).")
+        elif not cancel_unique_id.strip():
+            st.error("Informe o UUID do checkout.")
         else:
-            payload = {"name": ba_name, "bank_name": ba_bank}
-            if ba_pix_key.strip():
-                payload["pix_key"] = ba_pix_key.strip()
-            if ba_pix_titular.strip():
-                payload["pix_titular"] = ba_pix_titular.strip()
-
-            with st.spinner("Criando conta bancária..."):
+            with st.spinner("Cancelando checkout..."):
                 r = req(
-                    "POST",
-                    "/estabelecimentos/contasbancarias",
-                    data=payload,
-                    token=st.session_state.auth_token,
+                    "DELETE",
+                    f"/checkouts/{cancel_unique_id.strip()}",
+                    token=api_token_val,
                 )
             if r.ok:
                 data = r.json()
-                conta = data.get("conta", data)
-                cid = conta.get("id")
-                if cid:
-                    st.session_state.bank_account_id = cid
-                    st.success(f"Conta bancária criada! ID: `{cid}`")
-                else:
-                    st.success("Conta bancária criada!")
-                    show_response(r)
-            else:
-                show_response(r)
-
-    if st.button("📋 Listar contas bancárias"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Listando contas..."):
-                r = req("GET", "/estabelecimentos/contasbancarias", token=st.session_state.auth_token)
-            if r.ok:
-                data = r.json()
-                contas = data.get("contas", data if isinstance(data, list) else [])
-                if contas:
-                    st.dataframe(
-                        [
-                            {
-                                "ID": c.get("id"),
-                                "Nome": c.get("name", ""),
-                                "Banco": c.get("bank_name", ""),
-                                "Chave PIX": c.get("pix_key", ""),
-                            }
-                            for c in contas
-                        ],
-                        use_container_width=True,
-                    )
-                else:
-                    st.info("Nenhuma conta bancária encontrada.")
-            else:
-                show_response(r)
-
-    # ── Section 3: Saque ───────────────────────────────────────────────────
-    st.subheader("3. Saque")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        ba_id = st.number_input(
-            "ID da conta bancária",
-            min_value=1,
-            value=st.session_state.bank_account_id or 1,
-            key="saque_ba_id",
-        )
-    with col2:
-        saque_desc = st.text_input("Descrição", placeholder="Saque de teste", key="saque_desc")
-
-    col3, col4 = st.columns(2)
-    with col3:
-        saque_value = st.text_input("Valor solicitado (R$)", placeholder="250.00", key="saque_val")
-    with col4:
-        st.write("")
-        st.write("")
-
-    if st.button("💸 Solicitar saque", type="primary", use_container_width=True):
-        if not saque_desc or not saque_value:
-            st.error("Preencha descrição e valor.")
-        elif not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            payload = {
-                "description": saque_desc,
-                "asked_value": saque_value,
-                "bank_account": int(ba_id),
-            }
-            with st.spinner("Criando saque..."):
-                r = req(
-                    "POST",
-                    "/estabelecimentos/saques",
-                    data=payload,
-                    token=st.session_state.auth_token,
+                st.success(
+                    f"**Checkout cancelado!**  \n"
+                    f"Pacotes cancelados: `{data.get('cancelled_count', '?')}`  \n"
+                    f"Pacotes restantes: `{data.get('remaining_count', '?')}`"
                 )
-            if r.ok:
-                data = r.json()
-                saque = data.get("saque", data)
-                sid = saque.get("id")
-                sstatus = saque.get("status", "?")
-                st.success(f"Saque criado! ID: `{sid}`  \nStatus: `{sstatus}`")
-                st.balloons()
-            else:
-                show_response(r)
-
-    if st.button("📋 Listar saques"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Listando saques..."):
-                r = req("GET", "/estabelecimentos/saques", token=st.session_state.auth_token)
-            if r.ok:
-                data = r.json()
-                saques = data.get("saques", data if isinstance(data, list) else [])
-                if saques:
-                    st.dataframe(
-                        [
-                            {
-                                "ID": s.get("id"),
-                                "Descrição": s.get("description", ""),
-                                "Valor": s.get("asked_value", ""),
-                                "Status": s.get("status", ""),
-                            }
-                            for s in saques
-                        ],
-                        use_container_width=True,
-                    )
-                else:
-                    st.info("Nenhum saque encontrado.")
-            else:
-                show_response(r)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# MONITORES
-# ─────────────────────────────────────────────────────────────────────────────
-
-elif menu == "Monitores":
-    st.header("👤 Monitores")
-    st.markdown("CRUD de monitores (consignees) do estabelecimento.")
-
-    # ── Section 1: Login ───────────────────────────────────────────────────
-    st.subheader("1. Login (estabelecimento)")
-    col1, col2, col3 = st.columns([2, 2, 1])
-    with col1:
-        mon_email = st.text_input("E-mail", value="", key="mon_email")
-    with col2:
-        mon_pass = st.text_input("Senha", type="password", value="", key="mon_pass")
-    with col3:
-        st.write("")
-        st.write("")
-        if st.button("🔑 Entrar", use_container_width=True, key="mon_login_btn"):
-            with st.spinner("Autenticando..."):
-                r = req("POST", "/login", data={"email": mon_email, "password": mon_pass})
-            if r.ok:
-                data = r.json()
-                token = data.get("access_token") or data.get("token", "")
-                if token:
-                    st.session_state.auth_token = token
-                    st.success("Login realizado com sucesso!")
-                else:
-                    st.error("Token não encontrado na resposta.")
-                    show_response(r)
-            else:
-                st.session_state.auth_token = None
-                show_response(r)
-
-    if st.session_state.auth_token:
-        st.info("✅ Autenticado. Token armazenado na sessão.")
-    else:
-        st.info("Faça login para acessar os recursos autenticados.")
-
-    # ── Section 2: Create Monitor ──────────────────────────────────────────
-    st.subheader("2. Criar monitor")
-    col1, col2 = st.columns(2)
-    with col1:
-        cr_name = st.text_input("Nome", placeholder="João Silva", key="mon_cr_name")
-    with col2:
-        cr_email = st.text_input("E-mail", placeholder="joao@exemplo.com", key="mon_cr_email")
-
-    col3, col4 = st.columns(2)
-    with col3:
-        cr_phone = st.text_input("Telefone", placeholder="11999999999", key="mon_cr_phone")
-    with col4:
-        st.write("")
-
-    with st.expander("Endereço", expanded=True):
-        ac1, ac2 = st.columns(2)
-        with ac1:
-            cr_street = st.text_input("Rua", placeholder="Rua Nova", key="mon_cr_street")
-            cr_neigh = st.text_input("Bairro", placeholder="Centro", key="mon_cr_neigh")
-            cr_city = st.text_input("Cidade", placeholder="Campinas", key="mon_cr_city")
-        with ac2:
-            cr_number = st.text_input("Número", placeholder="50", key="mon_cr_number")
-            cr_state = st.text_input("Estado", placeholder="SP", key="mon_cr_state")
-            cr_cep = st.text_input("CEP", placeholder="13000000", key="mon_cr_cep")
-
-        cr_complement = st.text_input("Complemento", placeholder="Apto 42", key="mon_cr_complement")
-
-    if st.button("👤 Criar monitor", type="primary", use_container_width=True, key="mon_create_btn"):
-        if not cr_name or not cr_email or not cr_phone:
-            st.error("Preencha nome, e-mail e telefone.")
-        elif not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            payload = {
-                "name": cr_name,
-                "email": cr_email,
-                "phone": cr_phone,
-                "address": {
-                    "street": cr_street,
-                    "number": cr_number,
-                    "neighborhood": cr_neigh,
-                    "city": cr_city,
-                    "state": cr_state,
-                    "cep": cr_cep,
-                    "complement": cr_complement,
-                },
-            }
-            with st.spinner("Criando monitor..."):
-                r = req("POST", "/monitores", data=payload, token=st.session_state.auth_token)
-            if r.ok:
-                data = r.json()
-                monitor = data.get("monitor", data)
-                mid = monitor.get("id")
-                st.success(f"Monitor criado! ID: `{mid}`")
-                st.balloons()
-            else:
-                show_response(r)
-
-    # ── Section 3: List Monitors ───────────────────────────────────────────
-    st.subheader("3. Listar monitores")
-    if st.button("📋 Listar monitores", use_container_width=True, key="mon_list_btn"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Listando monitores..."):
-                r = req("GET", "/monitores", token=st.session_state.auth_token)
-            if r.ok:
-                data = r.json()
-                monitores = data.get("data", data if isinstance(data, list) else [])
-                if monitores:
-                    st.dataframe(
-                        [
-                            {
-                                "ID": m.get("id"),
-                                "Nome": m.get("name", ""),
-                                "E-mail": m.get("email", ""),
-                                "Telefone": m.get("phone", ""),
-                            }
-                            for m in monitores
-                        ],
-                        use_container_width=True,
-                    )
-                else:
-                    st.info("Nenhum monitor encontrado.")
-            else:
-                show_response(r)
-
-    # ── Section 4: Update Monitor ──────────────────────────────────────────
-    st.subheader("4. Editar monitor")
-    st.markdown("Edição parcial — apenas os campos preenchidos são alterados.")
-
-    up_id = st.number_input("ID do monitor", min_value=1, value=1, key="mon_up_id")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        up_name = st.text_input("Novo nome (opcional)", placeholder="", key="mon_up_name")
-    with col2:
-        up_email = st.text_input("Novo e-mail (opcional)", placeholder="", key="mon_up_email")
-
-    up_phone = st.text_input("Novo telefone (opcional)", placeholder="", key="mon_up_phone")
-
-    with st.expander("Editar endereço (opcional)", expanded=False):
-        ae1, ae2 = st.columns(2)
-        with ae1:
-            up_street = st.text_input("Rua", placeholder="", key="mon_up_street")
-            up_neigh = st.text_input("Bairro", placeholder="", key="mon_up_neigh")
-            up_city = st.text_input("Cidade", placeholder="", key="mon_up_city")
-        with ae2:
-            up_number = st.text_input("Número", placeholder="", key="mon_up_number")
-            up_state = st.text_input("Estado", placeholder="", key="mon_up_state")
-            up_cep = st.text_input("CEP", placeholder="", key="mon_up_cep")
-
-        up_complement = st.text_input("Complemento", placeholder="", key="mon_up_complement")
-
-    if st.button("💾 Salvar alterações", type="primary", use_container_width=True, key="mon_up_btn"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            payload = {}
-            if up_name.strip():
-                payload["name"] = up_name.strip()
-            if up_email.strip():
-                payload["email"] = up_email.strip()
-            if up_phone.strip():
-                payload["phone"] = up_phone.strip()
-
-            addr = {}
-            if up_street.strip():
-                addr["street"] = up_street.strip()
-            if up_number.strip():
-                addr["number"] = up_number.strip()
-            if up_neigh.strip():
-                addr["neighborhood"] = up_neigh.strip()
-            if up_city.strip():
-                addr["city"] = up_city.strip()
-            if up_state.strip():
-                addr["state"] = up_state.strip()
-            if up_cep.strip():
-                addr["cep"] = up_cep.strip()
-            if up_complement.strip():
-                addr["complement"] = up_complement.strip()
-
-            if addr:
-                payload["address"] = addr
-
-            if not payload:
-                st.info("Nenhum campo preenchido — PUT com corpo vazio mantém os dados inalterados.")
-
-            with st.spinner("Atualizando monitor..."):
-                r = req(
-                    "PUT",
-                    f"/monitores/{up_id}",
-                    data=payload,
-                    token=st.session_state.auth_token,
-                )
-            if r.ok:
-                data = r.json()
-                monitor = data.get("monitor", data)
-                st.success("Monitor atualizado!")
-                st.code(json.dumps(monitor, indent=2, ensure_ascii=False), language="json")
-            else:
-                show_response(r)
-
-    # ── Section 5: Delete Monitor ──────────────────────────────────────────
-    st.subheader("5. Excluir monitor")
-    del_id = st.number_input("ID do monitor para excluir", min_value=1, value=1, key="mon_del_id")
-
-    if st.button("🗑️ Excluir monitor", use_container_width=True, key="mon_del_btn"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Excluindo monitor..."):
-                r = req("DELETE", f"/monitores/{del_id}", token=st.session_state.auth_token)
-            if r.ok:
-                st.success(f"Monitor `{del_id}` excluído!")
-            else:
-                show_response(r)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ADMIN TOKENS
-# ─────────────────────────────────────────────────────────────────────────────
-
-elif menu == "Admin Tokens":
-    st.header("🔑 Admin Tokens")
-    st.markdown("CRUD de API tokens para clientes da API (endpoints `/admin/api-clients`).")
-
-    # ── Section 1: Login ───────────────────────────────────────────────────
-    st.subheader("1. Login (admin)")
-    col1, col2, col3 = st.columns([2, 2, 1])
-    with col1:
-        at_email = st.text_input("E-mail", value="", key="at_email")
-    with col2:
-        at_pass = st.text_input("Senha", type="password", value="", key="at_pass")
-    with col3:
-        st.write("")
-        st.write("")
-        if st.button("🔑 Entrar", use_container_width=True, key="at_login_btn"):
-            with st.spinner("Autenticando..."):
-                r = req("POST", "/login", data={"email": at_email, "password": at_pass})
-            if r.ok:
-                data = r.json()
-                token = data.get("access_token") or data.get("token", "")
-                if token:
-                    st.session_state.auth_token = token
-                    st.success("Login realizado com sucesso!")
-                else:
-                    st.error("Token não encontrado na resposta.")
-                    show_response(r)
-            else:
-                st.session_state.auth_token = None
-                show_response(r)
-
-    if st.session_state.auth_token:
-        st.info("✅ Autenticado. Token armazenado na sessão.")
-    else:
-        st.info("Faça login como admin para gerenciar API tokens.")
-
-    # ── Section 2: Create API Client ───────────────────────────────────────
-    st.subheader("2. Criar API client")
-    col1, col2 = st.columns(2)
-    with col1:
-        at_name = st.text_input("Nome", placeholder="Meu Integrador", key="at_name")
-    with col2:
-        at_client_email = st.text_input("E-mail", placeholder="integrador@exemplo.com", key="at_client_email")
-
-    if st.button("🔑 Criar API token", type="primary", use_container_width=True, key="at_create_btn"):
-        if not at_name or not at_client_email:
-            st.error("Preencha nome e e-mail.")
-        elif not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Criando API client..."):
-                r = req(
-                    "POST",
-                    "/admin/api-clients",
-                    data={"name": at_name.strip(), "email": at_client_email.strip()},
-                    token=st.session_state.auth_token,
-                )
-            if r.ok:
-                data = r.json()
-                api_client = data.get("api_client", {})
-                plain_token = data.get("token", "")
-                st.success(f"API client criado! ID: `{api_client.get('id')}`")
-                if plain_token:
-                    st.code(plain_token, language="text")
-                    st.warning("⚠️ Guarde este token! Ele não será exibido novamente.")
-                st.balloons()
-            else:
-                show_response(r)
-
-    # ── Section 3: List API Clients ────────────────────────────────────────
-    st.subheader("3. Listar API clients")
-    if st.button("📋 Listar API clients", use_container_width=True, key="at_list_btn"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Listando API clients..."):
-                r = req("GET", "/admin/api-clients", token=st.session_state.auth_token)
-            if r.ok:
-                data = r.json()
-                clients = data.get("api_clients", [])
-                if clients:
-                    st.dataframe(
-                        [
-                            {
-                                "ID": c.get("id"),
-                                "Nome": c.get("name", ""),
-                                "E-mail": c.get("email", ""),
-                                "Criado em": c.get("created_at", "")[:10] if c.get("created_at") else "",
-                                "Revogado": "Sim" if c.get("revoked_at") else "Não",
-                            }
-                            for c in clients
-                        ],
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-                else:
-                    st.info("Nenhum API client encontrado.")
-            else:
-                show_response(r)
-
-    # ── Section 4: View API Client ─────────────────────────────────────────
-    st.subheader("4. Visualizar API client")
-    at_view_id = st.number_input("ID do API client", min_value=1, value=1, key="at_view_id")
-    if st.button("🔍 Visualizar", use_container_width=True, key="at_view_btn"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Consultando..."):
-                r = req("GET", f"/admin/api-clients/{at_view_id}", token=st.session_state.auth_token)
-            if r.ok:
-                data = r.json()
-                api_client = data.get("api_client", {})
-                st.code(json.dumps(api_client, indent=2, ensure_ascii=False), language="json")
-            else:
-                show_response(r)
-
-    # ── Section 5: Revoke API Client ───────────────────────────────────────
-    st.subheader("5. Revogar API client")
-    at_revoke_id = st.number_input("ID do API client para revogar", min_value=1, value=1, key="at_revoke_id")
-    if st.button("🗑️ Revogar token", use_container_width=True, key="at_revoke_btn"):
-        if not st.session_state.auth_token:
-            st.error("Faça login primeiro (seção 1).")
-        else:
-            with st.spinner("Revogando..."):
-                r = req("DELETE", f"/admin/api-clients/{at_revoke_id}", token=st.session_state.auth_token)
-            if r.ok:
-                st.success(f"API client `{at_revoke_id}` revogado!")
+                if data.get("remaining_count", 0) == 0:
+                    st.info("Todos os pacotes foram cancelados — o checkout foi removido.")
             else:
                 show_response(r)
 
@@ -1140,7 +503,6 @@ elif menu == "Requisição HTTP":
             st.error("Informe o endpoint.")
             st.stop()
 
-        # Resolve auth
         if use_auth:
             with st.spinner("Autenticando..."):
                 r_auth = req("POST", "/login", data={"email": auth_email, "password": auth_pass})
@@ -1155,14 +517,12 @@ elif menu == "Requisição HTTP":
                 st.error("Falha na autenticação.")
                 show_response(r_auth)
 
-        # Build URL
         path = endpoint.strip().lstrip("/")
         params = None
         if query_str.strip():
             parsed = urlparse("?" + query_str.strip())
             params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
 
-        # Parse body
         data_payload = None
         if body_visible and body_text.strip():
             try:
@@ -1171,7 +531,6 @@ elif menu == "Requisição HTTP":
                 st.error(f"JSON inválido no corpo: {e}")
                 st.stop()
 
-        # Send
         with st.spinner(f"Enviando {http_method} {path}..."):
             r = req(
                 http_method,
