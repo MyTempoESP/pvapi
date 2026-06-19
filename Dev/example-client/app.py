@@ -145,9 +145,10 @@ if menu == "Checkout via Token":
                 extra.append(desc)
             if valid:
                 extra.append(f"Válido até: {valid[:10]}")
-            st.markdown(f"📍 **{name}** (ID {ret.get('id')}) — {addr_str}")
+            text = f"📍 {name}  (ID {ret.get('id')})  —  {addr_str}"
             if extra:
-                st.caption(" — ".join(extra))
+                text += "\n" + " — ".join(extra)
+            st.code(text, language=None)
 
     # ── Section 3: Produtos ───────────────────────────────────────────────
     produtos = st.session_state.get("token_products", [])
@@ -213,16 +214,16 @@ if menu == "Checkout via Token":
                 desc_imgs = prod.get("descriptionImages") or []
                 deli_imgs = prod.get("deliveryImages") or []
                 if spec_imgs or desc_imgs or deli_imgs:
-                    with st.expander("📷 Mais imagens"):
-                        for url in spec_imgs:
-                            st.caption("Especificação")
-                            st.image(url, width=200)
-                        for url in desc_imgs:
-                            st.caption("Descrição")
-                            st.image(url, width=200)
-                        for url in deli_imgs:
-                            st.caption("Entrega")
-                            st.image(url, width=200)
+                    st.caption("📷 Mais imagens")
+                    for url in spec_imgs:
+                        st.caption("Especificação")
+                        st.image(url, width=200)
+                    for url in desc_imgs:
+                        st.caption("Descrição")
+                        st.image(url, width=200)
+                    for url in deli_imgs:
+                        st.caption("Entrega")
+                        st.image(url, width=200)
 
                 # Quantity
                 qty_key = f"tkn_qty_{pkg_id}"
@@ -377,7 +378,7 @@ if menu == "Checkout via Token":
                     unique_id = data.get("unique_id", "?")
                     status = data.get("status", "?")
                     qr_codes = data.get("qr_codes", [])
-                    st.balloons()
+                    st.balloons()  # ponytail: deprecated since Streamlit 1.42, replace with st.toast or custom confetti if noise matters
                     st.success(
                         f"**Compra confirmada!**  \n"
                         f"ID único: `{unique_id}`  \n"
