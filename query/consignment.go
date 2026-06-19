@@ -231,6 +231,7 @@ JOIN aliased_addresses_view a ON a.address_id = pl.address_id
 WHERE cpl.consignment_id = (
 	SELECT id FROM consignments WHERE code = $1
 )
+  AND pl.valid_until > NOW()
 `
 
 )

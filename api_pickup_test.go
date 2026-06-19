@@ -42,8 +42,10 @@ func TestPickup(t *testing.T) {
 		p := h.createPickup(t, &shopSession)
 
 		putBody := map[string]any{
-			"name":     "Ponto Atualizado",
-			"datetime": "2025-06-01T10:00:00",
+			"name":        "Ponto Atualizado",
+			"datetime":    "2025-06-01T10:00:00",
+			"validUntil":  "2025-07-01T10:00:00",
+			"description": "Descrição atualizada",
 			"address": map[string]any{
 				"street":       "Rua Nova",
 				"number":       "200",
@@ -181,8 +183,10 @@ func TestPickup(t *testing.T) {
 	t.Run("create_pickup_empty_address", func(t *testing.T) {
 		pickupName := fmt.Sprintf("ponto-sem-endereco-%d", time.Now().UnixNano())
 		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
-			"name":     pickupName,
-			"datetime": "2024-03-25T14:05:43",
+			"name":        pickupName,
+			"datetime":    "2024-03-25T14:05:43",
+			"validUntil":  "2099-12-31T23:59:59",
+			"description": "",
 			"address": map[string]any{
 				"street":       "",
 				"number":       "",
@@ -217,8 +221,10 @@ func TestPickup(t *testing.T) {
 
 	t.Run("create_pickup_partial_address", func(t *testing.T) {
 		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
-			"name":     "ponto-parcial",
-			"datetime": "2024-03-25T14:05:43",
+			"name":        "ponto-parcial",
+			"datetime":    "2024-03-25T14:05:43",
+			"validUntil":  "2099-12-31T23:59:59",
+			"description": "",
 			"address": map[string]any{
 				"street":       "Rua So a Rua",
 				"number":       "",
@@ -237,7 +243,8 @@ func TestPickup(t *testing.T) {
 
 		// update address to all-empty
 		rec := h.doJSON(t, http.MethodPut, fmt.Sprintf("/pontos/%d", p.ID), &shopSession, map[string]any{
-			"name": "Ponto Sem Endereco",
+			"name":        "Ponto Sem Endereco",
+			"description": "",
 			"address": map[string]any{
 				"street":       "",
 				"number":       "",
@@ -268,8 +275,10 @@ func TestPickup(t *testing.T) {
 		// First create with empty address
 		pickupName := fmt.Sprintf("ponto-add-set-%d", time.Now().UnixNano())
 		rec := h.doJSON(t, http.MethodPost, "/pontos", &shopSession, map[string]any{
-			"name":     pickupName,
-			"datetime": "2024-03-25T14:05:43",
+			"name":        pickupName,
+			"datetime":    "2024-03-25T14:05:43",
+			"validUntil":  "2099-12-31T23:59:59",
+			"description": "",
 			"address": map[string]any{
 				"street":       "",
 				"number":       "",

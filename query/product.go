@@ -299,7 +299,7 @@ SELECT
 	c.id                AS consignment_id,
 	pl.id               AS pickup_id,
 	pl.name             AS pickup_name,
-	pl.pickup_at::text  AS pickup_date,
+	pl.starts_at::text  AS pickup_date,
 	a.addrstreet,
 	a.addrnumber::text  AS addrnumber,
 	a.addrcity,
@@ -314,6 +314,7 @@ JOIN pickup_locations pl ON pl.id = cpl.pickup_location_id
 JOIN aliased_addresses_view a ON a.address_id = pl.address_id
 WHERE pkg.product_id = ANY($1)
   AND pkg.quantity > 0
+  AND pl.valid_until > NOW()
 `
 
 	ProductAddToStock = `

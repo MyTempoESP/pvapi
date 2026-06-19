@@ -5,14 +5,18 @@ const (
 INSERT INTO pickup_locations
 	(
 		name,
-		pickup_at,
+		description,
+		starts_at,
+		valid_until,
 		address_id,
 		shop_id
 	)
 	VALUES
 	(
 		@name,
-		@pickup_at,
+		@description,
+		@starts_at,
+		@valid_until,
 		insert_new_address(
 			@addrstreet,
 			@addrnumber,
@@ -31,7 +35,9 @@ RETURNING id
 SELECT
 	p.id,
 	p.name,
-	p.pickup_at,
+	p.description,
+	p.starts_at,
+	p.valid_until,
 
 	a.addrstreet,
 	a.addrnumber,
@@ -49,7 +55,9 @@ WHERE p.shop_id = $1
 SELECT
 	p.id,
 	p.name,
-	p.pickup_at,
+	p.description,
+	p.starts_at,
+	p.valid_until,
 
 	a.addrstreet,
 	a.addrnumber,
@@ -66,7 +74,9 @@ WHERE p.id = $1
 	UpdatePickupLocationQuery = `
 UPDATE pickup_locations
 SET name   = COALESCE($2::text, name),
-    pickup_at = COALESCE($3::timestamptz, pickup_at)
+    starts_at = COALESCE($3::timestamptz, starts_at),
+    description = COALESCE($4::text, description),
+    valid_until  = COALESCE($5::timestamptz, valid_until)
 WHERE id = $1
 `
 

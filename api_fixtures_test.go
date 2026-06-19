@@ -131,8 +131,10 @@ func (h *apiHarness) createPickup(t *testing.T, session *apiSession) pickupFixtu
 
 	pickupName := fmt.Sprintf("ponto-%s", uniqSuffix())
 	rec := h.doJSON(t, http.MethodPost, "/pontos", session, map[string]any{
-		"name":     pickupName,
-		"datetime": "2024-03-25T14:05:43",
+		"name":        pickupName,
+		"datetime":    "2024-03-25T14:05:43",
+		"validUntil":  "2099-12-31T23:59:59",
+		"description": "Próximo ao mercado",
 		"address": map[string]any{
 			"street":       "Rua Nova",
 			"number":       "50",

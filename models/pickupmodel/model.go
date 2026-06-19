@@ -2,6 +2,7 @@ package pickupmodel
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"linhazero.com/pvapi/address"
@@ -12,9 +13,11 @@ import (
 )
 
 type PickupLocation struct {
-	ID       int
-	Name     string
-	Datetime time.Time `db:"pickup_at"`
+	ID          int
+	Name        string
+	Description string
+	Datetime    time.Time `db:"starts_at"`
+	ValidUntil  time.Time `db:"valid_until"`
 
 	address.Address
 }
@@ -42,9 +45,11 @@ func (p PickupLocationBlueprint) Save(
 		query.CreatePickupLocationQuery,
 		util.Merge(
 			util.Args{
-				"name":      p.Name,
-				"shop_id":   p.ShopID,
-				"pickup_at": p.Datetime,
+				"name":        p.Name,
+				"description": p.Description,
+				"shop_id":     p.ShopID,
+				"starts_at":   p.Datetime,
+				"valid_until": p.ValidUntil,
 			},
 			p.Address.Params(),
 		),
@@ -80,12 +85,38 @@ func Update(
 		pickupAt = t
 	}
 
+	var description any
+	if req.Description != nil {
+		description = *req.Description
+	}
+
+	var validUntil any
+	if req.ValidUntil != nil {
+		t, err := time.Parse("2006-01-02T15:04:05", *req.ValidUntil)
+		if err != nil {
+			return err
+		}
+		validUntil = t
+	}
+
+	// ponytail: N+1 — if both datetime and validUntil provided, reject if validUntil <= datetime
+	//          works for current scope, add proper validation if abuse surfaces.
+	if req.DateTime != nil && req.ValidUntil != nil {
+		dt, _ := time.Parse("2006-01-02T15:04:05", *req.DateTime)
+		vu, _ := time.Parse("2006-01-02T15:04:05", *req.ValidUntil)
+		if !vu.After(dt) {
+			return fmt.Errorf("valid_until must be after datetime")
+		}
+	}
+
 	_, err := base.Exec(
 		ctx,
 		query.UpdatePickupLocationQuery,
 		pickupID,
 		name,
 		pickupAt,
+		description,
+		validUntil,
 	)
 	if err != nil {
 		return err
