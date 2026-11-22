@@ -10,6 +10,7 @@ vendor/
 tmux.just
 .aider*
 *.png
+!/docs/img/*.png
 *.jpg
 *.html
 !/mail/*.html

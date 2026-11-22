@@ -1,0 +1,30 @@
+@startuml
+!include pvapi-theme.iuml
+actor "Client" as C
+participant "Partner storefront" as S
+participant "pvapi" as API
+database "PostgreSQL" as DB
+
+== Browse ==
+C -> S : open storefront
+S -> API : GET /produtos?token=<consignment UUID>,\n/produtos/:product, /estabelecimentos
+API -> DB : public product and shop queries
+API --> S : shops, products\n(with pickup locations)
+== Cart ==
+C -> S : add items, choose a pickup location (retirada) per item
+note right of S : cart is frontend state only\n(no cart table or endpoint in pvapi)
+== Checkout ==
+C -> S : confirm purchase
+S -> API : POST /checkouts/confirm\n(Bearer pv_..., items with retirada, client data)
+API -> DB : transaction: client, stock, reservations
+API --> S : 200 unique_id, qr_codes\n(one per reserved package, with pickup address)
+S --> C : show QR codes
+== Afterwards ==
+C -> API : GET /usuario/cliente/overview (JWT)
+API --> C : purchases and pickup data
+note over C, API
+  Not implemented in this repository: pickup confirmation email,
+  callback request, and a QR scan / collection endpoint.
+  Reservations stay in status pending.
+end note
+@enduml

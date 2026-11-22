@@ -1,0 +1,29 @@
+@startuml
+!include pvapi-theme.iuml
+start
+:Begin transaction;
+:Lock checkout by unique_id (FOR UPDATE);
+if (Checkout found?) then (no)
+  :Return ErrCheckoutNotFound (404);
+  stop
+endif
+if (Owned by calling API client?) then (no)
+  :Return ErrCancelForbidden (403);
+  stop
+endif
+:List package_reserved rows of the checkout;
+:Keep rows with status pending;
+while (More pending rows?) is (yes)
+  :Return quantity to package stock;
+  :Delete reservation;
+endwhile (no)
+:Delete checkout_shop rows of shops\nwith no remaining reservations;
+:Recompute remaining checkout_shop totals\nfrom remaining reservations;
+:Count remaining reservations;
+if (None remaining?) then (yes)
+  :Delete checkout;
+endif
+:Commit;
+:Return cancelled and remaining counts (200);
+stop
+@enduml

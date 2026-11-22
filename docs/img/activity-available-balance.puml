@@ -1,0 +1,17 @@
+@startuml
+!include pvapi-theme.iuml
+start
+:Lock shop row (FOR UPDATE);
+:Sum checkout_shop earnings\n(value - tax - commission);
+if (Query failed other than no rows?) then (yes)
+  :Return error;
+  stop
+endif
+:Load saque totals by status\n(pending and approved only);
+:balance = earnings;
+while (More saque totals?) is (yes)
+  :balance = balance - total;
+endwhile (no)
+:Return balance;
+stop
+@enduml

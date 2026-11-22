@@ -1,0 +1,20 @@
+@startuml
+!include pvapi-theme.iuml
+start
+:Query seconds since the client's\nmost recent checkout;
+if (Query failed?) then (yes)
+  :Return error;
+  stop
+endif
+if (No previous checkout\nor NULL timestamp?) then (yes)
+  :Return not blocked;
+  stop
+endif
+if (Seconds ago >= window (60 s)?) then (yes)
+  :Return not blocked;
+else (no)
+  :remaining = window - seconds ago;
+  :Return blocked with remaining seconds;
+endif
+stop
+@enduml

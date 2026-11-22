@@ -1,0 +1,48 @@
+@startuml
+!include pvapi-theme.iuml
+start
+if (Callback present and not a valid http(s) URL?) then (yes)
+  :Return ErrInvalidCallback (400);
+  stop
+endif
+:Resolve client identity\n(email, phone, CPF, name);
+if (No effective email?) then (yes)
+  :Return ErrNoIdentity (400);
+  stop
+endif
+:Hash generated password;
+:Begin transaction;
+partition "Client" {
+  :Create or fetch client;
+  :Update phone / CPF if provided;
+  :Lock client row (FOR UPDATE);
+}
+if (Last checkout < rate-limit window?) then (yes)
+  :Rollback, return RateLimitInfo (429);
+  stop
+endif
+:Insert checkout (status paid);
+partition "Validation" {
+  repeat :For each item\ncheck package stock (FOR UPDATE);
+    if (Package missing or\nstock < quantity?) then (yes)
+      :Rollback, return ErrPackageNotFound (422)\nor ErrInsufficientStock (409);
+      stop
+    endif
+  repeat while (More items?) is (yes) not (no)
+  repeat :For each item\ncheck pickup location\nbelongs to consignment;
+    if (Invalid pickup location?) then (yes)
+      :Rollback, return ErrInvalidRetirada (422);
+      stop
+    endif
+  repeat while (More items?) is (yes) not (no)
+}
+partition "Write" {
+  :Decrement stock and insert package_reserved\n(frozen value, tax, commission);
+  :Insert checkout_shop per shop (summed values);
+  :Load reserved entries, encode one QR code each;
+  :Set client_id on checkout, checkout_shop,\nand package_reserved;
+}
+:Commit;
+:Return unique_id, status paid, QR codes (200);
+stop
+@enduml

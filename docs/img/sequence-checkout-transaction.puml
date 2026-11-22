@@ -1,0 +1,50 @@
+@startuml
+!include pvapi-theme.iuml
+participant "Partner / API client" as P
+participant "API token middleware" as MW
+participant "ConfirmHandler" as H
+participant "checkoutmodel.Confirm" as CM
+database "PostgreSQL" as DB
+
+P -> MW : POST /checkouts/confirm\n(Bearer pv_...)
+MW -> DB : validate token hash, not revoked
+MW -> H : api_client_id in context
+H -> H : bind JSON, require email / CPF / phone
+H -> CM : Confirm(req, api_client_id)
+CM -> CM : validate callback URL,\nresolve identity, hash password
+CM -> DB : BEGIN
+group Resolve client
+  CM -> DB : find user by email
+  alt new user
+    CM -> DB : INSERT users, clients
+  else existing client
+    CM -> DB : UPDATE phone / CPF if provided
+  end
+  CM -> DB : lock client row (FOR UPDATE)
+end
+CM -> DB : latest checkout age for client
+alt within rate-limit window
+  CM -> DB : ROLLBACK
+  CM --> H : RateLimitInfo
+  H --> P : 429 retry_after
+end
+CM -> DB : INSERT checkouts (status paid, callback)
+loop each item
+  CM -> DB : SELECT quantity FROM packages FOR UPDATE
+  CM -> DB : validate pickup location for consignment
+end
+loop each item
+  CM -> DB : UPDATE packages (decrement quantity)\nINSERT package_reserved\n(frozen value, tax, commission)
+end
+CM -> DB : INSERT checkout_shop per shop\n(SUM value, tax, commission)
+CM -> DB : fetch reserved entries, encode QR codes
+CM -> DB : set client_id on checkouts,\ncheckout_shop, package_reserved
+CM -> DB : COMMIT
+CM --> H : ConfirmResponse
+H --> P : 200 unique_id, status, qr_codes
+note over P, DB
+  Validation failures roll back the whole transaction:
+  422 unknown package or pickup, 409 insufficient stock.
+  The stored callback URL is not called by the API.
+end note
+@enduml

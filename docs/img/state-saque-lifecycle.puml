@@ -1,0 +1,25 @@
+@startuml
+!include pvapi-theme.iuml
+[*] --> pending : POST /estabelecimentos/saques\n(balance checked)
+
+state pending : Awaiting admin review
+state approved : Counts against balance
+state rejected : motivo stored
+state cancelled : Set by shop
+
+pending --> approved : Admin approve\n(balance re-checked, only if pending)
+pending --> rejected : Admin reject\n(only if pending)
+pending --> cancelled : Shop PUT status=cancelled
+
+approved --> [*]
+rejected --> [*]
+cancelled --> [*]
+
+note right of cancelled
+  Shop PUT accepts only "cancelled".
+  UpdateStatus does not check the current
+  status, so approved or rejected saques
+  can also be cancelled.
+  Shop DELETE removes the row in any state.
+end note
+@enduml

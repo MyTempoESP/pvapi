@@ -1,0 +1,74 @@
+@startuml
+!include pvapi-theme.iuml
+skinparam componentStyle rectangle
+
+actor "Browser / Shop / Admin" as User
+actor "Partner storefront\n(API client)" as Partner
+
+package "Gin HTTP layer" {
+  [Log middleware] as Log
+  [JWT middleware\n(gin-jwt, Authorizer)] as JWT
+  [API token middleware\n(Bearer pv_...)] as Tok
+}
+
+package "Authorization" {
+  [Bouncer\n(policymodel)] as Bouncer
+  [Gates\n(/estabelecimentos, /produtos, /remessas, /admin ...)] as Gates
+  Bouncer --> Gates : Dispatch by path prefix
+}
+
+package "Controllers" {
+  [Controllers\n(shop, product, consignment, saque, ...)] as Ctl
+  [Checkout controller\n(/checkouts)] as CCtrl
+}
+
+package "Models" {
+  [Domain models\n(shopmodel, productmodel, saquemodel, ...)] as DomM
+  [checkoutmodel] as CM
+  [clientmodel] as CLM
+  [financemodel] as Fin
+  [apitokenmodel] as ATM
+}
+
+package "Query" {
+  [SQL query constants\n(query/*.go)] as Q
+}
+
+package "Mail (not wired)" {
+  interface Mailer
+  [SMTP client\n(go-mail)] as Smtp
+  [pickup_confirmation.html] as Tpl
+  Mailer <|.. Smtp
+  Smtp --> Tpl
+}
+
+database "PostgreSQL" as DB {
+  [tables, views, functions]
+}
+
+User --> Log : HTTPS
+Partner --> Log : HTTPS
+Log --> JWT : session routes
+Log --> Tok : /checkouts
+JWT --> Bouncer : authorize request
+Bouncer --> DB : ownership checks
+JWT --> Ctl
+Tok --> ATM : validate token
+ATM --> Q
+Tok --> CCtrl
+CCtrl --> CM
+CM --> CLM : create / resolve client
+Ctl --> DomM
+Ctl --> Fin : balance (saques)
+DomM --> Q
+CM --> Q
+CLM --> Q
+Fin --> Q
+Q --> DB : pgx
+
+note right of Mailer
+  createMailer() builds the client in main.go
+  but the result is discarded;
+  no handler sends email
+end note
+@enduml

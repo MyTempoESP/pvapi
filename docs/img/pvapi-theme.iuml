@@ -1,0 +1,6 @@
+!theme mars
+skinparam actorStyle awesome
+skinparam shadowing true
+skinparam SequenceGroupBackgroundColor #FAE5C7
+skinparam SequenceGroupBodyBackgroundColor #FAE5C7
+skinparam SequenceReferenceBackgroundColor #lightgray
