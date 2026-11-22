@@ -3,8 +3,8 @@ mod database
 set shell := ["bash", "-c"]
 
 prod_db_user	 := "pvauto"
-prod_db_pass	 := "REDACTED_DB_PASS"
-prod_db_pass_url := "REDACTED_DB_PASS"
+prod_db_pass	 := env("PV_PROD_DB_PASS", "")
+prod_db_pass_url := encode_uri_component(prod_db_pass)
 prod_db_port	 := "5434"
 prod_db_name	 := "pvauto_db"
 prod_db_host	 := "127.0.0.1"

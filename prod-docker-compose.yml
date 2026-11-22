@@ -18,15 +18,15 @@ services:
       - traefik.http.middlewares.cors-headers.headers.accessControlAllowHeaders=*
     environment:
       - PV_API_SECURE_COOKIE=yes
-      - PV_API_SECRET=REDACTED_JWT_SECRET
+      - PV_API_SECRET=${PV_API_SECRET:?set in .env}
       - PV_API_DB_HOST=db
       - PV_API_DB_USER=pvauto
-      - PV_API_DB_PASS=REDACTED_DB_PASS
+      - PV_API_DB_PASS=${PV_API_DB_PASS:?set in .env}
       - PV_API_DB_BASE=pvauto_db
       - PV_API_DB_PORT=5432
       - PV_API_ADMIN_USER=lzero
       - PV_API_ADMIN_MAIL=sistemas@linhazero.com
-      - PV_API_ADMIN_PASS=REDACTED_ADMIN_PASS
+      - PV_API_ADMIN_PASS=${PV_API_ADMIN_PASS:?set in .env}
       - PV_API_LOG_LEVEL=debug
       - PV_API_PRODUCTION=yes
       - PV_API_DOMAIN_NAME=pvauto.linhazero.com
@@ -34,7 +34,7 @@ services:
       - PV_API_SMTP_HOST=smtp.hostinger.com
       - PV_API_SMTP_PORT=587
       - PV_API_SMTP_USER=sistemas@linhazero.com
-      - PV_API_SMTP_PASS=REDACTED_ADMIN_PASS
+      - PV_API_SMTP_PASS=${PV_API_SMTP_PASS:?set in .env}
       - PV_API_SMTP_FROM=PvAuto <sistemas@linhazero.com>
       - PV_API_LOGIN_LINK=https://pvauto.online/login
       - PV_API_PASSWORD_RESET_LINK=https://pvauto.online/esqueci-senha
@@ -48,7 +48,7 @@ services:
       - ./internal/database/migrations:/migrations
     command:
       - -path=/migrations/
-      - -database=postgres://pvauto:REDACTED_DB_PASS@db:5432/pvauto_db?sslmode=disable
+      - -database=postgres://pvauto:${PV_API_DB_PASS_URLENCODED:?set in .env}@db:5432/pvauto_db?sslmode=disable
       - up
     depends_on:
       db:
@@ -63,7 +63,7 @@ services:
     environment:
       - POSTGRES_USER=pvauto
       - POSTGRES_DB=pvauto_db
-      - POSTGRES_PASSWORD=REDACTED_DB_PASS
+      - POSTGRES_PASSWORD=${PV_API_DB_PASS:?set in .env}
     volumes:
       - pvauto__db_data:/var/lib/postgresql
     healthcheck:
